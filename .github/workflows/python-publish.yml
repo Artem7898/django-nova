@@ -55,7 +55,7 @@ jobs:
       #
       # ALTERNATIVE: if your GitHub Release name is the PyPI project version string
       # ALTERNATIVE: exactly, uncomment the following line instead:
-      # url: https://test.pypi.org/project/django-nova/0.1.0/${{ Artem Alimpiev }}
+       url: https://test.pypi.org/project/django-nova/0.1.0/${{ Artem Alimpiev }}
 
     steps:
       - name: Retrieve release distributions
