@@ -92,3 +92,4 @@ Artem Alimpiev
 
 📄 License
 This project is licensed under the terms of the MIT license. See the LICENSE file for details.
+https://test.pypi.org/project/django-nova/0.1.0/
