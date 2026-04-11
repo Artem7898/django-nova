@@ -1,0 +1,79 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "django-nova"
+version = "0.1.0"
+description = "Next-generation Django toolkit: typed ORM, unified validation, async-first, smart caching"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+authors = [
+    { name = "Artem Alimpiev", email = "alimpievne@gmail.com" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: Django :: 5.0",
+    "Framework :: Django :: 5.1",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "django>=5.0,<6.0",
+    "pydantic>=2.8,<3.0",
+    "pydantic-settings>=2.5,<3.0",
+    "typing-extensions>=4.12",
+    "cachetools>=5.4",
+    "redis>=5.0; extra=='cache'",
+    "asyncpg>=0.30; extra=='async'",
+]
+
+[project.optional-dependencies]
+async = ["asyncpg>=0.30", "databases[asyncpg]>=0.9"]
+cache = ["redis>=5.0", "hiredis>=3.0"]
+tasks = ["asyncio-throttle>=1.0"]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-django>=4.9",
+    "ruff>=0.6",
+    "pyright>=1.1",
+    "coverage>=7.6",
+    "hatch>=1.12",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nova"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "A", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = [
+    "slow: marks tests as slow",
+    "integration: integration tests",
+]
+
+[tool.coverage.run]
+source = ["src/nova"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:"]
