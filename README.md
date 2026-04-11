@@ -94,5 +94,6 @@ pytest tests/test_full_integration.py -v
 
 📄 Лицензия
 Данный проект действует на условиях лицензии MIT. Подробности смотрите в файле docs ЛИЦЕНЗИЯ.
+https://test.pypi.org/project/django-nova/0.1.0/
 
 
