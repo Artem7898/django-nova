@@ -32,44 +32,7 @@
 ```bash
 pip install django-nova
 
-Пример использования.
-# models.py
-
-from pydantic import BaseModel, field_validator
-from django.db import models
-from nova import NovaModel, NovaConfig
-
-# 1. Описываем правила валидации (ОДИН РАЗ)
-class ResearcherSchema(BaseModel):
-    name: str
-    email: str
-    h_index: int = 0
-
-    @field_validator("h_index")
-    @classmethod
-    def validate_h_index(cls, v: int) -> int:
-        if v < 0:
-            raise ValueError("h-index не может быть отрицательным")
-        return v
-
-# 2. Связываем с Django
-class Researcher(NovaModel):
-    name = models.CharField(max_length=300)
-    email = models.EmailField(unique=True)
-    h_index = models.IntegerField(default=0)
-
-    _nova_config = NovaConfig(
-        pydantic_schema=ResearcherSchema,
-        cache_enabled=True,
-        strict_validation=True
-    )
-    
-Теперь любая попытка сохранить
-# Выбросит NovaValidationError ещё до попадания в БД!
-bad_researcher = Researcher(name="Иван", email="ivan@test.com", h_index=-5)
-bad_researcher.save()
-
-### Как делают все (Классический Django + DRF):
+# Как делают все (Классический Django + DRF):
 
 # 1. models.py
 class Article(models.Model):
@@ -94,7 +57,8 @@ class ArticleForm(forms.ModelForm):
     def clean_status(self):
         # И так во всех проектах по 100 раз...
         pass
-### Как сделано с Django NOVA:
+
+# Как сделано с Django NOVA:
 
 # 1. schema.py (ЕДИНСТВЕННЫЙ ИСТОЧНИК ПРАВДЫ)
 from pydantic import BaseModel
@@ -114,8 +78,8 @@ class Article(NovaModel):
         strict_validation=True
     )
 
-#### Любой вызов article.save() автоматически прогоняется через ArticleSchema.
-#### Forms и API генерируются из схемы автоматически.
+# Любой вызов article.save() автоматически прогоняется через ArticleSchema.
+# Forms и API генерируются из схемы автоматически.
 
 
 🏛️ Архитектура
