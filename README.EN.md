@@ -31,41 +31,55 @@
 
 ```bash
 pip install django-nova
-Usage example
-# models.py
-from pydantic import BaseModel, field_validator
-from django.db import models
-from nova import NovaModel, NovaConfig
 
-# 1. Define validation rules (ONCE)
-class ResearcherSchema(BaseModel):
-    name: str
-    email: str
-    h_index: int = 0
+# How everyone does it (Classic Django + DRF):
 
-    @field_validator("h_index")
-    @classmethod
-    def validate_h_index(cls, v: int) -> int:
-        if v < 0:
-            raise ValueError("h-index cannot be negative")
-        return v
+# 1. models.py
+class Article(models.Model):
+    title = models.CharField(max_length=200)
+    status = models.CharField(max_length=20)
 
-# 2. Connect to Django
-class Researcher(NovaModel):
-    name = models.CharField(max_length=300)
-    email = models.EmailField(unique=True)
-    h_index = models.IntegerField(default=0)
+    def clean(self):
+        if self.status not in ("DRAFT", "PUBLISHED"):
+            raise ValidationError("Invalid status")
+
+# 2. serializers.py (DUPLICATION!)
+class ArticleSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=200)
+    status = serializers.ChoiceField(choices=["DRAFT", "PUBLISHED"])
+
+# 3. forms.py (MORE DUPLICATION!)
+class ArticleForm(forms.ModelForm):
+    class Meta:
+        model = Article
+        fields = "__all__"
+
+    def clean_status(self):
+        # And so it is in all projects 100 times...
+        pass
+
+How it's done with Django Nova:
+
+# 1. schema.py (THE ONLY SOURCE OF TRUTH)
+from pydantic import BaseModel
+
+class ArticleSchema(BaseModel):
+    title: str
+    status: Literal["DRAFT", "PUBLISHED"]
+
+# 2. models.py (THAT'S IT, YOU DON'T NEED ANYTHING ELSE)
+class Article(NovaModel):
+    title = models.CharField(max_length=200)
+    status = models.CharField(max_length=20)
 
     _nova_config = NovaConfig(
-        pydantic_schema=ResearcherSchema,
-        cache_enabled=True,
+        pydantic_schema=ArticleSchema,
+        cache_enabled=True, 
         strict_validation=True
     )
 
-Now, any attempt to save invalid data will be blocked at the ORM level:
-# Throws NovaValidationError before it even hits the database!
-bad_researcher = Researcher(name="John Doe", email="john@test.com", h_index=-5)
-bad_researcher.save() 
+# Any call to article.save() is automatically run through ArticleSchema.
+# Forms and API are generated from the schema automatically.
 
 🏛️ Architecture
 Django Nova integrates seamlessly, intercepting standard Django processes at the core level:
