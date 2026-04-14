@@ -67,7 +67,56 @@ class Researcher(NovaModel):
 Теперь любая попытка сохранить
 # Выбросит NovaValidationError ещё до попадания в БД!
 bad_researcher = Researcher(name="Иван", email="ivan@test.com", h_index=-5)
-bad_researcher.save() 
+bad_researcher.save()
+
+### Как делают все (Классический Django + DRF):
+
+# 1. models.py
+class Article(models.Model):
+    title = models.CharField(max_length=200)
+    status = models.CharField(max_length=20)
+
+    def clean(self):
+        if self.status not in ("DRAFT", "PUBLISHED"):
+            raise ValidationError("Invalid status")
+
+# 2. serializers.py (ДУБЛИРОВАНИЕ!)
+class ArticleSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=200)
+    status = serializers.ChoiceField(choices=["DRAFT", "PUBLISHED"])
+
+# 3. forms.py (ОПЯТЬ ДУБЛИРОВАНИЕ!)
+class ArticleForm(forms.ModelForm):
+    class Meta:
+        model = Article
+        fields = "__all__"
+
+    def clean_status(self):
+        # И так во всех проектах по 100 раз...
+        pass
+### Как сделано с Django NOVA:
+
+# 1. schema.py (ЕДИНСТВЕННЫЙ ИСТОЧНИК ПРАВДЫ)
+from pydantic import BaseModel
+
+class ArticleSchema(BaseModel):
+    title: str
+    status: Literal["DRAFT", "PUBLISHED"]
+
+# 2. models.py (ВСЁ, БОЛЬШЕ НИЧЕГО НЕ НУЖНО)
+class Article(NovaModel):
+    title = models.CharField(max_length=200)
+    status = models.CharField(max_length=20)
+
+    _nova_config = NovaConfig(
+        pydantic_schema=ArticleSchema,
+        cache_enabled=True, 
+        strict_validation=True
+    )
+
+#### Любой вызов article.save() автоматически прогоняется через ArticleSchema.
+#### Forms и API генерируются из схемы автоматически.
+
 
 🏛️ Архитектура
 Джанго Нова незаметно перехватывает стандартные процессы.
