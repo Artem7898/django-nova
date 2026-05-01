@@ -103,7 +103,7 @@ Full documentation on architecture, API, and migration utilities is available in
 
 👤 Author
 Artem Alimpiev
-#### https://orcid.org/0009-0007-6740-7242
+ https://orcid.org/0009-0007-6740-7242
 
 📄 License
 This project is licensed under the terms of the MIT license. See the LICENSE file for details.
