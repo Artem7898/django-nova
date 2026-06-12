@@ -11,8 +11,8 @@ if TYPE_CHECKING:
 
 # Safe Import for DRF
 try:
-    from rest_framework import serializers
     from pydantic import ValidationError as PydanticValidationError
+    from rest_framework import serializers
     DRF_AVAILABLE = True
 except ImportError:
     serializers = None

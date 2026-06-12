@@ -5,8 +5,8 @@ Replaces standard string-based logging with machine-readable JSON events.
 from __future__ import annotations
 
 import logging
+
 import structlog
-from typing import Any
 
 
 def setup_nova_logging() -> None:

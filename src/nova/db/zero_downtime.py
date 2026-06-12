@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+
 from django.db import migrations
 from django.db.migrations.operations.fields import AddField
 from django.db.models.fields import NOT_PROVIDED

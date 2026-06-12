@@ -6,12 +6,12 @@ Dynamically generates CRUD endpoints for NovaModels.
 from __future__ import annotations
 
 import inspect
-
 from inspect import Parameter
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
+
     from nova.typing.models import NovaModel
 
 # Safe FastAPI import

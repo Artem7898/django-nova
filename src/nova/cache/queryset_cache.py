@@ -22,8 +22,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import time
-from nova.core.observability import get_logger
 from collections.abc import Callable
 from functools import wraps
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
@@ -31,6 +29,7 @@ from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 from cachetools import TTLCache
 
 from nova.core.exceptions import NovaCacheError
+from nova.core.observability import get_logger
 
 if TYPE_CHECKING:
     from django.db.models import QuerySet

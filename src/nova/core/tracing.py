@@ -5,8 +5,9 @@ all tracing functions become no-ops (do nothing) with zero overhead.
 """
 from __future__ import annotations
 
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Generator
+from typing import Any
 
 # Safe Import: Если пакета нет, подменяем на пустышки
 try:
