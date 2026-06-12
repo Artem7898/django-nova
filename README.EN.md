@@ -32,54 +32,14 @@
 ```bash
 pip install django-nova
 
-# How everyone does it (Classic Django + DRF):
 
-# 1. models.py
-class Article(models.Model):
-    title = models.CharField(max_length=200)
-    status = models.CharField(max_length=20)
 
-    def clean(self):
-        if self.status not in ("DRAFT", "PUBLISHED"):
-            raise ValidationError("Invalid status")
-
-# 2. serializers.py (DUPLICATION!)
-class ArticleSerializer(serializers.Serializer):
-    title = serializers.CharField(max_length=200)
-    status = serializers.ChoiceField(choices=["DRAFT", "PUBLISHED"])
-
-# 3. forms.py (MORE DUPLICATION!)
-class ArticleForm(forms.ModelForm):
-    class Meta:
-        model = Article
-        fields = "__all__"
-
-    def clean_status(self):
-        # And so it is in all projects 100 times...
-        pass
-
-How it's done with Django Nova:
-
-# 1. schema.py (THE ONLY SOURCE OF TRUTH)
-from pydantic import BaseModel
-
-class ArticleSchema(BaseModel):
-    title: str
-    status: Literal["DRAFT", "PUBLISHED"]
-
-# 2. models.py (THAT'S IT, YOU DON'T NEED ANYTHING ELSE)
-class Article(NovaModel):
-    title = models.CharField(max_length=200)
-    status = models.CharField(max_length=20)
 
     _nova_config = NovaConfig(
-        pydantic_schema=ArticleSchema,
-        cache_enabled=True, 
+        cache_enabled=True,
         strict_validation=True
     )
 
-# Any call to article.save() is automatically run through ArticleSchema.
-# Forms and API are generated from the schema automatically.
 
 🏛️ Architecture
 Django Nova integrates seamlessly, intercepting standard Django processes at the core level:
@@ -103,9 +63,6 @@ Full documentation on architecture, API, and migration utilities is available in
 
 👤 Author
 Artem Alimpiev
-https://orcid.org/0009-0007-6740-7242
-https://doi.org/10.5281/zenodo.20057443
 
 📄 License
 This project is licensed under the terms of the MIT license. See the LICENSE file for details.
-https://test.pypi.org/project/django-nova/0.1.0/
