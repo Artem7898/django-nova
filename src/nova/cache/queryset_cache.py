@@ -22,7 +22,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-import logging
+import time
+from nova.core.observability import get_logger
 from collections.abc import Callable
 from functools import wraps
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
@@ -38,7 +39,7 @@ P = ParamSpec("P")
 R = TypeVar("R")
 ModelT = TypeVar("ModelT")
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class QuerySetCache[ModelT]:
@@ -108,9 +109,7 @@ class QuerySetCache[ModelT]:
             self._cache.pop(key, None)
 
         if keys_to_remove:
-            logger.info(
-                "Invalidated %d cache entries for model %s", len(keys_to_remove), model_name
-            )
+            logger.info("cache_invalidate", model=model_name, evicted_count=len(keys_to_remove))
         return len(keys_to_remove)
 
     def clear(self) -> None:

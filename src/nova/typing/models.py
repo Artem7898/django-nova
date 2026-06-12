@@ -116,13 +116,18 @@ class NovaModel(models.Model):
     def save(self, force_insert: bool = False, force_update: bool = False,
              using: str | None = None, update_fields: Sequence[str] | None = None) -> None:
         """Save with unified validation."""
-        self._run_validation()
-        super().save(
-            force_insert=force_insert,
-            force_update=force_update,
-            using=using,
-            update_fields=update_fields,
-        )
+        from nova.core.tracing import nova_span
+        
+        with nova_span("nova.model.save", model=self._meta.label, pk=getattr(self, self._meta.pk.attname, None)) as span:
+            self._run_validation()
+            if span:
+                span.set_attribute("nova.validation.passed", True)
+            super().save(
+                force_insert=force_insert,
+                force_update=force_update,
+                using=using,
+                update_fields=update_fields,
+            )
 
     def _run_validation(self) -> None:
         """Execute unified validation pipeline."""

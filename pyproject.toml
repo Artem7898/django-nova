@@ -35,7 +35,9 @@ dependencies = [
 [project.optional-dependencies]
 async = ["asyncpg>=0.30", "databases[asyncpg]>=0.9"]
 cache = ["redis>=5.0", "hiredis>=3.0"]
+tracing = ["opentelemetry-api>=1.20"]
 tasks = ["asyncio-throttle>=1.0"]
+drf = ["djangorestframework>=3.15"]
 dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
