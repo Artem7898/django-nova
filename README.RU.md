@@ -152,6 +152,7 @@ pytest tests/ -v  # 39 passed
 
 - ORCID: [0009-0007-6740-7242](https://orcid.org/0009-0007-6740-7242)
 - DOI: [10.5281/zenodo.20057443](https://doi.org/10.5281/zenodo.20057443)
+- DOI: [10.5281/zenodo.20659647](https://doi.org/10.5281/zenodo.20659647)
 
 ---
 
