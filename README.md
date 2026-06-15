@@ -141,7 +141,7 @@ The project is tested on the bleeding-edge stack (Python 3.14 + Django 5.2).
 
 ```bash
 pip install -e ".[dev]"
-pytest tests/ -v  # 39 passed
+pytest tests/ -v  #  42 passed 
 ```
 
 ---
