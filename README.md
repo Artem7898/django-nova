@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/django-nova-logo.png" width="300" alt="Django Nova Logo">
+</p>
+
 <div align="center">
 
 # 🚀 Django Nova
