@@ -1,7 +1,4 @@
-````md
 <div align="center">
-
-<img src="https://raw.githubusercontent.com/Artem7898/django-nova/main/assets/django-nova-logo.png" width="420" alt="Django Nova Logo"/>
 
 # 🚀 Django Nova
 
@@ -48,7 +45,7 @@ pip install django-nova[fastapi]
 
 # With full enterprise stack (tracing, logging)
 pip install django-nova[tracing,observability]
-````
+```
 
 ---
 
@@ -132,9 +129,9 @@ Request -> View -> Model.save() -> [Pydantic Validation -> Django Fields -> Busi
 
 ### Core Tech Stack:
 
-* **PEP 562:** Lazy imports bypassing AppRegistryNotReady.
-* **PEP 695:** Modern generic syntax (`class Cache[T]:`).
-* **SQL Compiler:** Deterministic cache hash key generation (safe across any Django version).
+- **PEP 562:** Lazy imports bypassing AppRegistryNotReady.
+- **PEP 695:** Modern generic syntax (`class Cache[T]:`).
+- **SQL Compiler:** Deterministic cache hash key generation (safe across any Django version).
 
 ---
 
@@ -153,16 +150,13 @@ pytest tests/ -v  # 42 passed
 
 **Artem Alimpiev**
 
-* ORCID: [0009-0007-6740-7242](https://orcid.org/0009-0007-6740-7242)
-* DOI: [10.5281/zenodo.20057443](https://doi.org/10.5281/zenodo.20057443)
-* DOI: [10.5281/zenodo.20659647](https://doi.org/10.5281/zenodo.20659647)
-* pypi: [Django Nova ](https://pypi.org/project/django-nova/)
+- ORCID: [0009-0007-6740-7242](https://orcid.org/0009-0007-6740-7242)
+- DOI: [10.5281/zenodo.20057443](https://doi.org/10.5281/zenodo.20057443)
+- DOI: [10.5281/zenodo.20659647](https://doi.org/10.5281/zenodo.20659647)
+- pypi: [Django Nova ](https://pypi.org/project/django-nova/)
 
 ---
 
 ## 📄 License
 
 This project is licensed under the terms of the MIT License. See the [LICENSE](LICENSE) file for details.
-
-```
-```
