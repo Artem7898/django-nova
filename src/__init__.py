@@ -1,1 +1,3 @@
-from .models import NovaModel, NovaConfig
+from nova.models import NovaModel, NovaConfig
+
+__all__ = ["NovaModel", "NovaConfig"]
