@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "django-nova"
-version = "0.2.1"
+version = "0.2.2"
 description = "Next-generation Django toolkit: typed ORM, unified validation, async-first, smart caching"
 readme = "README.md"
 license = "MIT"
@@ -84,6 +84,9 @@ branch = true
 
 [tool.coverage.report]
 exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:"]
+
+[tool.hatch.build]
+dev-mode-dirs = ["src"]
 
 [tool.hatch.build.targets.wheel]
 only-include = ["nova"]
