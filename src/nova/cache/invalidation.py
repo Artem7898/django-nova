@@ -1,6 +1,7 @@
 """
 Event-driven cache invalidation using Django signals.
 """
+
 from __future__ import annotations
 
 import logging

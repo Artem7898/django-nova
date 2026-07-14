@@ -1,4 +1,3 @@
-
 """
 Typed model mixins for Django 5.
 
@@ -113,12 +112,19 @@ class NovaModel(models.Model):
         objects: Manager[Self]  # type: ignore[assignment]
 
     @override
-    def save(self, force_insert: bool = False, force_update: bool = False,
-             using: str | None = None, update_fields: Sequence[str] | None = None) -> None:
+    def save(
+        self,
+        force_insert: bool = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Sequence[str] | None = None,
+    ) -> None:
         """Save with unified validation."""
         from nova.core.tracing import nova_span
-        
-        with nova_span("nova.model.save", model=self._meta.label, pk=getattr(self, self._meta.pk.attname, None)) as span:
+
+        with nova_span(
+            "nova.model.save", model=self._meta.label, pk=getattr(self, self._meta.pk.attname, None)
+        ) as span:
             self._run_validation()
             if span:
                 span.set_attribute("nova.validation.passed", True)

@@ -1,12 +1,14 @@
 """Tests for structured observability layer."""
+
 from __future__ import annotations
 
 import json
 import logging
-import structlog
-import pytest
 
-from nova.core.observability import setup_nova_logging, get_logger
+import pytest
+import structlog
+
+from nova.core.observability import get_logger, setup_nova_logging
 
 
 class TestObservabilitySetup:
@@ -32,13 +34,13 @@ class TestObservabilitySetup:
         """
         setup_nova_logging()
         logger = get_logger("nova.test")
-        
+
         with caplog.at_level(logging.INFO):
             logger.info("cache_hit", model="Article", pk=42, cache_key="abc123")
-        
+
         log_record = caplog.records[0]
         parsed_log = json.loads(log_record.message)
-        
+
         assert parsed_log["event"] == "cache_hit"
         assert parsed_log["model"] == "Article"
         assert parsed_log["pk"] == 42

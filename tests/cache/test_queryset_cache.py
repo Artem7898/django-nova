@@ -1,17 +1,13 @@
-
 """
 Tests for QuerySet caching layer.
 """
 
 from __future__ import annotations
 
-from unittest.mock import patch
-
-import pytest
 from django.db import models
 
 from nova.cache.queryset_cache import QuerySetCache
-from nova.typing.models import NovaModel, NovaConfig
+from nova.typing.models import NovaConfig, NovaModel
 
 
 class CachedItem(NovaModel):

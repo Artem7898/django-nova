@@ -39,9 +39,7 @@ def to_fastapi_router(
     """
 
     if not FASTAPI_AVAILABLE:
-        raise ImportError(
-            "fastapi must be installed to use to_fastapi_router"
-        )
+        raise ImportError("fastapi must be installed to use to_fastapi_router")
 
     # ------------------------------------------------------------------
     # Validate Nova configuration
@@ -50,9 +48,7 @@ def to_fastapi_router(
     nova_config = getattr(model_cls, "_nova_config", None)
 
     if nova_config is None:
-        raise ValueError(
-            f"{model_cls.__name__} does not define _nova_config"
-        )
+        raise ValueError(f"{model_cls.__name__} does not define _nova_config")
 
     pydantic_schema = getattr(
         nova_config,
@@ -61,10 +57,7 @@ def to_fastapi_router(
     )
 
     if pydantic_schema is None:
-        raise ValueError(
-            f"{model_cls.__name__} does not define "
-            "a pydantic_schema"
-        )
+        raise ValueError(f"{model_cls.__name__} does not define a pydantic_schema")
 
     router = APIRouter(prefix=prefix)
 
@@ -79,10 +72,7 @@ def to_fastapi_router(
 
         queryset = model_cls.objects.all()
 
-        return [
-            obj.to_dict()
-            for obj in queryset
-        ]
+        return [obj.to_dict() for obj in queryset]
 
     # ------------------------------------------------------------------
     # POST /
@@ -148,4 +138,3 @@ def to_fastapi_router(
     )
 
     return router
-

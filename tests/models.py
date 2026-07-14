@@ -1,13 +1,12 @@
-
 from django.db import models
 from pydantic import BaseModel, field_validator
-from nova import NovaModel, NovaConfig
+
+from nova import NovaConfig, NovaModel
 
 
 class LabSchema(BaseModel):
     name: str
     budget: float
-
 
     @field_validator("budget")
     @classmethod
@@ -15,6 +14,7 @@ class LabSchema(BaseModel):
         if v < 0:
             raise ValueError("Budget cannot be negative")
         return v
+
 
 class Lab(NovaModel):
     name = models.CharField(max_length=200)
@@ -32,6 +32,7 @@ class Lab(NovaModel):
 
 class Article(NovaModel):
     """Test model for typed operations."""
+
     title = models.CharField(max_length=200)
     body = models.TextField()
     views = models.IntegerField(default=0)
@@ -48,6 +49,7 @@ class Article(NovaModel):
 
 class StrictArticle(NovaModel):
     """Test model for strict validation."""
+
     title = models.CharField(max_length=200)  # blank=False by default
     body = models.TextField()
 

@@ -1,4 +1,5 @@
 """Automatic Django <-> Pydantic schema bridge."""
+
 from __future__ import annotations
 
 import logging
@@ -18,11 +19,19 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _DJANGO_TO_PYDANTIC: dict[str, type[Any]] = {
-    "AutoField": int, "BigAutoField": int, "IntegerField": int,
-    "BigIntegerField": int, "FloatField": float, "DecimalField": float,
-    "CharField": str, "TextField": str, "EmailField": str,
-    "BooleanField": bool, "JSONField": dict[str, Any] | list[Any] | None,
+    "AutoField": int,
+    "BigAutoField": int,
+    "IntegerField": int,
+    "BigIntegerField": int,
+    "FloatField": float,
+    "DecimalField": float,
+    "CharField": str,
+    "TextField": str,
+    "EmailField": str,
+    "BooleanField": bool,
+    "JSONField": dict[str, Any] | list[Any] | None,
 }
+
 
 def _get_pydantic_type(django_field: Field[Any]) -> type[Any]:
     base_type = _DJANGO_TO_PYDANTIC.get(django_field.__class__.__name__, str)
@@ -31,12 +40,13 @@ def _get_pydantic_type(django_field: Field[Any]) -> type[Any]:
         return base_type | None
     return base_type | None if django_field.null else base_type
 
+
 def _extract_field_info(django_field: Field[Any]) -> tuple[type[Any], FieldInfo]:
     pydantic_type = _get_pydantic_type(django_field)
     field_kwargs: dict[str, Any] = {}
     if hasattr(django_field, "max_length") and django_field.max_length:
         field_kwargs["max_length"] = django_field.max_length
-        
+
     # Mirror Django semantics in Pydantic
     if django_field.primary_key:
         field_info = PydanticField(default=None, **field_kwargs)
@@ -46,8 +56,9 @@ def _extract_field_info(django_field: Field[Any]) -> tuple[type[Any], FieldInfo]
         field_info = PydanticField(default=None, **field_kwargs)
     else:
         field_info = PydanticField(default=..., **field_kwargs)
-        
+
     return pydantic_type, field_info
+
 
 def generate_pydantic_schema(
     model_cls: type[NovaModel], *, schema_name: str | None = None, include_relations: bool = False
@@ -66,7 +77,10 @@ def generate_pydantic_schema(
             continue
         pydantic_type, field_info = _extract_field_info(django_field)
         fields_def[django_field.name] = (pydantic_type, field_info)
-    return create_model(schema_name, __config__=ConfigDict(from_attributes=True, extra="forbid"), **fields_def)
+    return create_model(
+        schema_name, __config__=ConfigDict(from_attributes=True, extra="forbid"), **fields_def
+    )
+
 
 def model_to_pydantic(instance: NovaModel) -> BaseModel:
     schema_cls = instance._nova_config.pydantic_schema
@@ -78,7 +92,12 @@ def model_to_pydantic(instance: NovaModel) -> BaseModel:
     except Exception as exc:
         raise NovaValidationError(f"Failed to convert: {exc}") from exc
 
+
 def pydantic_to_model(model_cls: type[NovaModel], schema: BaseModel) -> NovaModel:
     data = schema.model_dump(exclude_unset=True)
-    kwargs = {f.name: data[f.name] for f in model_cls._meta.get_fields() if hasattr(f, "attname") and f.name in data}
+    kwargs = {
+        f.name: data[f.name]
+        for f in model_cls._meta.get_fields()
+        if hasattr(f, "attname") and f.name in data
+    }
     return model_cls(**kwargs)

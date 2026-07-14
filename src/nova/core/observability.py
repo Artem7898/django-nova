@@ -1,19 +1,25 @@
-"""
-Structured observability layer for Django Nova.
-Replaces standard string-based logging with machine-readable JSON events.
-"""
 from __future__ import annotations
 
 import logging
+from typing import Any
 
-import structlog
+try:
+    import structlog
+
+    STRUCTLOG_AVAILABLE = True
+except ImportError:
+    structlog = None  # type: ignore[assignment]
+    STRUCTLOG_AVAILABLE = False
 
 
 def setup_nova_logging() -> None:
     """
-    Configures structlog for Django Nova.
-    Call this once in Django's AppConfig.ready() or during testing.
+    Configure structured logging if structlog is installed.
     """
+    if not STRUCTLOG_AVAILABLE:
+        logging.basicConfig(level=logging.INFO)
+        return
+
     structlog.configure(
         processors=[
             structlog.contextvars.merge_contextvars,
@@ -30,11 +36,14 @@ def setup_nova_logging() -> None:
     )
 
 
-def get_logger(name: str) -> structlog.stdlib.BoundLogger:
+def get_logger(name: str) -> Any:
     """
-    Returns a structured logger instance for a specific Nova module.
-    Falls back to standard logging if structlog is not configured.
+    Return structlog logger if available,
+    otherwise fallback to stdlib logging.
     """
-    if structlog.is_configured():
-        return structlog.get_logger(name)
-    return structlog.stdlib.get_logger(name)
+    if STRUCTLOG_AVAILABLE:
+        if structlog.is_configured():
+            return structlog.get_logger(name)
+        return structlog.stdlib.get_logger(name)
+
+    return logging.getLogger(name)

@@ -1,4 +1,5 @@
 """Tests for Django Rest Framework Auto-Serializer integration."""
+
 from __future__ import annotations
 
 import pytest
@@ -6,10 +7,10 @@ import pytest
 # Safe import check for the whole test file
 pytest.importorskip("rest_framework", reason="DRF not installed")
 
-from pydantic import BaseModel, field_validator
 from django.db import models
+from pydantic import BaseModel, field_validator
 
-from nova import NovaModel, NovaConfig
+from nova import NovaConfig, NovaModel
 from nova.ecosystem.drf import to_drf_serializer
 
 

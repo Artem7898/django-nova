@@ -1,11 +1,20 @@
 """Tests for NovaModel typed mixins."""
+
 from __future__ import annotations
+
 import pytest
-from pydantic import BaseModel, ValidationError as PydanticValidationError
-from nova.core.exceptions import NovaValidationError
-from nova.typing.models import NovaModel, NovaConfig
-from nova.validation.pydantic_bridge import generate_pydantic_schema, model_to_pydantic, pydantic_to_model
+from django.db import models
+from pydantic import ValidationError as PydanticValidationError
 from tests.models import Article, StrictArticle
+
+from nova.core.exceptions import NovaValidationError
+from nova.typing.models import NovaConfig, NovaModel
+from nova.validation.pydantic_bridge import (
+    generate_pydantic_schema,
+    model_to_pydantic,
+    pydantic_to_model,
+)
+
 
 class TestTypedModel:
     def test_to_dict_returns_all_fields(self, db: None) -> None:
@@ -22,14 +31,17 @@ class TestTypedModel:
         class SecretArticle(NovaModel):
             title = models.CharField(max_length=200)
             secret = models.TextField()
+
             class Meta:
                 app_label = "tests"
+
             _nova_config = NovaConfig(exclude_from_pydantic=("secret",))
 
         article = SecretArticle(title="Public", secret="Hidden")
         data = article.to_dict()
         assert "title" in data
         assert "secret" not in data
+
 
 class TestPydanticBridge:
     def test_generate_schema_has_correct_fields(self) -> None:
@@ -65,6 +77,7 @@ class TestPydanticBridge:
         with pytest.raises(PydanticValidationError):
             schema(title="Test")
 
+
 class TestUnifiedValidation:
     def test_save_with_invalid_data_raises(self, db: None) -> None:
         article = StrictArticle(title="", body="Body")
@@ -75,5 +88,3 @@ class TestUnifiedValidation:
         article = Article(title="Valid", body="Content")
         article.save()
         assert article.pk is not None
-
-from django.db import models

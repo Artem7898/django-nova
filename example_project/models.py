@@ -1,9 +1,9 @@
-
 """Research data models using django-nova."""
 
 from django.db import models
-from nova.typing.models import NovaModel, NovaConfig
 from pydantic import BaseModel, field_validator
+
+from nova.typing.models import NovaConfig, NovaModel
 
 
 # 1. Define Pydantic schema for validation (ONE source of truth)
