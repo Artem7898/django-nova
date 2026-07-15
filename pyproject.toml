@@ -68,7 +68,6 @@ cache = [
     "hiredis>=3.0",
 ]
 
-
 tracing = [
     "opentelemetry-api>=1.20",
 ]
@@ -86,13 +85,7 @@ tasks = [
     "asyncio-throttle>=1.0",
 ]
 
-[project.urls]
-Homepage = "https://github.com/Artem7898/django-nova"
-Repository = "https://github.com/Artem7898/django-nova"
-Documentation = "https://github.com/Artem7898/django-nova#readme"
-Issues = "https://github.com/Artem7898/django-nova/issues"
-
-[dependency-groups]
+# ВНИМАНИЕ: Сюда перенесена секция dev
 dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
@@ -109,6 +102,14 @@ dev = [
     "httpx>=0.27",
     "hatch>=1.12",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Artem7898/django-nova"
+Repository = "https://github.com/Artem7898/django-nova"
+Documentation = "https://github.com/Artem7898/django-nova#readme"
+Issues = "https://github.com/Artem7898/django-nova/issues"
+
+
 
 [tool.uv]
 package = true
