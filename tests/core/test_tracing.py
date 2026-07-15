@@ -1,10 +1,12 @@
 """Tests for distributed tracing layer."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
+
 import pytest
 
-from nova.core.tracing import nova_span, get_tracer, OTEL_AVAILABLE
+from nova.core.tracing import OTEL_AVAILABLE, get_tracer, nova_span
 
 
 class TestTracingSafeImport:
@@ -58,7 +60,6 @@ class TestTracingIntegration:
 
             # Проверяем, что OTEL метод был вызван с правильными аргументами
             mock_tracer.start_as_current_span.assert_called_once_with(
-                "model.save",
-                attributes={"model": "Article", "pk": 42}
+                "model.save", attributes={"model": "Article", "pk": 42}
             )
             mock_span.set_attribute.assert_called_once_with("status", "success")

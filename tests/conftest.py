@@ -1,9 +1,10 @@
-import pytest
+import django
 from django.conf import settings
 
 if not settings.configured:
     settings.configure(
         DEBUG=True,
+        SECRET_KEY="test-secret-key-nova-2025",
         DATABASES={
             "default": {
                 "ENGINE": "django.db.backends.sqlite3",
@@ -11,14 +12,12 @@ if not settings.configured:
             }
         },
         INSTALLED_APPS=[
-            "django.contrib.contenttypes",
             "django.contrib.auth",
+            "django.contrib.contenttypes",
             "nova",
-            "tests.apps.TestsConfig",  # <-- Правильная регистрация приложения
+            "tests.apps.TestsConfig",
         ],
-        SECRET_KEY="test-secret-key-nova-2025",
         USE_TZ=True,
     )
 
-    import django
     django.setup()

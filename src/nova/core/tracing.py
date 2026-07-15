@@ -3,6 +3,7 @@ Distributed Tracing layer for Django Nova using OpenTelemetry.
 Implements the "Safe Import" pattern: if opentelemetry is not installed,
 all tracing functions become no-ops (do nothing) with zero overhead.
 """
+
 from __future__ import annotations
 
 from collections.abc import Generator

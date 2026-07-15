@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 from django.db import models
-from pydantic import BaseModel
-from pydantic import field_validator
+from pydantic import BaseModel, field_validator
 
-from nova import NovaConfig
-from nova import NovaModel
+from nova import NovaConfig, NovaModel
 from nova.admin.api import get_admin_schema
 
 
@@ -60,14 +58,8 @@ class TestAdminIntegration:
     def test_schema_includes_pydantic_validators(self) -> None:
         schema = get_admin_schema(AdminLab)
 
-        budget_rules = schema["fields"]["budget"].get(
-            "validation_rules"
-        )
+        budget_rules = schema["fields"]["budget"].get("validation_rules")
 
         assert budget_rules is not None
 
-        assert (
-            "Budget cannot be negative"
-            in budget_rules
-        )
-
+        assert "Budget cannot be negative" in budget_rules

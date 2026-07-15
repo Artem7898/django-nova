@@ -1,6 +1,7 @@
 """
 Unified validation pipeline.
 """
+
 from __future__ import annotations
 
 import logging
@@ -26,15 +27,14 @@ def validate_model_instance(instance: NovaModel) -> None:
         except Exception as exc:
             if config.strict_validation:
                 raise NovaValidationError(
-                    f"Pydantic validation failed: {exc}",
-                    details={"model": type(instance).__name__}
+                    f"Pydantic validation failed: {exc}", details={"model": type(instance).__name__}
                 ) from exc
             logger.warning("Pydantic validation failed (non-strict): %s", exc)
 
     # Stage 2: Django field constraints
     errors: dict[str, str] = {}
     for field in instance._meta.get_fields():
-        if hasattr(field, 'clean'):
+        if hasattr(field, "clean"):
             try:
                 field.clean(getattr(instance, field.attname, None), instance)
             except DjangoValidationError as e:

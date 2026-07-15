@@ -3,6 +3,7 @@ Built-in asyncio task engine.
 Scientific context: Eliminates Celery/RabbitMQ dependency for compute-bound
 research tasks (simulations, ML inference) running inside a single container.
 """
+
 from __future__ import annotations
 
 import asyncio

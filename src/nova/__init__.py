@@ -4,6 +4,7 @@ Django Nova: Next-generation Django toolkit.
 Uses PEP 562 lazy imports to avoid Django's AppRegistryNotReady trap.
 Top-level imports of django.db.models.Model in __init__.py are forbidden.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -24,12 +25,15 @@ def __getattr__(name: str):
     """
     if name == "NovaModel":
         from nova.typing.models import NovaModel
+
         return NovaModel
     if name == "NovaConfig":
         from nova.typing.models import NovaConfig
+
         return NovaConfig
     if name == "connect_invalidation":
         from nova.cache.invalidation import connect_invalidation
+
         return connect_invalidation
 
     raise AttributeError(f"module 'nova' has no attribute {name}")

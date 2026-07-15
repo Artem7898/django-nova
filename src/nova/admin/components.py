@@ -3,6 +3,7 @@ Component-based Admin UI definitions.
 Generates JSON schemas for modern frontends (React/Vue/HTMX).
 Replaces Django's monolithic template rendering.
 """
+
 from __future__ import annotations
 
 from typing import Any, Literal

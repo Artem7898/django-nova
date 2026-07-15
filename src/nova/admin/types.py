@@ -16,4 +16,3 @@ class AdminFieldSchema(TypedDict, total=False):
 class AdminSchema(TypedDict):
     model: str
     fields: dict[str, AdminFieldSchema]
-

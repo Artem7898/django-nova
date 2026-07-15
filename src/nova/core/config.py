@@ -2,6 +2,7 @@
 Pydantic-based Django settings.
 Eliminates the antipattern of accessing settings via untyped strings.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -14,6 +15,7 @@ class NovaSettings(BaseSettings):
     """
     Type-safe settings. Reads from environment variables and .env file.
     """
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -54,5 +56,5 @@ class NovaSettings(BaseSettings):
                 "CACHE_BACKEND": self.nova_cache_backend,
                 "CACHE_TTL": self.nova_cache_ttl,
                 "STRICT_VALIDATION": self.nova_strict_validation,
-            }
+            },
         }

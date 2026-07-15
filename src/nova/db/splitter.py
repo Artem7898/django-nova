@@ -2,6 +2,7 @@
 Migration splitter for large data migrations.
 Prevents OOM and transaction timeouts during RunPython.
 """
+
 from __future__ import annotations
 
 import logging
@@ -15,8 +16,8 @@ logger = logging.getLogger(__name__)
 
 
 def chunked_migration(
-        func: Callable[[Any, Any], None],
-        batch_size: int = 1000,
+    func: Callable[[Any, Any], None],
+    batch_size: int = 1000,
 ) -> RunPython:
     """
     Wraps a RunPython migration to process data in chunks.
@@ -30,11 +31,11 @@ def chunked_migration(
         # Initial setup: get the model inside the function
         # The user's function is responsible for yielding querysets.
         # Example implementation:
-        Model = apps.get_model('app', 'Model')
-        qs = Model.objects.all().order_by('pk')
+        Model = apps.get_model("app", "Model")
+        qs = Model.objects.all().order_by("pk")
 
         while qs.exists():
-            pks = list(qs.values_list('pk', flat=True)[:batch_size])
+            pks = list(qs.values_list("pk", flat=True)[:batch_size])
             with transaction.atomic():
                 func(apps, schema_editor, pks=pks)
             qs = qs.filter(pk__gt=pks[-1])

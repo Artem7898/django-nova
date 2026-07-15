@@ -2,6 +2,7 @@
 Typed QuerySet wrappers.
 Provides generic type safety for Django ORM queries.
 """
+
 from __future__ import annotations
 
 from collections.abc import Iterator
@@ -20,6 +21,7 @@ class TypedQuerySet[ModelT: "NovaModel"](DjangoQuerySet):
     A strictly typed QuerySet.
     Returns ModelT instead of untyped model instances.
     """
+
     def __iter__(self) -> Iterator[ModelT]:
         return super().__iter__()
 

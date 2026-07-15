@@ -1,4 +1,3 @@
-
 """
 Intelligent QuerySet caching with automatic invalidation.
 
@@ -47,15 +46,13 @@ class QuerySetCache[ModelT]:
     """
 
     def __init__(
-            self,
-            *,
-            maxsize: int = 1000,
-            ttl: int = 60,
-            key_prefix: str = "nova_qs",
+        self,
+        *,
+        maxsize: int = 1000,
+        ttl: int = 60,
+        key_prefix: str = "nova_qs",
     ) -> None:
-        self._cache: TTLCache[str, list[ModelT]] = TTLCache(
-            maxsize=maxsize, ttl=ttl
-        )
+        self._cache: TTLCache[str, list[ModelT]] = TTLCache(maxsize=maxsize, ttl=ttl)
         self._model_keys: dict[str, set[str]] = {}  # ИНДЕКС: model_name -> set of hash keys
         self._ttl = ttl
         self._key_prefix = key_prefix
@@ -74,9 +71,7 @@ class QuerySetCache[ModelT]:
             raw = f"{self._key_prefix}:{model_name}:{sql}:{safe_params}"
             return hashlib.sha256(raw.encode()).hexdigest(), model_name
         except Exception as exc:
-            raise NovaCacheError(
-                f"Failed to generate cache key: {exc}"
-            ) from exc
+            raise NovaCacheError(f"Failed to generate cache key: {exc}") from exc
 
     def get(self, queryset: QuerySet[ModelT]) -> list[ModelT] | None:
         """Get cached result or None on miss."""
@@ -163,5 +158,7 @@ def cached_queryset[ModelT](
             if hasattr(result, "model") and hasattr(result, "query"):
                 return actual_cache.get_or_set(result)  # type: ignore[return-value]
             return result
+
         return wrapper
+
     return decorator

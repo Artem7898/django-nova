@@ -1,18 +1,21 @@
 from __future__ import annotations
 
 import asyncio
+
 import pytest
-from nova.cache.queryset_cache import QuerySetCache
+
 from nova.cache.invalidation import connect_invalidation
+from nova.cache.queryset_cache import QuerySetCache
+from nova.core.exceptions import NovaValidationError
 from nova.tasks.engine import NovaTaskEngine
-from tests.models import Lab  # <-- Импортируем отсюда
+from tests.models import Lab
 
 
 @pytest.mark.django_db
 def test_full_lifecycle():
     # 1. Validation blocks bad data
     lab = Lab(name="Lab-1", budget=-10)
-    with pytest.raises(Exception):
+    with pytest.raises(NovaValidationError):
         lab.save()
 
     # 2. Accepts good data
