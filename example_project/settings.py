@@ -4,6 +4,7 @@ INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "nova",
+    "tests.apps.TestsConfig",
 ]
 
 DATABASES = {
