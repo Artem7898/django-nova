@@ -1,5 +1,11 @@
 """
 Event-driven cache invalidation using Django signals.
+
+Production requirements:
+- idempotent signal registration
+- multiple cache backends support
+- safe autoreload behaviour
+- zero duplicate handlers
 """
 
 from __future__ import annotations
@@ -14,7 +20,10 @@ from nova.cache.queryset_cache import QuerySetCache, get_default_cache
 if TYPE_CHECKING:
     from nova.typing.models import NovaModel
 
+
 logger = logging.getLogger(__name__)
+
+_CONNECTED_SIGNALS: set[tuple[type[Any], int]] = set()
 
 
 def connect_invalidation(
@@ -22,25 +31,60 @@ def connect_invalidation(
     cache: QuerySetCache[Any] | None = None,
 ) -> None:
     """
-    Connects signals for a specific NovaModel to invalidate cache on writes.
+    Connect cache invalidation signals for a Nova model.
 
-    Args:
-        model_cls: The NovaModel class to monitor.
-        cache: Specific cache instance to invalidate.
-               If None, uses the global default cache.
+    Safe to call multiple times.
+
+    Parameters
+    ----------
+    model_cls:
+        Model class.
+
+    cache:
+        Optional cache backend instance.
     """
+
     if not model_cls._nova_config.cache_enabled:
         return
 
-    # Используем переданный кеш или глобальный синглтон
     target_cache = cache or get_default_cache()
+
+    connection_key = (
+        model_cls,
+        id(target_cache),
+    )
+
+    if connection_key in _CONNECTED_SIGNALS:
+        return
 
     def _invalidate(sender: Any, **kwargs: Any) -> None:
         model_name = sender._meta.model_name
         count = target_cache.invalidate_model(model_name)
-        if count > 0:
-            logger.debug("Invalidated %d queries for %s", count, model_name)
 
-    post_save.connect(_invalidate, sender=model_cls, weak=False)
-    post_delete.connect(_invalidate, sender=model_cls, weak=False)
-    logger.info("Connected cache invalidation for %s", model_cls.__name__)
+        if count > 0:
+            logger.debug(
+                "Invalidated %d cache entries for %s",
+                count,
+                model_name,
+            )
+
+    post_save.connect(
+        _invalidate,
+        sender=model_cls,
+        weak=False,
+    )
+
+    post_delete.connect(
+        _invalidate,
+        sender=model_cls,
+        weak=False,
+    )
+
+    _CONNECTED_SIGNALS.add(connection_key)
+
+    logger.info(
+        "cache_invalidation_connected",
+        extra={
+            "model": model_cls.__name__,
+        },
+    )

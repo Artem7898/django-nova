@@ -4,12 +4,10 @@ Async Manager for NovaModel.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeVar
-
-from django.db import models
-from django.db.models import QuerySet
+from typing import TYPE_CHECKING, TypeVar
 
 from nova.async_orm.queryset import AsyncTypedQuerySet
+from nova.typing.managers import NovaManager
 
 if TYPE_CHECKING:
     from nova.typing.models import NovaModel
@@ -17,15 +15,13 @@ if TYPE_CHECKING:
 ModelT = TypeVar("ModelT", bound="NovaModel")
 
 
-class NovaManager(models.Manager):
+class AsyncNovaManager(NovaManager[ModelT]):
     """
     Custom manager returning typed async querysets.
     """
+    def get_queryset(self):
+        return super().get_queryset()
 
-    def __init__(self) -> None:
-        super().__init__()
-        # Re-bind to ensure mypy sees the correct type
-        self._queryset_class: type[Any] = QuerySet
 
     def async_qs(self) -> AsyncTypedQuerySet[ModelT]:  # type: ignore
         """Entry point for async queries."""

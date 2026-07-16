@@ -19,9 +19,11 @@ class TestTracingSafeImport:
     def test_get_tracer_returns_none_if_mocked_missing(self) -> None:
         """If OTEL is not installed, get_tracer must return None."""
         # Искусственно эмулируем отсутствие модуля
-        with patch("nova.core.tracing.trace", None):
-            with patch("nova.core.tracing.OTEL_AVAILABLE", False):
-                assert get_tracer() is None
+        with (
+            patch("nova.core.tracing.trace", None),
+            patch("nova.core.tracing.OTEL_AVAILABLE", False),
+        ):
+            assert get_tracer() is None
 
     def test_nova_span_yields_none_if_mocked_missing(self) -> None:
         """nova_span must yield None and not crash if OTEL is missing."""

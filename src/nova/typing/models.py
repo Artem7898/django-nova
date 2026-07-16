@@ -23,8 +23,10 @@ from typing import (
 from django.db import models
 from pydantic import BaseModel
 
+from nova.typing.managers import NovaManager
+
 if TYPE_CHECKING:
-    from django.db.models.manager import Manager
+    pass
 
 
 ModelT = TypeVar("ModelT", bound="NovaModel")
@@ -109,7 +111,8 @@ class NovaModel(models.Model):
     if TYPE_CHECKING:
         # This is the key trick: we override the objects type in TYPE_CHECKING
         # so that mypy/pyright sees the correct generic QuerySet
-        objects: Manager[Self]  # type: ignore[assignment]
+        objects = NovaManager()
+        objects: NovaManager[Self]  # type: ignore[assignment]
 
     @override
     def save(

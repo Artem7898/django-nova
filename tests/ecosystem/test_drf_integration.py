@@ -48,16 +48,16 @@ class TestDRFAutoSerializer:
         """to_drf_serializer must return a valid DRF ModelSerializer class."""
         from rest_framework import serializers
 
-        DRFSerializer = to_drf_serializer(FinancialRecord)
+        drf_serializer = to_drf_serializer(FinancialRecord)
 
-        assert issubclass(DRFSerializer, serializers.ModelSerializer)
-        assert DRFSerializer.__name__ == "FinancialRecordSerializer"
-        assert DRFSerializer.Meta.model == FinancialRecord
+        assert issubclass(drf_serializer, serializers.ModelSerializer)
+        assert drf_serializer.__name__ == "FinancialRecordSerializer"
+        assert drf_serializer.Meta.model == FinancialRecord
 
     def test_valid_data_passes(self) -> None:
         """Standard valid data must pass DRF validation."""
-        DRFSerializer = to_drf_serializer(FinancialRecord)
-        serializer = DRFSerializer(data={"amount": 100.5, "currency": "USD"})
+        drf_serializer = to_drf_serializer(FinancialRecord)
+        serializer = drf_serializer(data={"amount": 100.5, "currency": "USD"})
 
         assert serializer.is_valid()
         assert serializer.validated_data["amount"] == 100.5
@@ -68,10 +68,10 @@ class TestDRFAutoSerializer:
         Standard DRF allows amount=0.0 (it's a valid FloatField).
         Pydantic rejects it. The auto-serializer MUST reject it using Pydantic rules.
         """
-        DRFSerializer = to_drf_serializer(FinancialRecord)
+        drf_serializer = to_drf_serializer(FinancialRecord)
 
         # DRF сам бы пропустил это, но мы заставляем его спросить Pydantic
-        serializer = DRFSerializer(data={"amount": 0.0, "currency": "USD"})
+        serializer = drf_serializer(data={"amount": 0.0, "currency": "USD"})
 
         assert not serializer.is_valid()
         assert "amount" in serializer.errors
@@ -79,8 +79,8 @@ class TestDRFAutoSerializer:
 
     def test_missing_required_field_fails(self) -> None:
         """Standard DRF required field validation must still work."""
-        DRFSerializer = to_drf_serializer(FinancialRecord)
-        serializer = DRFSerializer(data={"amount": 10.0})  # missing currency
+        drf_serializer = to_drf_serializer(FinancialRecord)
+        serializer = drf_serializer(data={"amount": 10.0})  # missing currency
 
         assert not serializer.is_valid()
         assert "currency" in serializer.errors
