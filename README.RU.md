@@ -1,162 +1,436 @@
-<div align="center">
+<p align="center">
+  <img src="assets/django-nova-logo.png" width="280" alt="Django Nova Logo">
+</p>
 
-# 🚀 Django Nova
+<div align="">
 
-**Типизированный, унифицированный и async-first инструментарий для Django 5+**
+## Django Nova
+### Типизированный, унифицированный и асинхронный -первый инструментарий для Django 5
 
-[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
-[![Django 5.0+](https://img.shields.io/badge/django-5.0%2B-green.svg)](https://www.djangoproject.com/)
-[![PyPI version](https://img.shields.io/pypi/v/django-nova.svg)](https://pypi.org/project/django-nova/)
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+<a id="russian"></a>
 
-*Django Nova устраняет фундаментальные архитектурные недостатки Django, приводящие к порче данных, ошибкам времени выполнения и проблемам сопровождаемости в научном и корпоративном ПО.*
+## Русский
 
-</div>
+### Содержание
+
+- [Проблема](#проблема)
+- [Философия](#философия)
+- [Архитектура](#архитектура)
+- [Установка](#установка)
+- [Быстрый старт](#быстрый-старт)
+- [Интеграция с DRF](#интеграция-с-drf)
+- [Интеграция с FastAPI](#интеграция-с-fastapi)
+- [Умный кэш](#умный-кэш)
+- [Миграции без простоя](#миграции-без-простоя)
+- [Наблюдаемость](#наблюдаемость)
+- [Дорожная карта](#дорожная-карта)
+- [Бенчмарки](#бенчмарки)
+- [Ограничения](#ограничения)
+- [Лицензия](#лицензия)
 
 ---
 
-## 🔑 Ключевые инновации
+### Проблема
 
-- ✅ **Единый источник правды:** Определяйте валидацию один раз в Pydantic. Модели Django, формы и API автоматически используют её. Никакого дублирования.
-- 🔒 **Строгая типобезопасность:** Полная совместимость с `pyright --strict` для ORM, QuerySet и моделей с использованием современного синтаксиса PEP 695.
-- ⚡ **Умный кэш QuerySet:** Автоматическая O(1) инвалидация кэша при записи через сигналы Django. Ноль процентов устаревших данных в исследовательских конвейерах.
-- 🔄 **Миграции без простоя:** Нативные операции PostgreSQL `CONCURRENTLY` для заблокированных таблиц с миллионами строк.
-- 📊 **Структурированная наблюдаемость:** Встроенная интеграция `structlog` с генерацией машиночитаемых JSON-логов с ISO-метками времени для Datadog/ELK.
-- 🔍 **Распределённая трассировка:** OpenTelemetry-спаны для `Model.save()` и операций кэша. Нулевые накладные расходы, если OTEL не установлен.
-- 🔌 **DRF Auto-Serializer:** Динамическая генерация Django Rest Framework Serializers из Pydantic-схем. Валидация Pydantic имеет приоритет над DRF.
-- 🚀 **FastAPI Auto-Router:** Генерация полностью документированных FastAPI-роутеров с нативным OpenAPI/Swagger из моделей Django.
+Валидация в Django фрагментирована по архитектуре:
+
+- **Формы** проверяют пользовательский ввод на уровне представления.
+- **DRF-сериализаторы** дублируют ту же логику на уровне API.
+- **`clean()` в модели** вызывается только в админке или при явном вызове.
+- **Ограничения БД** ограничены простыми выражениями и не переиспользуются за пределами ORM.
+
+Результат — **дрейф валидации**: бизнес-правила разбросаны по формам, сериализаторам, моделям и DDL. Измените правило в одном месте — три других становятся источником багов. Хуже того, вызов `Model.objects.create()` из management-команды, Celery-задачи или data pipeline обходит валидацию форм и сериализаторов полностью, оставляя только хрупкие ограничения БД.
+
+**Django Nova решает это, перемещая контракт в схему и принудительно применяя его на уровне ORM.**
 
 ---
 
-## 🚀 Быстрый старт
+### Философия
+
+1. **Схема — единый источник правды**  
+   Бизнес-логика живёт в Pydantic-моделях. Django Models, DRF Serializers, FastAPI-роутеры и Forms — это генерируемые проекции схемы, а не независимые валидаторы.
+
+2. **Валидация — это задача ORM, а не представления**  
+   Модель должна отказываться сохранять невалидные данные независимо от того, кто вызывает сохранение: web-view, API-эндпоинт, CLI-команда или фоновый воркер.
+
+3. **Инфраструктура должна быть прозрачной**  
+   Инвалидация кэша, структурированное логирование и распределённая трассировка не должны требовать шаблонного кода. Если вы вынуждены думать о них — абстракция протекает.
+
+4. **Zero-downtime — это дефолтное предположение**  
+   Операции над большими таблицами должны использовать нативную семантику PostgreSQL `CONCURRENTLY`. Плановые окна обслуживания — антипаттерн.
+
+5. **Типобезопасность не опциональна**  
+   Полная совместимость с `pyright --strict` на уровне ORM, QuerySet и генерируемого кода. Если проходит type-checking — работает.
+
+---
+
+### Архитектура
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              Потребительские слои                           │
+│  ┌──────────┐  ┌──────────────┐  ┌─────────────┐  ┌─────────────────────┐   │
+│  │  Forms   │  │ DRF Serial.  │  │ FastAPI Routers│  │ Management Commands │   │
+│  └────┬─────┘  └──────┬───────┘  └──────┬──────┘  └──────────┬──────────┘   │
+│       │               │                │                    │              │
+│       └───────────────┴────────────────┴────────────────────┘              │
+│                                   │                                         │
+│                          ┌────────▼────────┐                                │
+│                          │  Pydantic Schema │  ← Единый источник правды    │
+│                          │   (Business)     │                                │
+│                          └────────┬────────┘                                │
+│                                   │                                         │
+│                          ┌────────▼────────┐                                │
+│                          │   NovaModel       │  ← Слой принудительного     │
+│                          │  (Interceptor)    │     применения в ORM         │
+│                          └────────┬────────┘                                │
+│                                   │                                         │
+│       ┌───────────────────────────┼───────────────────────────┐             │
+│       │                           │                           │             │
+│  ┌────▼─────┐            ┌────────▼────────┐         ┌───────▼──────┐     │
+│  │  Cache   │            │   Signals       │         │  Telemetry   │     │
+│  │ Invalid. │            │ (post_save etc) │         │ (OTel/Logs)  │     │
+│  └──────────┘            └─────────────────┘         └──────────────┘     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Ключевые архитектурные решения:**
+
+- **PEP 695 Generics** — Синтаксис `class Cache[T]:` для современного вывода типов.
+- **PEP 562 Lazy Imports** — Безопасные пути импорта, обходящие `AppRegistryNotReady` при старте.
+- **SQL Compiler Hook** — Детерминированная генерация ключа кэша из AST запроса, независимая от версии Django.
+- **Signal-Driven Invalidation** — Инвалидация кэша за O(1) при записи без ручного управления TTL.
+
+---
 
 ### Установка
 
-```bash
-# Базовая библиотека
-pip install django-nova
+Требуется **Python 3.12+** и **Django 5.0+**.
 
-# С поддержкой DRF
-pip install django-nova[drf]
+Через [`uv`](https://docs.astral.sh/uv/) (рекомендуется):
+
+```bash
+# Ядро
+uv add django-nova
+
+# С поддержкой Django REST Framework
+uv add django-nova[drf]
 
 # С поддержкой FastAPI
-pip install django-nova[fastapi]
+uv add django-nova[fastapi]
 
-# С полным enterprise-стеком (трассировка, логирование)
-pip install django-nova[tracing,observability]
+# Полный enterprise-стек (трассировка + структурированное логирование)
+uv add django-nova[tracing,observability]
+```
+
+Добавьте в `INSTALLED_APPS`:
+
+```python
+INSTALLED_APPS = [
+    # ...
+    "nova",
+]
 ```
 
 ---
 
-## 💡 Пример использования
+### Быстрый старт
 
-### Определите правила один раз — используйте их везде:
+Определите бизнес-правила **один раз** в Pydantic-схеме. Nova применяет их везде.
 
 ```python
 # models.py
-from pydantic import BaseModel, field_validator
+from decimal import Decimal
+from datetime import date
+from pydantic import BaseModel, field_validator, model_validator
 from django.db import models
 from nova import NovaModel, NovaConfig
 
-# 1. Определите правила валидации (ОДИН РАЗ)
-class ResearcherSchema(BaseModel):
-    name: str
-    h_index: int = 0
 
-    @field_validator("h_index")
+class GrantSchema(BaseModel):
+    """Единый источник правды для бизнес-логики Grant."""
+
+    title: str
+    budget: Decimal
+    start_date: date
+    end_date: date
+    pi_email: str  # Principal Investigator
+
+    @field_validator("title")
     @classmethod
-    def validate_h_index(cls, v: int) -> int:
-        if v < 0:
-            raise ValueError("h-index не может быть отрицательным")
+    def title_not_empty(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 5:
+            raise ValueError("Title must be at least 5 characters")
         return v
 
-# 2. Свяжите с Django
-class Researcher(NovaModel):
-    name = models.CharField(max_length=300)
-    h_index = models.IntegerField(default=0)
+    @model_validator(mode="after")
+    def validate_grant(self):
+        if self.end_date <= self.start_date:
+            raise ValueError("End date must be after start date")
+
+        duration_days = (self.end_date - self.start_date).days
+        if self.budget > Decimal("1_000_000") and duration_days < 365:
+            raise ValueError("Large grants require a minimum 1-year duration")
+
+        if self.budget < Decimal("1_000"):
+            raise ValueError("Minimum grant budget is $1,000")
+
+        return self
+
+
+class Grant(NovaModel):
+    title = models.CharField(max_length=300)
+    budget = models.DecimalField(max_digits=14, decimal_places=2)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    pi_email = models.EmailField()
 
     _nova_config = NovaConfig(
-        pydantic_schema=ResearcherSchema,
+        pydantic_schema=GrantSchema,
         cache_enabled=True,
-        strict_validation=True
+        strict_validation=True,
     )
 ```
 
-**Теперь любая попытка сохранить невалидные данные блокируется на уровне ORM, а схема автоматически переиспользуется в DRF и FastAPI!**
+Теперь валидация применяется **на уровне ORM**:
+
+```python
+# ValidationError выбрасывается немедленно — без round-trip в БД
+Grant.objects.create(
+    title="X",
+    budget=Decimal("500"),
+    start_date=date(2026, 1, 1),
+    end_date=date(2026, 12, 31),
+    pi_email="pi@example.com",
+)
+# ValueError: Title must be at least 5 characters
+# ValueError: Minimum grant budget is $1,000
+```
+
+Та же схема автоматически переиспользуется в DRF, FastAPI и Forms. Никакого дублирования.
 
 ---
 
-## 🔗 Интеграция с экосистемой
+### Интеграция с DRF
 
-Django Nova выступает универсальным хабом между Python-фреймворками.
-
-### Django Rest Framework
+Генерация DRF `ModelSerializer`, который делегирует всю бизнес-логику Pydantic-схеме.
 
 ```python
-from nova.ecosystem.drf import to_drf_serializer
+# serializers.py
+from nova.ecosystem.drf import NovaSerializer
+from .models import Grant
 
-# Динамически генерирует ModelSerializer, делегирующий бизнес-логику Pydantic
-ResearcherSerializer = to_drf_serializer(Researcher)
+
+class GrantSerializer(NovaSerializer):
+    class Meta:
+        model = Grant
+        fields = "__all__"
 ```
 
-### FastAPI
+`NovaSerializer` автоматически:
+- Маппит Pydantic-валидаторы на DRF-ошибки полей.
+- Переиспользует `GrantSchema` для `create()` и `update()`.
+- Возвращает `400 Bad Request` со структурированными сообщениями об ошибках.
+
+---
+
+### Интеграция с FastAPI
+
+Генерация полностью документированного FastAPI-роутера с нативной поддержкой OpenAPI/Swagger из той же Django-модели.
 
 ```python
+# api.py
 from fastapi import FastAPI
-from nova.ecosystem.fastapi import to_fastapi_router
+from nova.ecosystem.fastapi import NovaRouter
+from .models import Grant
 
-app = FastAPI()
-# Генерирует GET/POST эндпоинты с нативной документацией OpenAPI/Swagger
-app.include_router(to_fastapi_router(Researcher, prefix="/api/researchers"))
+app = FastAPI(title="Grants API")
+
+# Генерирует GET /grants, POST /grants, GET /grants/{id}, PATCH /grants/{id}, DELETE /grants/{id}
+app.include_router(NovaRouter(Grant, prefix="/grants"))
 ```
+
+Сгенерированный роутер:
+- Использует `GrantSchema` для валидации запросов/ответов.
+- Автоматически генерирует OpenAPI-документацию.
+- Поддерживает async-эндпоинты при работе через ASGI.
 
 ---
 
-## 🏗️ Архитектура
+### Умный кэш
 
-Django Nova перехватывает стандартные процессы на уровне ядра:
+Nova предоставляет автоматический кэш QuerySet на сигналах с O(1)-инвалидацией.
 
-```text
-Request -> View -> Model.save() -> [Pydantic Validation -> Django Fields -> Business Logic] -> DB
-                |
-                +-> Cache Invalidation Signal -> Удаление устаревших QuerySet
-                |
-                +-> OpenTelemetry Span -> Метрики и трейсы
-                |
-                +-> Structlog -> JSON-логи в Datadog/ELK
+```python
+class Grant(NovaModel):
+    # ... fields ...
+
+    _nova_config = NovaConfig(
+        pydantic_schema=GrantSchema,
+        cache_enabled=True,
+        cache_ttl=300,  # секунды
+    )
 ```
 
-### Технологический стек ядра:
+**Как это работает:**
 
-- **PEP 562:** Ленивые импорты, обходящие AppRegistryNotReady.
-- **PEP 695:** Современный синтаксис дженериков (`class Cache[T]:`).
-- **SQL Compiler:** Детерминированная генерация хэш-ключа кэша (безопасна для любой версии Django).
+```python
+# Первый вызов идёт в БД; результат кэшируется
+grants = Grant.objects.filter(budget__gte=100_000).nova_cache()
+
+# Последующие вызовы возвращают закэшированный результат мгновенно
+grants = Grant.objects.filter(budget__gte=100_000).nova_cache()
+
+# При любом Grant.save() ключ кэша инвалидируется автоматически
+Grant.objects.create(...)  # Инвалидация кэша срабатывает через Django-сигналы
+```
+
+- **Детерминированные ключи** — Генерируются из AST SQL-запроса, безопасны для любой версии Django.
+- **Нет stale-данных** — Операции записи триггерят инвалидацию через сигналы.
+- **Ноль бойлерплейта** — Нет ручного управления ключами кэша.
 
 ---
 
-## 🧪 Тестирование
+### Миграции без простоя
 
-Проект тестируется на передовом стеке (Python 3.14 + Django 5.2).
+Для таблиц с миллионами строк стандартный `CREATE INDEX` захватывает эксклюзивную блокировку. Nova предоставляет операции миграций с использованием PostgreSQL `CONCURRENTLY`.
+
+```python
+# migrations/0002_add_grant_indexes.py
+from django.db import migrations
+from nova.migrations import ConcurrentIndexOperation, ConcurrentAddField
+
+
+class Migration(migrations.Migration):
+    dependencies = [
+        ("research", "0001_initial"),
+    ]
+
+    operations = [
+        # Добавление non-nullable поля без блокировки таблицы
+        ConcurrentAddField(
+            model_name="grant",
+            name="funding_program",
+            field=models.CharField(max_length=100, default="NSF"),
+        ),
+        # Создание составного индекса без простоя
+        ConcurrentIndexOperation(
+            model_name="grant",
+            fields=["start_date", "end_date"],
+            name="grant_dates_idx",
+        ),
+    ]
+```
+
+**Требования:**
+- PostgreSQL 14+
+- `CONCURRENTLY` не может выполняться внутри транзакции; Nova обрабатывает это автоматически.
+
+---
+
+### Наблюдаемость
+
+Nova поставляется со встроенной observability на базе `structlog` и OpenTelemetry с нулевой конфигурацией.
+
+```python
+# settings.py
+NOVA_OBSERVABILITY = {
+    "structlog": True,
+    "opentelemetry": True,
+    "log_level": "INFO",
+    "json_format": True,  # Machine-readable для Datadog / ELK / Loki
+}
+```
+
+**Что вы получаете автоматически:**
+
+| Сигнал | Вывод |
+|--------|-------|
+| `Model.save()` | JSON-лог с именем модели, PK, длительностью, результатом валидации |
+| Cache hit/miss | Структурированный лог с хэшем запроса и TTL |
+| Инвалидация кэша | Trace span с инвалидированными ключами |
+| DB-запрос | OpenTelemetry span с SQL-fingerprint |
+
+Пример лога:
+
+```json
+{
+  "timestamp": "2026-07-16T10:12:00Z",
+  "event": "model_save",
+  "model": "research.Grant",
+  "pk": 42,
+  "validation": "passed",
+  "duration_ms": 12.4,
+  "trace_id": "4f6d9c8f2a1b..."
+}
+```
+
+Если OpenTelemetry не установлен, span'ы становятся no-op с нулевым оверхедом.
+
+---
+
+### Дорожная карта
+
+#### ✅ Уже реализовано
+
+| Функциональность | Статус |
+|------------------|--------|
+| Typed Manager | **Готово** |
+| Schema Registry | **Готово** |
+| Cache Backend Abstraction | **Готово** |
+| AppConfig Auto Discovery | **Готово** |
+| Typed Settings | **Готово** |
+
+#### 🚧 В разработке и планах
+
+| Функциональность | Статус | Срок |
+|------------------|--------|------|
+| Redis Cache | Запланировано | Q3 2026 |
+| Task Backend | Запланировано | Q3 2026 |
+| Metrics | Запланировано | Q4 2026 |
+| Instrumentation | Запланировано | Q4 2026 |
+| Read Replicas | Запланировано | Q4 2026 |
+| Query Planner | Запланировано | Q1 2027 |
+| Prefetch Optimizer | Запланировано | Q1 2027 |
+| Stable API | Запланировано | Q1 2027 |
+| Django 6 Support | Запланировано | Q2 2027 |
+| Full OpenTelemetry Support | Запланировано | Q2 2027 |
+| Production Readiness | Запланировано | Q2 2027 |
+
+---
+
+### Бенчмарки
+
+Все замеры измеряют **скорость инициализации модели** (создание объекта + валидация) на Python 3.13, локальный SSD, тёплый CPU.
+
+| Тест | Среднее время | Операций в секунду | Накладные расходы |
+|------|---------------|--------------------|-------------------|
+| Чистый Pydantic (Baseline) | 2.70 µs | 369.7K | 1.0× |
+| NovaModel (Django + Pydantic) | 4.08 µs | 244.8K | 1.51× |
+
+> **Примечание:** Хотя относительное замедление составляет ~1.51×, **абсолютное время добавляется всего 1.38 микросекунды на один объект**. В контексте реального HTTP-запроса — где сетевые задержки и работа БД занимают миллисекунды — этот оверхед микроскопический и полностью незаметен для конечного пользователя. Вы получаете безопасность типов на уровне ORM за цену одной микросекунды.
+
+Локальный запуск бенчмарков:
 
 ```bash
-pip install -e ".[dev]"
-pytest tests/ -v  # 42 passed
+uv sync --extra dev
+pytest benchmarks/ -v --benchmark-only
 ```
 
 ---
 
-## 👤 Автор
+### Ограничения
 
-**Артем Алимпиев**
-
-- ORCID: [0009-0007-6740-7242](https://orcid.org/0009-0007-6740-7242)
-- DOI: [10.5281/zenodo.20057443](https://doi.org/10.5281/zenodo.20057443)
-- DOI: [10.5281/zenodo.20659647](https://doi.org/10.5281/zenodo.20659647)
-- PYPI: [Django Nova](https://pypi.org/project/django-nova/)
+- **Только Django 5.0+.** Мы не бэкпортируем на Django 4.x; проект опирается на современные хуки ORM.
+- **Рекомендуется PostgreSQL.** Zero-downtime миграции и продвинутая инвалидация кэша зависят от специфичных для PG возможностей. SQLite и MySQL работают для базовой валидации, но с ограниченными возможностями миграций и кэша.
+- **Только Pydantic v2.** Pydantic v1 не поддерживается.
+- **Частичная поддержка async.** Инвалидация кэша QuerySet в настоящее время синхронна. Полная поддержка async ORM запланирована для Django 5.2+.
+- **Предположение о единой БД.** Мульти-database routing с инвалидацией кэша требует ручной конфигурации.
 
 ---
 
-## 📄 Лицензия
+### Лицензия
 
-Проект распространяется на условиях лицензии MIT. Подробности см. в файле [LICENSE](LICENSE).
+MIT License. Подробности в файле [LICENSE](LICENSE).
