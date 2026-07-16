@@ -12,6 +12,7 @@ from pydantic import Field as PydanticField
 from pydantic.fields import FieldInfo
 
 from nova.core.exceptions import NovaValidationError
+from nova.validation.schema_registry import SchemaRegistry
 
 if TYPE_CHECKING:
     from nova.typing.models import NovaModel
@@ -63,6 +64,13 @@ def _extract_field_info(django_field: Field[Any]) -> tuple[type[Any], FieldInfo]
 def generate_pydantic_schema(
     model_cls: type[NovaModel], *, schema_name: str | None = None, include_relations: bool = False
 ) -> type[BaseModel]:
+    cached = SchemaRegistry.get(
+        model_cls,
+        include_relations=include_relations,
+    )
+
+    if cached is not None:
+        return cached
     if schema_name is None:
         schema_name = f"{model_cls.__name__}Schema"
     fields_def: dict[str, tuple[type[Any], FieldInfo]] = {}
@@ -77,9 +85,23 @@ def generate_pydantic_schema(
             continue
         pydantic_type, field_info = _extract_field_info(django_field)
         fields_def[django_field.name] = (pydantic_type, field_info)
-    return create_model(
-        schema_name, __config__=ConfigDict(from_attributes=True, extra="forbid"), **fields_def
+    schema = create_model(
+        schema_name,
+        __config__=ConfigDict(
+            from_attributes=True,
+            extra="forbid",
+        ),
+        **fields_def,
     )
+
+    SchemaRegistry.register(
+        model_cls,
+        schema,
+        include_relations=include_relations,
+    )
+
+    return schema
+
 
 
 def model_to_pydantic(instance: NovaModel) -> BaseModel:
