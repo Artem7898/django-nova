@@ -4,20 +4,8 @@ Tests for QuerySet caching layer.
 
 from __future__ import annotations
 
-from django.db import models
-
 from nova.cache.queryset_cache import QuerySetCache
-from nova.typing.models import NovaConfig, NovaModel
-
-
-class CachedItem(NovaModel):
-    name = models.CharField(max_length=100)
-    value = models.IntegerField()
-
-    class Meta:
-        app_label = "tests"
-
-    _nova_config = NovaConfig(cache_enabled=True)
+from tests.models import CachedItem
 
 
 class TestQuerySetCache:

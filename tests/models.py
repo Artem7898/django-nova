@@ -1,6 +1,5 @@
 from django.db import models
 from pydantic import BaseModel, field_validator
-
 from nova import NovaConfig, NovaModel
 
 
@@ -25,6 +24,7 @@ class Lab(NovaModel):
         cache_enabled=True,
         strict_validation=True,
     )
+
 
     class Meta:
         app_label = "tests"
@@ -57,3 +57,13 @@ class StrictArticle(NovaModel):
         app_label = "tests"
 
     _nova_config = NovaConfig(strict_validation=True)
+
+
+class CachedItem(NovaModel):
+    name = models.CharField(max_length=100)
+    value = models.IntegerField()
+
+    class Meta:
+        app_label = "tests"
+
+    _nova_config = NovaConfig(cache_enabled=True)
