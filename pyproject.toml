@@ -97,7 +97,7 @@ dev = [
 
     "coverage>=7.6",
 
-    "build>=1.5.1",
+    "build>=1.5.0",
     "twine>=6.2.0",
 
     "httpx>=0.27",
