@@ -435,7 +435,7 @@ Run benchmarks locally:
 
 ```bash
 uv sync --extra dev
-pytest benchmarks/ -v --benchmark-only
+uv run python scripts/bench.py (The command to load the benchmark)
 ```
 
 ---
