@@ -2,6 +2,19 @@ from dataclasses import dataclass
 
 from django.conf import settings
 
+DEFAULT_CACHE_BACKEND = "memory"
+DEFAULT_CACHE_TTL = 60
+DEFAULT_CACHE_MAXSIZE = 1000
+
+
+NOVA_CACHE_REDIS_URL = (
+    "redis://localhost:6379/0"
+)
+
+NOVA_CACHE_REDIS_POOL_SIZE = 100
+
+NOVA_CACHE_REDIS_TIMEOUT = 5
+
 
 @dataclass(slots=True)
 class NovaSettings:

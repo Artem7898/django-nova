@@ -85,7 +85,7 @@ tasks = [
     "asyncio-throttle>=1.0",
 ]
 
-# ВНИМАНИЕ: Сюда перенесена секция dev
+
 dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
@@ -110,7 +110,6 @@ Homepage = "https://github.com/Artem7898/django-nova"
 Repository = "https://github.com/Artem7898/django-nova"
 Documentation = "https://github.com/Artem7898/django-nova#readme"
 Issues = "https://github.com/Artem7898/django-nova/issues"
-
 
 
 [tool.uv]
@@ -141,14 +140,22 @@ typeCheckingMode = "strict"
 venvPath = "."
 venv = ".venv"
 
+
 [tool.pytest.ini_options]
-pythonpath = ["src" , "."]
+
+pythonpath = ["src", "."]
+
+testpaths = ["tests"]
+
 asyncio_mode = "auto"
-DJANGO_SETTINGS_MODULE = "example_project.settings"
+
+
+DJANGO_SETTINGS_MODULE = "tests.example_project.settings"
 
 markers = [
     "slow: marks tests as slow",
     "integration: integration tests",
+    "benchmark: performance tests",
 ]
 
 [tool.coverage.run]

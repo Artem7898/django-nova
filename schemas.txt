@@ -1,49 +1,89 @@
-django-nova/
+
+.
+├── assets
+│   └── django-nova-logo.png
+├── benchmarks
+│   ├── __pycache__
+│   │   └── test_performance.cpython-312-pytest-9.1.1.pyc
+│   └── test_performance.py
+├── CHANGELOG.md
+├── dist
+│   ├── django_nova-0.2.4-py3-none-any.whl
+│   └── django_nova-0.2.4.tar.gz
+├── docs
+│   ├── architecture.md
+│   ├── index.md
+│   ├── index.svg
+│   ├── installation.md
+│   └── installation.svg
+├── new_stage_file.txt
 ├── pyproject.toml
-├── src/
-│   └── nova/
-│       ├── __init__.py
-│       ├── core/
-│       │   ├── __init__.py
-│       │   ├── config.py              # Pydantic-based Django settings
-│       │   └── exceptions.py
-│       ├── typing/
-│       │   ├── __init__.py
-│       │   ├── models.py              # Typed model mixins
-│       │   ├── querysets.py           # Typed QuerySet generics
-│       │   └── fields.py              # Properly typed Field descriptors
-│       ├── validation/
-│       │   ├── __init__.py
-│       │   ├── unified.py             # Single source of truth validation
-│       │   └── pydantic_bridge.py     # Auto Django ↔ Pydantic
-│       ├── cache/
-│       │   ├── __init__.py
-│       │   ├── queryset_cache.py      # Intelligent QuerySet caching
-│       │   └── invalidation.py        # Event-driven invalidation
-│       ├── async_orm/
-│       │   ├── __init__.py
-│       │   ├── queryset.py            # True async QuerySet
-│       │   └── manager.py
-│       ├── tasks/
-│       │   ├── __init__.py
-│       │   ├── engine.py              # Built-in task runner
-│       │   └── decorators.py
-│       ├── admin/
-│       │   ├── __init__.py
-│       │   ├── components.py          # Component-based admin
-│       │   └── api.py                 # Auto-generated admin API
-│       └── migrations/
-│           ├── __init__.py
-│           ├── zero_downtime.py       # PG-native zero-downtime
-│           └── splitter.py            # Auto-split large migrations
-├── tests/
-│   ├── conftest.py
-│   ├── typing/
-│   │   └── test_typed_models.py
-│   ├── validation/
-│   │   └── test_unified_validation.py
-│   ├── cache/
-│   │   └── test_queryset_cache.py
-│   └── async_orm/
-│       └── test_async_queryset.py
-└── docs/
+├── README.md
+├── README.RU.md
+├── schemas.txt
+├── scripts
+│   └── bench.py
+├── SECURITY.md
+├── src
+│   ├── __init__.py
+│   └── nova
+│       ├── admin
+│       ├── apps.py
+│       ├── async_orm
+│       ├── cache
+│       ├── conf.py
+│       ├── core
+│       ├── db
+│       ├── ecosystem
+│       ├── __init__.py
+│       ├── metrics
+│       ├── __pycache__
+│       ├── tasks
+│       ├── typing
+│       └── validation
+├── tests
+│   ├── apps.py
+│   ├── cache
+│   │   ├── __pycache__
+│   │   └── test_queryset_cache.py
+│   ├── conftest.py
+│   ├── core
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   ├── test_observability.py
+│   │   └── test_tracing.py
+│   ├── db
+│   │   ├── __pycache__
+│   │   └── test_migrations.py
+│   ├── ecosystem
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   ├── test_admin_integration.py
+│   │   ├── test_drf_integration.py
+│   │   └── test_fastapi_bridge.py
+│   ├── example_project
+│   │   ├── __init__.py
+│   │   ├── models.py
+│   │   ├── __pycache__
+│   │   └── settings.py
+│   ├── __init__.py
+│   ├── metrics
+│   │   ├── __pycache__
+│   │   ├── test_counters.py
+│   │   ├── test_exporters.py
+│   │   ├── test_registry.py
+│   │   └── test_timers.py
+│ ├── models.py
+│ ├── __pycache__
+│ │ ├── apps.cpython-312.pyc
+│ │ ├── conftest.cpython-312-pytest-7.4.4.pyc
+│ │ ├── conftest.cpython-312-pytest-9.1.1.pyc
+│ │ ├── __init__.cpython-312.pyc
+│ │ ├── models.cpython-312.pyc
+│ │ └── test_full_integration.cpython-312-pytest-9.1.1.pyc
+│ ├── test_full_integration.py
+│ └── typing
+│     ├── __pycache__
+│    └── test_typed_models.py
+├── The_final_roadmap.txt
+└── uv.lock

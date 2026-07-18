@@ -1,10 +1,8 @@
-import pytest
-from pydantic import BaseModel, field_validator
 from django.db import models
+from pydantic import BaseModel, field_validator
 
 # Импортируем после того, как pytest-django сам настроил Django
-from nova import NovaModel, NovaConfig
-
+from nova import NovaConfig, NovaModel
 
 # --- СХЕМА И МОДЕЛЬ ДЛЯ ТЕСТА ---
 
