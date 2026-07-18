@@ -1,7 +1,10 @@
 """Tests for Model save instrumentation."""
 from __future__ import annotations
+
 from unittest.mock import MagicMock, patch
+
 import pytest
+
 
 @pytest.mark.django_db
 @patch("nova.typing.models.nova_span")

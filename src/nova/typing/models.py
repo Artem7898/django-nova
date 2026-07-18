@@ -9,6 +9,7 @@ code level.
 
 from __future__ import annotations
 
+import time
 from collections.abc import Sequence
 from typing import (
     TYPE_CHECKING,
@@ -22,6 +23,7 @@ from typing import (
 
 from django.db import models
 from pydantic import BaseModel
+
 from nova.core.tracing import nova_span
 from nova.typing.managers import NovaManager
 
@@ -122,22 +124,36 @@ class NovaModel(models.Model):
         using: str | None = None,
         update_fields: Sequence[str] | None = None,
     ) -> None:
-        """Save with unified validation."""
-        from nova.core.tracing import nova_span
-
+        """Save with unified validation and deep tracing lifecycle."""
+        db = using or self._state.db or "default"
 
         with nova_span(
-            "nova.model.save", model=self._meta.label, pk=getattr(self, self._meta.pk.attname, None)
+            "nova.model.save",
+            model=self._meta.label,
+            pk=getattr(self, self._meta.pk.attname, None),
+            database=db,
+            table=self._meta.db_table
         ) as span:
-            self._run_validation()
-            if span:
-                span.set_attribute("nova.validation.passed", True)
+            # 1. Validation Phase
+            with nova_span("nova.validation.run", model=self._meta.label) as val_span:
+                start_time = time.perf_counter()
+                self._run_validation()
+                val_time = (time.perf_counter() - start_time) * 1000
+
+                if val_span:
+                    val_span.set_attribute("validation.time_ms", val_time)
+                    val_span.set_attribute("validation.passed", True)
+
+            # 2. Database Save Phase
             super().save(
                 force_insert=force_insert,
                 force_update=force_update,
                 using=using,
                 update_fields=update_fields,
             )
+
+            if span:
+                span.set_attribute("nova.validation.time_ms", val_time)
 
     def _run_validation(self) -> None:
         """Execute unified validation pipeline."""
@@ -200,45 +216,3 @@ class NovaModel(models.Model):
         opts = self._meta
         pk = getattr(self, opts.pk.attname, None)
         return f"<{opts.label}:{pk}>"
-
-    @override
-    def save(
-        self,
-        force_insert: bool = False,
-        force_update: bool = False,
-        using: str | None = None,
-        update_fields: Sequence[str] | None = None,
-    ) -> None:
-        """Save with unified validation and deep tracing lifecycle."""
-        import time
-
-
-        db = using or self._state.db or "default"
-        
-        with nova_span(
-            "nova.model.save", 
-            model=self._meta.label, 
-            pk=getattr(self, self._meta.pk.attname, None),
-            database=db,
-            table=self._meta.db_table
-        ) as span:
-            # 1. Validation Phase
-            with nova_span("nova.validation.run", model=self._meta.label) as val_span:
-                start_time = time.perf_counter()
-                self._run_validation()
-                val_time = (time.perf_counter() - start_time) * 1000
-                
-                if val_span:
-                    val_span.set_attribute("validation.time_ms", val_time)
-                    val_span.set_attribute("validation.passed", True)
-
-            # 2. Database Save Phase
-            super().save(
-                force_insert=force_insert,
-                force_update=force_update,
-                using=using,
-                update_fields=update_fields,
-            )
-            
-            if span:
-                span.set_attribute("nova.validation.time_ms", val_time)

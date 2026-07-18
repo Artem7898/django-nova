@@ -1,8 +1,11 @@
 """Tests for Task engine instrumentation."""
 from __future__ import annotations
+
 import asyncio
 from unittest.mock import MagicMock, patch
+
 import pytest
+
 from nova.tasks.engine import NovaTaskEngine
 
 
@@ -37,7 +40,7 @@ async def test_task_submit_and_execute_tracing(mock_nova_span, mock_span):
 
     # Check execution span (called inside worker)
     calls = mock_nova_span.call_args_list
-    exec_call = [c for c in calls if c[0][0] == "nova.task.execute"][0]
+    exec_call = next(c for c in calls if c[0][0] == "nova.task.execute")
     assert exec_call[1]["task_id"] == task_id
 
     # Verify status attribute was set

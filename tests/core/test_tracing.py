@@ -6,6 +6,7 @@ Covers Safe Import, Full Lifecycle, and Decorators.
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
+
 import pytest
 
 from nova.core.tracing import (
@@ -70,15 +71,14 @@ class TestNovaSpanLifecycle:
         """Test path: yield -> else -> set_status(OK)"""
         mock_span, mock_tracer = self._setup_mock_span()
 
-        with patch("nova.core.tracing.trace.get_tracer", return_value=mock_tracer):
-            with nova_span("success.op") as span:
-                assert span is not None
+        #  WITH (SIM117)
+        with patch("nova.core.tracing.trace.get_tracer", return_value=mock_tracer), \
+                nova_span("success.op") as span:
+            assert span is not None
 
-        # Verify OK status was set
         mock_span.set_status.assert_called_once()
         status_arg = mock_span.set_status.call_args[0][0]
         assert status_arg.status_code.name == "OK"
-        # Verify no exceptions were recorded
         mock_span.record_exception.assert_not_called()
 
     def test_exception_lifecycle_records_and_sets_error(self) -> None:
@@ -86,13 +86,13 @@ class TestNovaSpanLifecycle:
         mock_span, mock_tracer = self._setup_mock_span()
         test_error = ValueError("DB Constraint failed")
 
-        with patch("nova.core.tracing.trace.get_tracer", return_value=mock_tracer):
-            with pytest.raises(ValueError, match="DB Constraint failed"):
-                with nova_span("fail.op") as span:
-                    assert span is not None
-                    raise test_error
+        #  WITH (SIM117)
+        with patch("nova.core.tracing.trace.get_tracer", return_value=mock_tracer), \
+                pytest.raises(ValueError, match="DB Constraint failed"), \
+                nova_span("fail.op") as span:
+            assert span is not None
+            raise test_error
 
-        # Verify Error status and exception recording
         mock_span.record_exception.assert_called_once_with(test_error)
         mock_span.set_status.assert_called_once()
         status_arg = mock_span.set_status.call_args[0][0]
@@ -112,7 +112,7 @@ class TestTracingDecorators:
         return mock_span, mock_tracer
 
     def test_trace_model_decorator(self) -> None:
-        mock_span, mock_tracer = self._setup_mock_span()
+        _, mock_tracer = self._setup_mock_span()  #  (RUF059)
 
         with patch("nova.core.tracing.trace.get_tracer", return_value=mock_tracer):
             @trace_model(operation="save")
@@ -120,15 +120,13 @@ class TestTracingDecorators:
                 return "saved"
 
             result = save_article()
-
             assert result == "saved"
-            # Check that the span was created with correct component attributes
             call_kwargs = mock_tracer.start_as_current_span.call_args[1]
             assert call_kwargs["attributes"]["nova.component"] == "model"
             assert call_kwargs["attributes"]["nova.model.action"] == "save"
 
     def test_trace_cache_decorator(self) -> None:
-        mock_span, mock_tracer = self._setup_mock_span()
+        _, mock_tracer = self._setup_mock_span()  #  (RUF059)
 
         with patch("nova.core.tracing.trace.get_tracer", return_value=mock_tracer):
             @trace_cache(operation="invalidate")
@@ -136,12 +134,11 @@ class TestTracingDecorators:
                 pass
 
             clear_cache()
-
             call_kwargs = mock_tracer.start_as_current_span.call_args[1]
             assert call_kwargs["attributes"]["nova.component"] == "cache"
 
     def test_trace_validation_decorator_passes_extra_attrs(self) -> None:
-        mock_span, mock_tracer = self._setup_mock_span()
+        _, mock_tracer = self._setup_mock_span()  #  (RUF059)
 
         with patch("nova.core.tracing.trace.get_tracer", return_value=mock_tracer):
             @trace_validation(schema_name="ArticleSchema")
@@ -149,12 +146,10 @@ class TestTracingDecorators:
                 return True
 
             validate()
-
             call_kwargs = mock_tracer.start_as_current_span.call_args[1]
             assert call_kwargs["attributes"]["schema"] == "ArticleSchema"
 
     def test_decorator_inherits_exception_lifecycle(self) -> None:
-        """Ensure decorators automatically handle the ERROR lifecycle."""
         mock_span, mock_tracer = self._setup_mock_span()
 
         with patch("nova.core.tracing.trace.get_tracer", return_value=mock_tracer):
@@ -165,5 +160,4 @@ class TestTracingDecorators:
             with pytest.raises(RuntimeError):
                 run_task()
 
-            # Even though it's a decorator, nova_span inside it must record the error
             mock_span.record_exception.assert_called_once()

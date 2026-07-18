@@ -15,14 +15,14 @@ Lifecycle:
 from __future__ import annotations
 
 import functools
-from collections.abc import Generator, Callable
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
-from typing import Any, TypeVar, ParamSpec
+from typing import Any, ParamSpec, TypeVar
 
 # --- Safe Import Block ---
 try:
     from opentelemetry import trace
-    from opentelemetry.trace import Span, Tracer, Status, StatusCode
+    from opentelemetry.trace import Span, Status, StatusCode, Tracer
 
     OTEL_AVAILABLE = True
 except ImportError:
