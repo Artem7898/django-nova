@@ -31,7 +31,7 @@ class Timer(ContextDecorator):
         self.metric = metric
         self._start = 0.0
 
-    def __enter__(self) -> "Timer":
+    def __enter__(self) -> Timer:
         self._start = perf_counter()
         return self
 

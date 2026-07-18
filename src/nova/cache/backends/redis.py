@@ -17,10 +17,9 @@ except ImportError:
     # A type stub so that mypy doesn't swear if the package isn't installed
     RedisError = Exception
 
+from nova.cache.backends.protocol import CacheBackend
 from nova.cache.pool import get_redis_pool
 from nova.cache.serializers import PickleSerializer
-
-from nova.cache.backends.protocol import CacheBackend
 from nova.core.exceptions import NovaCacheError
 
 

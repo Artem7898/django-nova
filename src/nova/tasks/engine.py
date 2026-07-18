@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
+
 from nova.core.tracing import nova_span
 
 logger = logging.getLogger(__name__)

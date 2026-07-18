@@ -3,11 +3,10 @@ Stable baseline benchmark script.
 Disables GC to show real algorithmic performance without Python's pauses.
 Run: uv run python scripts/bench.py
 """
-import sys
-import os
 import gc
+import os
+import sys
 import timeit
-
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.join(current_dir, '..')
@@ -16,8 +15,8 @@ sys.path.insert(0, os.path.join(project_root, 'src'))
 sys.path.insert(0, os.path.join(project_root, 'tests'))
 
 
-import django
-from django.conf import settings
+import django  # noqa: E402
+from django.conf import settings  # noqa: E402
 
 if not settings.configured:
     settings.configure(
@@ -31,10 +30,10 @@ if not settings.configured:
     django.setup()
 
 
-from django.db import models
-from pydantic import BaseModel, field_validator
-from nova.typing.models import NovaModel, NovaConfig
+from django.db import models  # noqa: E402
+from pydantic import BaseModel, field_validator  # noqa: E402
 
+from nova.typing.models import NovaConfig, NovaModel  # noqa: E402
 
 
 class BenchSchema(BaseModel):

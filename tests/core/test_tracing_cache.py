@@ -1,9 +1,13 @@
 """Tests for Cache layer instrumentation."""
 from __future__ import annotations
+
 from unittest.mock import MagicMock, patch
+
 import pytest
-from nova.cache.queryset_cache import QuerySetCache
+
 from nova.cache.backends.memory import MemoryCacheBackend
+from nova.cache.queryset_cache import QuerySetCache
+
 
 @pytest.fixture
 def mock_span():
@@ -35,7 +39,6 @@ def test_get_or_set_miss_lifecycle(mock_nova_span, mock_span, db):
 @patch("nova.cache.queryset_cache.nova_span")
 def test_invalidate_lifecycle(mock_nova_span, mock_span, db):
     mock_nova_span.return_value = mock_span
-    from tests.models import CachedItem
 
     cache = QuerySetCache(backend=MemoryCacheBackend())
     cache.invalidate_model("cacheditem")

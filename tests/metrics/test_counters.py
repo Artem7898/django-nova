@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from nova.metrics.counters import Counter
-from nova.metrics.counters import increment
+from nova.metrics.counters import Counter, increment
 from nova.metrics.exporters import MetricsExporter
 from nova.metrics.registry import get_metrics_registry
 

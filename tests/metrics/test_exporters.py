@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from nova.metrics.exporters import ConsoleExporter
-from nova.metrics.exporters import NullExporter
+from nova.metrics.exporters import ConsoleExporter, NullExporter
 
 
 class TestNullExporter:
