@@ -15,6 +15,15 @@ NOVA_CACHE_REDIS_POOL_SIZE = 100
 
 NOVA_CACHE_REDIS_TIMEOUT = 5
 
+# Task Backend Settings
+NOVA_TASK_BACKEND: str = "asyncio"  # 'asyncio', 'redis', 'celery'
+NOVA_TASK_MAX_WORKERS: int = 4
+NOVA_TASK_RETRY_COUNT: int = 0
+NOVA_TASK_RETRY_DELAY: float = 1.0
+NOVA_TASK_DEFAULT_PRIORITY: int = 0
+NOVA_TASK_QUEUE_NAME: str = "nova_tasks"
+NOVA_TASK_RESULT_TTL: int = 3600
+
 
 @dataclass(slots=True)
 class NovaSettings:

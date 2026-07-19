@@ -12,7 +12,6 @@ from __future__ import annotations
 import time
 from collections.abc import Sequence
 from typing import (
-    TYPE_CHECKING,
     ClassVar,
     Protocol,
     Self,
@@ -26,10 +25,6 @@ from pydantic import BaseModel
 
 from nova.core.tracing import nova_span
 from nova.typing.managers import NovaManager
-
-if TYPE_CHECKING:
-    pass
-
 
 ModelT = TypeVar("ModelT", bound="NovaModel")
 
@@ -110,11 +105,7 @@ class NovaModel(models.Model):
     class Meta:
         abstract = True
 
-    if TYPE_CHECKING:
-        # This is the key trick: we override the objects type in TYPE_CHECKING
-        # so that mypy/pyright sees the correct generic QuerySet
-        objects = NovaManager()
-        objects: NovaManager[Self]  # type: ignore[assignment]
+    objects: ClassVar[NovaManager[Self]] = NovaManager()  # type: ignore[assignment] # type: ignore[assignment]
 
     @override
     def save(

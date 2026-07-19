@@ -4,16 +4,20 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 __all__ = [
     "CacheBackend",
     "NovaConfig",
     "NovaModel",
     "NovaSettings",
+    "NovaTaskEngine",
     "SchemaRegistry",
+    "TaskBackend",
+    "TaskResult",
     "__version__",
     "connect_invalidation",
+    "nova_task",
 ]
 
 
@@ -47,6 +51,22 @@ def __getattr__(name: str):
         from nova.cache.invalidation import connect_invalidation
         return connect_invalidation
 
+    if name == "NovaTaskEngine":
+        from nova.tasks.engine import NovaTaskEngine
+        return NovaTaskEngine
+
+    if name == "nova_task":
+        from nova.tasks.decorators import nova_task
+        return nova_task
+
+    if name == "TaskResult":
+        from nova.tasks.models import TaskResult
+        return TaskResult
+
+    if name == "TaskBackend":
+        from nova.tasks.backends.protocol import TaskBackend
+        return TaskBackend
+
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
@@ -56,5 +76,9 @@ if TYPE_CHECKING:
     from nova.cache.backends.protocol import CacheBackend
     from nova.cache.invalidation import connect_invalidation
     from nova.conf import NovaSettings
+    from nova.tasks.backends.protocol import TaskBackend
+    from nova.tasks.decorators import nova_task
+    from nova.tasks.engine import NovaTaskEngine
+    from nova.tasks.models import TaskResult
     from nova.typing.models import NovaConfig, NovaModel
     from nova.validation.schema_registry import SchemaRegistry

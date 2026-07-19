@@ -33,3 +33,16 @@ class TypedQuerySet[ModelT: "NovaModel"](DjangoQuerySet):
 
     def last(self) -> ModelT | None:
         return super().last()
+
+    def auto(self) -> TypedQuerySet[ModelT]:
+        """
+        Apply automatic query optimizations based on Pydantic schema.
+
+        Example:
+            # If ArticleSchema has 'author: AuthorSchema', this prevents N+1 queries
+            articles = Article.objects.filter(published=True).auto()
+        """
+        from nova.query.planner import apply_optimizations
+
+        # We apply optimizations and return the same QuerySet for the chains.
+        return apply_optimizations(self, self.model)
