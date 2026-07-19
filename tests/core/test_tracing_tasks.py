@@ -17,7 +17,7 @@ def mock_span():
     return span
 
 
-@patch("nova.tasks.engine.nova_span")
+@patch("nova.tasks.backends.asyncio_backend.nova_span")
 @pytest.mark.asyncio
 async def test_task_submit_and_execute_tracing(mock_nova_span, mock_span):
     mock_nova_span.return_value = mock_span

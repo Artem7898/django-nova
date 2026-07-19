@@ -5,20 +5,27 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2040f54d-711a-4dfd-88d1-7c5051d4a070" name="Changes" comment="fix: ensure test __init__ files are tracked">
+      <change afterPath="$PROJECT_DIR$/src/nova/query/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/nova/query/planner.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/nova/tasks/backends/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/nova/tasks/backends/asyncio_backend.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/nova/tasks/backends/celery_backend.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/nova/tasks/backends/protocol.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/nova/tasks/backends/redis_backend.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/nova/tasks/exceptions.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/nova/tasks/models.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/query/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/query/test_planner.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/bench.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/bench.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/nova/cache/backends/redis.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/cache/backends/redis.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/nova/core/tracing.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/core/tracing.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/nova/metrics/exporters.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/metrics/exporters.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/nova/metrics/timers.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/metrics/timers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/conf.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/conf.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/nova/tasks/engine.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/tasks/engine.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/nova/typing/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/typing/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/core/test_tracing.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/core/test_tracing.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/core/test_tracing_cache.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/core/test_tracing_cache.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/core/test_tracing_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/core/test_tracing_models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/typing/querysets.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/typing/querysets.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/core/test_tracing_tasks.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/core/test_tracing_tasks.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/metrics/test_counters.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/metrics/test_counters.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/metrics/test_exporters.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/metrics/test_exporters.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_full_integration.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_full_integration.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -69,7 +76,7 @@
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
     &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;fix/ruff-warnings&quot;,
     &quot;last_opened_file_path&quot;: &quot;/home/atrem/PycharmProjects/django-nova&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
