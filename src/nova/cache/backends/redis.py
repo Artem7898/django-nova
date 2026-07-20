@@ -7,45 +7,47 @@ Requires:
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 try:
-    import redis
     from redis.exceptions import RedisError
 except ImportError:
-    redis = None
-    # A type stub so that mypy doesn't swear if the package isn't installed
-    RedisError = Exception
+    RedisError = Exception  # type: ignore[assignment, misc]
 
 from nova.cache.backends.protocol import CacheBackend
-from nova.cache.pool import get_redis_pool
 from nova.cache.serializers import PickleSerializer
 from nova.core.exceptions import NovaCacheError
+
+logger = logging.getLogger(__name__)
 
 
 class RedisCacheBackend(CacheBackend):
     """
-    Production-ready, safe Redis cache backend.
-    Translates low-level redis exceptions to NovaCacheError.
+    Production-ready Redis cache backend.
+    Uses the unified global Nova Redis Client to share connection pools.
     """
 
     def __init__(
         self,
-        url: str,
+        url: str | None = None,  # Left for backward compatibility, but ignored
         key_prefix: str = "nova",
     ) -> None:
-        if redis is None:
-            raise NovaCacheError(
-                "Redis package is not installed. Install it via: pip install 'django-nova[cache]'"
+        # We import here so as not to break the import if redis is not installed.
+        from nova.redis.client import get_redis_client
+
+        if url is not None:
+            logger.warning(
+                "Passing 'url' to RedisCacheBackend is deprecated. "
+                "Nova now uses a unified Redis client configured via NOVA_REDIS_URL."
             )
 
         self._key_prefix = key_prefix
-        pool = get_redis_pool(url)
-        self._client = redis.Redis(connection_pool=pool)
+        # We use a SINGLE client for the entire process.
+        self._client = get_redis_client()
         self._serializer = PickleSerializer()
 
     def _handle_redis_error(self, exc: RedisError) -> None:
-        """Error isolation: we convert Redis exceptions to Nova errors."""
         raise NovaCacheError(f"Redis backend operation failed: {exc}") from exc
 
     def get(self, key: str) -> Any | None:
@@ -71,11 +73,6 @@ class RedisCacheBackend(CacheBackend):
             self._handle_redis_error(e)
 
     def clear(self) -> None:
-        """
-       Secure cache cleanup.
-        Uses SCAN to delete only keys with our prefix.
-        DOES NOT USE flushdb() to avoid killing other people's data in Redis!
-        """
         try:
             if not self._key_prefix:
                 raise NovaCacheError(
@@ -86,11 +83,9 @@ class RedisCacheBackend(CacheBackend):
             pattern = f"{self._key_prefix}:*"
             cursor = 0
             while True:
-                # SCAN does not block Redis (unlike KEYS*)
                 cursor, keys = self._client.scan(cursor=cursor, match=pattern, count=100)
                 if keys:
                     self._client.delete(*keys)
-                # Cursor returns 0 when the crawl is completed
                 if cursor == 0:
                     break
         except RedisError as e:
@@ -98,13 +93,10 @@ class RedisCacheBackend(CacheBackend):
 
     def stats(self) -> dict[str, Any]:
         try:
-            # We only request the memory section so as not to load Redis.
             info = self._client.info(section="memory")
-
             return {
                 "backend": "redis",
                 "used_memory": info.get("used_memory_human"),
-                # dbsize returns the number of keys in the current database
                 "keys": self._client.dbsize(),
             }
         except RedisError as e:
