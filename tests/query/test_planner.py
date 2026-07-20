@@ -95,3 +95,51 @@ class TestPlannerIntegration:
         assert "WHERE" in sql
         # Verify the join was added
         assert "JOIN" in sql
+
+
+class TestDeepPlannerAnalysis:
+    """Tests for the Recursive Relation Graph Traverser."""
+
+    def test_detects_deep_select_related(self) -> None:
+        """
+        Planner must find nested relationships.
+        Article -> Author -> Profile should yield 'author__profile',
+        but NOT 'author' (because 'author__profile' is a more complete join).
+        """
+        from nova.query.planner import analyze_schema_for_relations
+        from tests.models import ArticleDeepSchema
+
+        hints = analyze_schema_for_relations(ArticleDeepSchema)
+
+        assert "author__profile" in hints["select"]
+        # Убеждаемся, что нет "мусорных" корневых путей
+        assert "author" not in hints["select"]
+
+    def test_deep_select_respects_exclude(self) -> None:
+        """
+        Even if deep path is found, it can be excluded by the root field name.
+        """
+        from nova.query.planner import analyze_schema_for_relations
+        from tests.models import ArticleDeepSchema
+
+        hints = analyze_schema_for_relations(ArticleDeepSchema, exclude=("author",))
+
+        assert "author__profile" not in hints["select"]
+        assert "tags" in hints["prefetch"]
+
+    def test_prevents_infinite_recursion(self) -> None:
+        """
+        If a schema somehow references itself (circular), planner must ignore it completely.
+        """
+        from pydantic import BaseModel
+
+        from nova.query.planner import analyze_schema_for_relations
+
+        class CircularSchema(BaseModel):
+            dummy: str
+            ref: CircularSchema  # Ссылается сам на себя
+
+        hints = analyze_schema_for_relations(CircularSchema)
+        # Циклическая ссылка не должна попасть в план вообще
+        assert "ref" not in hints["select"]
+        assert hints["select"] == []

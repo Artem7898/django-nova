@@ -120,3 +120,52 @@ class ArticleWithRelations(NovaModel):
     _nova_config = NovaConfig(
         pydantic_schema=ArticleWithRelationsSchema,
     )
+
+
+# --- Schemes for testing deep Prefetch Optimizer (2 levels) ---
+
+class ProfileSchema(BaseModel):
+    bio: str
+
+class AuthorDeepSchema(BaseModel):
+    name: str
+    # Nested Level 2 communication
+    profile: ProfileSchema
+
+class ArticleDeepSchema(BaseModel):
+    title: str
+    # Level 1 communication
+    author: AuthorDeepSchema
+    tags: list[TagSchema]
+
+# --- The model for testing ---
+class ArticleDeep(NovaModel):
+    title = models.CharField(max_length=200)
+    author = models.ForeignKey('tests.AuthorDeep', on_delete=models.CASCADE, related_name='articles_deep')
+    tags = models.ManyToManyField('tests.Tag', related_name='articles_deep')
+
+    class Meta:
+        app_label = "tests"
+
+    _nova_config = NovaConfig(
+        pydantic_schema=ArticleDeepSchema,
+    )
+
+
+class AuthorDeep(NovaModel):
+    name = models.CharField(max_length=100)
+    profile = models.OneToOneField('tests.Profile', on_delete=models.CASCADE, related_name='author_profile')
+
+    class Meta:
+        app_label = "tests"
+
+    _nova_config = NovaConfig(
+        pydantic_schema=AuthorDeepSchema,
+    )
+
+
+class Profile(NovaModel):
+    bio = models.TextField()
+
+    class Meta:
+        app_label = "tests"
