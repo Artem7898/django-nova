@@ -392,33 +392,53 @@ If OpenTelemetry is not installed, spans are no-ops with zero runtime overhead.
 
 ### Roadmap
 
-#### ✅ Already Shipped
+## ✅ What's Already Built
 
-| Feature | Status |
-|---------|--------|
-| Typed Manager | **Done** |
-| Schema Registry | **Done** |
-| Cache Backend Abstraction | **Done** |
-| AppConfig Auto Discovery | **Done** |
-| Typed Settings | **Done** |
-
-#### 🚧 Coming Next
-
-| Feature | Status | Target |
-|---------|--------|--------|
-| Redis Cache | Planned | Q3 2026 |
-| Task Backend | Planned | Q3 2026 |
-| Metrics | Planned | Q4 2026 |
-| Instrumentation | Planned | Q4 2026 |
-| Read Replicas | Planned | Q4 2026 |
-| Query Planner | Planned | Q1 2027 |
-| Prefetch Optimizer | Planned | Q1 2027 |
-| Stable API | Planned | Q1 2027 |
-| Django 6 Support | Planned | Q2 2027 |
-| Full OpenTelemetry Support | Planned | Q2 2027 |
-| Production Readiness | Planned | Q2 2027 |
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Typed ORM | ✅ Stable | Full type safety across models, managers, querysets |
+| Typed Manager | ✅ Stable | Generic manager with schema-aware operations |
+| Typed QuerySet | ✅ Stable | Chainable, fully typed query builder |
+| Schema Registry | ✅ Stable | Centralized model schema discovery |
+| Pydantic Bridge | ✅ Stable | Bidirectional sync between Django models and Pydantic schemas |
+| Unified Validation | ✅ Stable | One schema — Forms, DRF, FastAPI, ORM, Celery |
+| Cache Abstraction | ✅ Stable | Pluggable cache layer with deterministic keys |
+| Memory / Redis / Django / Null Cache Backends | ✅ Stable | All four backends production-tested |
+| Metrics | ✅ Stable | Built-in performance counters |
+| OTEL Tracing | ✅ Stable | OpenTelemetry spans on `Model.save()`, zero config |
+| Distributed Task Engine | ✅ Stable | Async task queue with workers |
+| Retry Policy | ✅ Stable | Exponential backoff with jitter |
+| Delayed Tasks | ✅ Stable | Schedule tasks for future execution |
+| Priority Queue | ✅ Stable | Task prioritization out of the box |
+| Stable Public API (baseline) | ✅ Stable | Core exports frozen, semver compliant |
+| Query Planner (PoC) | 🧪 Experimental | Query analysis and `QueryPlan` generation — early stage |
+| Django 6 Compatibility (baseline) | 🧪 Experimental | Basic compatibility verified, full audit pending |
 
 ---
+
+## 🚧 Work in Progress
+
+| Feature | Status | ETA | Blocker |
+|---------|--------|-----|---------|
+| Redis Infrastructure | 🚧 In Progress | Q3 2026 | Unified Redis client, distributed locks, Pub/Sub, rate limiter, health checks |
+| Read Replica Router | 🚧 In Progress | Q3 2026 | Automatic read/write splitting with lag awareness |
+| Full Query Planner | 📋 Planned | Q4 2026 | Query analysis → optimized `QueryPlan` with cost estimation |
+| Prefetch Optimizer | 📋 Planned | Q4 2026 | Auto `select_related` / `prefetch_related` / `only` / `defer` |
+| Stable Public API (frozen) | 📋 Planned | Q4 2026 | Full export freeze, backward compatibility guarantee |
+| Django 6 Audit | 📋 Planned | Q4 2026 | Complete compatibility check without breaking public API |
+| Full Observability | 📋 Planned | Q4 2026 | Trace + Metrics + Logs + Correlation IDs |
+| Production Readiness | 📋 Planned | Q1 2027 | Health checks, stress tests, performance benchmarks, compatibility matrix |
+
+---
+
+## 📊 Overall Progress
+
+████████████████████░░░░░░░░░░░░░░░░░░░░  47%  Core Features
+███████████████░░░░░░░░░░░░░░░░░░░░░░░░░  35%  Infrastructure
+█████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  22%  Production Readiness
+
+
+**Current Phase:** Core platform stable — infrastructure and optimization layer in active development.
 
 ### Benchmarks
 
