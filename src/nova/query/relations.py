@@ -16,15 +16,6 @@ def find_deep_relations(
 ) -> dict[str, list[str]]:
     """
     Recursively analyzes the Pydantic schema to find nested relationships.
-
-    Args:
-        schema: Pydantic model class for analysis
-        path_prefix: Path prefix for nested fields
-        visited: Many visited schemes to prevent cycles
-        exclude: Multiple field names to exclude from analysis
-
-    Returns:
-        Dictionary with 'select' and 'prefetch' keys containing lists of paths
     """
     if visited is None:
         visited = set()
@@ -64,19 +55,18 @@ def find_deep_relations(
 
             full_path = f"{path_prefix}__{field_name}" if path_prefix else field_name
 
+            selects.append(full_path)
+
             # Recursive call to find nested links
             nested_hints = find_deep_relations(
                 schema=annotation,
                 path_prefix=full_path,
                 visited=visited,
-                exclude=exclude  # Passing the exceptions on
+                exclude=exclude
             )
 
-            # If there are deep connections, add ONLY them (the deep path already includes the root)
-            if nested_hints["select"]:
-                selects.extend(nested_hints["select"])
-            else:
-                # If there are no deep connections (this is a "leaf" node), add the root path.
-                selects.append(full_path)
+
+            selects.extend(nested_hints["select"])
+            prefetches.extend(nested_hints["prefetch"])
 
     return {"select": selects, "prefetch": prefetches}

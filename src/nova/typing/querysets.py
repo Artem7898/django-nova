@@ -53,23 +53,17 @@ class TypedQuerySet[ModelT: "NovaModel"](DjangoQuerySet):
     def get_plan(self) -> QueryPlan:
         """
         Generate a QueryPlan based on the model's Pydantic schema.
-        Does NOT execute the plan. Allows inspection or modification.
-
-        Example:
-            plan = Article.objects.filter(published=True).get_plan()
-            if "author" in plan.select_related:
-                plan.select_related.remove("author") # Exclude from join
-            Article.objects.filter(published=True).apply_plan(plan)
         """
         from nova.query.planner import build_query_plan
         return build_query_plan(self.model)
+
 
     def apply_plan(self, plan: QueryPlan) -> TypedQuerySet[ModelT]:
         """
         Apply a pre-computed or modified QueryPlan to this QuerySet.
         """
-        from nova.query.planner import apply_plan as _apply
-        return _apply(self, plan)
+        from nova.query.planner import apply_plan as _apply_plan_fn
+        return _apply_plan_fn(self, plan)
 
 
     def auto(self) -> TypedQuerySet[ModelT]:

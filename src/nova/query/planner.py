@@ -41,20 +41,31 @@ def analyze_schema_for_relations(
 ) -> dict[str, list[str]]:
     """
     Entry point for schema analysis. Uses deep graph traversal.
-    Filters out excluded fields.
+    Filters out excluded fields and redundant SQL JOIN prefixes.
     """
     visited: set[type[BaseModel]] = set()
-
     hints = find_deep_relations(schema=schema, visited=visited)
 
-    if exclude:
 
+    def _remove_redundant_paths(paths: list[str]) -> list[str]:
+        unique_paths = list(set(paths))
+        return [
+            p for p in unique_paths
+            if not any(p != other and other.startswith(f"{p}__") for other in unique_paths)
+        ]
+
+    clean_select = _remove_redundant_paths(hints["select"])
+
+    if exclude:
         return {
-            "select": [s for s in hints["select"] if s.split("__")[0] not in exclude],
+            "select": [s for s in clean_select if s.split("__")[0] not in exclude],
             "prefetch": [p for p in hints["prefetch"] if p not in exclude]
         }
 
-    return hints
+    return {
+        "select": clean_select,
+        "prefetch": hints["prefetch"]
+    }
 
 
 def build_query_plan(model_class: type[NovaModel]) -> QueryPlan:
