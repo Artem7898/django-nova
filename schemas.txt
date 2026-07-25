@@ -8,15 +8,15 @@
 │   └── test_performance.py
 ├── CHANGELOG.md
 ├── dist
-│   ├── django_nova-0.2.4-py3-none-any.whl
-│   └── django_nova-0.2.4.tar.gz
+│   
+|   
 ├── docs
 │   ├── architecture.md
 │   ├── index.md
 │   ├── index.svg
 │   ├── installation.md
 │   └── installation.svg
-├── new_stage_file.txt
+├
 ├── pyproject.toml
 ├── README.md
 ├── README.RU.md
@@ -73,17 +73,17 @@
 │   │   ├── test_exporters.py
 │   │   ├── test_registry.py
 │   │   └── test_timers.py
-│ ├── models.py
-│ ├── __pycache__
-│ │ ├── apps.cpython-312.pyc
-│ │ ├── conftest.cpython-312-pytest-7.4.4.pyc
-│ │ ├── conftest.cpython-312-pytest-9.1.1.pyc
-│ │ ├── __init__.cpython-312.pyc
-│ │ ├── models.cpython-312.pyc
-│ │ └── test_full_integration.cpython-312-pytest-9.1.1.pyc
-│ ├── test_full_integration.py
-│ └── typing
+│   ├── models.py
+│   ├── __pycache__
+│   │ ├── apps.cpython-312.pyc
+│   │ ├── conftest.cpython-312-pytest-7.4.4.pyc
+│   │ ├── conftest.cpython-312-pytest-9.1.1.pyc
+│   │ ├── __init__.cpython-312.pyc
+│   │ ├── models.cpython-312.pyc
+│   │ └── test_full_integration.cpython-312-pytest-9.1.1.pyc
+│   ├── test_full_integration.py
+│   └── typing
 │     ├── __pycache__
 │    └── test_typed_models.py
-├── The_final_roadmap.txt
+├
 └── uv.lock
