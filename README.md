@@ -396,7 +396,7 @@ All benchmarks measure model initialization speed (object creation + validation)
 
 ## 🗺️ Roadmap
 
-### ✅ What is Built (v0.4.0)
+### ✅ What is Built (v0.3.3)
 
 | Category | Feature | Status | Notes |
 |----------|---------|--------|-------|
@@ -840,7 +840,7 @@ class Migration(migrations.Migration):
 
 ## 🗺️ Дорожная карта
 
-### ✅ Реализовано (v0.4.0)
+### ✅ Реализовано (v0.3.3)
 
 | Категория | Фича | Статус | Примечания |
 |-----------|------|--------|------------|
