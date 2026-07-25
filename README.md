@@ -15,8 +15,7 @@
 [![Django](https://img.shields.io/badge/django-5.0%2B-green?style=flat-square&logo=django)](https://www.djangoproject.com/)
 [![License](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)](LICENSE)
 [![pyright](https://img.shields.io/badge/pyright--strict-passing-brightgreen?style=flat-square)](https://github.com/microsoft/pyright)
-[![Django Packages](https://img.shields.io/badge/django--nova-on%20Django%20Packages-8c3c26?style=flat-square&logo=django)](https://djangopackages.org/packages/p/django_nova/)
-)
+[![Django Packages](https://img.shields.io/badge/django--nova-on%20Django%20Packages-8c3c26?style=flat-square&logo=django)](https://djangopackages.org/packages/p/django-nova/)
 
 [English](#english) | [Русский](#русский)
 
