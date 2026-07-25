@@ -16,6 +16,7 @@
 [![License](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)](LICENSE)
 [![pyright](https://img.shields.io/badge/pyright--strict-passing-brightgreen?style=flat-square)](https://github.com/microsoft/pyright)
 [![Django Packages](https://img.shields.io/badge/django--nova-on%20Django%20Packages-8c3c26?style=flat-square&logo=django)](https://djangopackages.org/packages/p/django_nova/)
+)
 
 [English](#english) | [Русский](#русский)
 
@@ -442,9 +443,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 ---
 
 
-
-
-
+[![Latest on Django Packages](https://img.shields.io/badge/PyPI-{{ package.slug }}-tags-8c3c26.svg)](https://djangopackages.org/packages/p/django_nova/)
                         
 
 
