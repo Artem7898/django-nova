@@ -442,9 +442,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 ---
 
 
-
-
-
+[![Latest on Django Packages](https://img.shields.io/badge/PyPI-{{ package.slug }}-tags-8c3c26.svg)](https://djangopackages.org/packages/p/django_nova/)
                         
 
 
