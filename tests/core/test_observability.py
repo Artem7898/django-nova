@@ -46,3 +46,36 @@ class TestObservabilitySetup:
         assert parsed_log["pk"] == 42
         assert parsed_log["cache_key"] == "abc123"
         assert "timestamp" in parsed_log
+
+
+    def test_correlation_id_flows_automatically_to_logs(self, caplog: pytest.LogCaptureFixture) -> None:
+        """
+        CONTEXT INTEGRATION TEST:
+        Binding to nova.context must automatically inject fields into structlog JSON.
+        """
+        setup_nova_logging()
+
+        # We import it after setup to ensure initialization
+        from nova.core.context import bind, clear
+
+        logger = get_logger("nova.payment")
+
+        # 1.Setting the context once (for example, in Django Middleware)
+        bind(correlation_id="txn-987654321", user_id=42)
+
+        try:
+            # 2. We log somewhere deep in the business logic WITHOUT passing request_id.
+            with caplog.at_level(logging.INFO):
+                logger.info("payment_processed", amount=100.50)
+
+            # 3. Parsim log
+            log_record = caplog.records[0]
+            parsed_log = json.loads(log_record.message)
+
+            # 4. We check that the context is leaked automatically.
+            assert parsed_log["event"] == "payment_processed"
+            assert parsed_log["amount"] == 100.50
+            assert parsed_log["correlation_id"] == "txn-987654321"
+            assert parsed_log["user_id"] == 42
+        finally:
+            clear()

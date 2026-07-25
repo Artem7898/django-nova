@@ -1,6 +1,6 @@
 """
-Admin Auto-API schema generator.
-Extracts UI-friendly JSON schemas directly from NovaModel Pydantic configurations.
+Admin Auto-API & Compiler.
+Extracts UI-friendly JSON schemas and generates Django ModelAdmin classes.
 """
 
 from __future__ import annotations
@@ -15,6 +15,18 @@ from nova.admin.types import AdminFieldSchema, AdminSchema
 
 if TYPE_CHECKING:
     from nova.typing.models import NovaModel
+
+# Safe Import for Django Admin
+try:
+    from django import forms
+    from django.contrib import admin
+
+    ADMIN_AVAILABLE = True
+except ImportError:
+    admin = None
+    forms = None
+    ADMIN_AVAILABLE = False
+
 
 _FRONTEND_TYPE_MAP: dict[type[Any], str] = {
     str: "string",
@@ -31,6 +43,10 @@ GENERIC_PYDANTIC_ERRORS = {
     "Input should be a valid boolean",
 }
 
+
+# ==========================================
+# 1. JSON UI Schema Generator (Frontend)
+# ==========================================
 
 @lru_cache(maxsize=128)
 def get_admin_schema(model_cls: type[NovaModel]) -> AdminSchema:
@@ -58,16 +74,83 @@ def get_admin_schema(model_cls: type[NovaModel]) -> AdminSchema:
     return {"model": f"{model_cls._meta.app_label}.{model_cls.__name__}", "fields": fields_def}
 
 
+# ==========================================
+# 2. DYNAMIC DJANGO ADMIN COMPILER (Backend)
+# ==========================================
+
+def compile_admin(model_cls: type[NovaModel]) -> type[admin.ModelAdmin]:
+    """
+    Generates a Django ModelAdmin that enforces Pydantic validation via Forms.
+
+    Usage:
+        class Article(NovaModel):
+            _nova_config = NovaConfig(pydantic_schema=ArticleSchema)
+
+        admin.site.register(Article, compile_admin(Article))
+    """
+    if not ADMIN_AVAILABLE:
+        raise ImportError("Django admin must be available to compile admins.")
+
+    nova_config = getattr(model_cls, "_nova_config", None)
+    if not nova_config or not nova_config.pydantic_schema:
+        raise ValueError(f"{model_cls.__name__} requires a pydantic_schema to compile admin.")
+
+    pydantic_schema = nova_config.pydantic_schema
+
+    class NovaAdminForm(forms.ModelForm):
+        class Meta:
+            model = model_cls
+            fields = "__all__"
+
+        def clean(self) -> dict[str, Any]:
+            """
+            Intercept Django Form validation to inject Pydantic business logic.
+            """
+            cleaned_data = super().clean()
+
+            try:
+                # Validate the entire payload against the Pydantic schema
+                pydantic_schema.model_validate(cleaned_data)
+            except PydanticValidationError as exc:
+                # Translate Pydantic errors into Django Form errors
+                form_errors = {}
+                for err in exc.errors():
+                    loc = err.get("loc", ("__all__",))
+                    # Map Pydantic loc to Django field names
+                    field_name = loc[0] if loc and loc[0] != "__root__" else "__all__"
+                    msg = err.get("msg", "Validation error")
+
+                    # Django forms expect error lists
+                    form_errors.setdefault(field_name, []).append(msg)
+
+                raise forms.ValidationError(form_errors) from exc
+            except Exception as exc:
+                raise forms.ValidationError(str(exc)) from exc
+
+            return cleaned_data
+
+    class NovaModelAdmin(admin.ModelAdmin):
+        form = NovaAdminForm
+        # In the future, we can auto-populate list_display based on Pydantic schema here.
+
+    # Aesthetics: rename the class to match the model
+    NovaModelAdmin.__name__ = f"{model_cls.__name__}Admin"
+    NovaModelAdmin.__qualname__ = f"{model_cls.__name__}Admin"
+
+    return NovaModelAdmin
+
+
+# ==========================================
+# INTERNAL HELPERS
+# ==========================================
+
 def _build_valid_payload(schema_cls: type) -> dict[str, Any]:
     payload: dict[str, Any] = {}
-
     for field_name, field_info in schema_cls.model_fields.items():
         annotation = field_info.annotation
-
         if field_info.default is not None:
             payload[field_name] = field_info.default
             continue
-
         if annotation is str:
             payload[field_name] = "valid_string"
         elif annotation is int:
@@ -78,12 +161,10 @@ def _build_valid_payload(schema_cls: type) -> dict[str, Any]:
             payload[field_name] = True
         else:
             payload[field_name] = "valid"
-
     return payload
 
 
 def _resolve_frontend_type(annotation: Any) -> str:
-    """Convert Python/Pydantic type to frontend JSON type."""
     origin = get_origin(annotation)
     if origin is not None:
         args = get_args(annotation)
@@ -93,7 +174,6 @@ def _resolve_frontend_type(annotation: Any) -> str:
 
 
 def _is_required(field_info: Any, django_field: Any) -> bool:
-    """Determine whether field is required."""
     if django_field.default is not NOT_PROVIDED:
         return False
     if django_field.null or django_field.blank:
@@ -102,7 +182,6 @@ def _is_required(field_info: Any, django_field: Any) -> bool:
 
 
 def _extract_validation_rules(schema_cls: type, field_name: str, annotation: Any) -> str | None:
-    """Extract meaningful validation messages for frontend/admin UI generation."""
     core_annotation = annotation
     if hasattr(core_annotation, "__origin__"):
         args = get_args(core_annotation)
@@ -115,13 +194,12 @@ def _extract_validation_rules(schema_cls: type, field_name: str, annotation: Any
         float: [-1.0, None],
         bool: [False, None],
     }
-
     dummy_values = boundary_dummies.get(
         core_annotation,
         [None, "invalid_string_trigger"],
     )
-
     generic_msgs: list[str] = []
+
     for dummy in dummy_values:
         payload = _build_valid_payload(schema_cls)
         payload[field_name] = dummy

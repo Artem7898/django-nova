@@ -1,61 +1,56 @@
-<p align="center">
-  <img src="assets/django-nova-logo.png" width="280" alt="Django Nova Logo">
-</p>
-
 <div align="center">
 
-# Django Nova
+
+<!-- Logo placeholder - replace with your actual logo image -->
+<img src="assets/django-nova-logo.png" width="280" alt="Django Nova Logo">
+
+# ⚡ Django Nova
 
 **Typed, unified, and async-first toolkit for Django 5+**
 
-[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
-[![Django 5.0+](https://img.shields.io/badge/django-5.0%2B-green.svg)](https://www.djangoproject.com/)
-[![PyPI version](https://img.shields.io/pypi/v/django-nova.svg)](https://pypi.org/project/django-nova/)
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
 *Eliminate architectural fragmentation. One schema. One truth. Zero duplication.*
 
+[![PyPI](https://img.shields.io/pypi/v/django-nova?style=flat-square&color=blue)](https://pypi.org/project/django-nova/)
+[![Python](https://img.shields.io/badge/python-3.12%2B-blue?style=flat-square&logo=python)](https://www.python.org/)
+[![Django](https://img.shields.io/badge/django-5.0%2B-green?style=flat-square&logo=django)](https://www.djangoproject.com/)
+[![License](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)](LICENSE)
+[![pyright](https://img.shields.io/badge/pyright--strict-passing-brightgreen?style=flat-square)](https://github.com/microsoft/pyright)
+
+[English](#english) | [Русский](#русский)
+
 </div>
 
-<div align="center">
-  <strong>
-    <a href="#english">English</a> &nbsp;|&nbsp; <a href="#russian">Русский</a>
-  </strong>
-</div>
 
 ---
 
 <a id="english"></a>
 
-## English
-
-### Table of Contents
+## 📋 Table of Contents
 
 - [Problem Statement](#problem-statement)
 - [Philosophy](#philosophy)
 - [Architecture](#architecture)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
-- [DRF Integration](#drf-integration)
-- [FastAPI Integration](#fastapi-integration)
+- [Schema Compiler (DRF & Admin)](#schema-compiler-drf--admin)
+- [Smart Query Planner](#smart-query-planner)
+- [Distributed Context & Observability](#distributed-context--observability)
+- [Infrastructure (Redis & Replicas)](#infrastructure-redis--replicas)
 - [Smart Cache](#smart-cache)
 - [Zero-Downtime Migrations](#zero-downtime-migrations)
-- [Observability](#observability)
-- [Roadmap](#roadmap)
 - [Benchmarks](#benchmarks)
-- [Limitations](#limitations)
+- [Roadmap](#roadmap)
 - [License](#license)
 
 ---
 
-### Problem Statement
+## 🎯 Problem Statement
 
-Django’s validation layer is fragmented by design:
+Django's validation layer is fragmented by design:
 
 - **Forms** validate user input in the presentation layer.
 - **DRF Serializers** re-implement the same logic in the API layer.
-- **Model `clean()`** runs only inside the admin or when explicitly called.
+- **Model clean()** runs only inside the admin or when explicitly called.
 - **Database constraints** are limited to simple, DB-expressible rules and are not reusable outside the ORM.
 
 The result is **validation drift**: business rules scattered across forms, serializers, models, and database DDL. Change a rule in one place, and the other three become liabilities. Worse, calling `Model.objects.create()` from a management command, a Celery task, or a data pipeline bypasses form and serializer validation entirely, leaving only brittle DB constraints as a safety net.
@@ -64,53 +59,45 @@ The result is **validation drift**: business rules scattered across forms, seria
 
 ---
 
-### Philosophy
+## 🧠 Philosophy
 
-1. **Schema is the Single Source of Truth**  
-   Business logic lives in Pydantic models. Django Models, DRF Serializers, FastAPI routers, and Forms are generated projections of that schema—not independent validators.
-
-2. **Validation is an ORM concern, not a view concern**  
-   A model should refuse to persist invalid data regardless of whether the caller is a web view, an API endpoint, a CLI command, or a background worker.
-
-3. **Infrastructure must be transparent**  
-   Cache invalidation, structured logging, and distributed tracing should require zero boilerplate. If you have to think about them, the abstraction has leaked.
-
-4. **Zero-downtime is the default assumption**  
-   Operations on large tables must use native PostgreSQL `CONCURRENTLY` semantics. Scheduled maintenance windows are an anti-pattern.
-
-5. **Type safety is not optional**  
-   Full `pyright --strict` compatibility across ORM, QuerySets, and generated code. If it type-checks, it runs.
+| # | Principle | Description |
+|---|-----------|-------------|
+| 1 | **Schema is the Single Source of Truth** | Business logic lives in Pydantic models. Django Models, DRF Serializers, FastAPI routers, and Forms are generated projections of that schema — not independent validators. |
+| 2 | **Validation is an ORM concern** | A model should refuse to persist invalid data regardless of whether the caller is a web view, an API endpoint, a CLI command, or a background worker. |
+| 3 | **Infrastructure must be transparent** | Cache invalidation, structured logging, and distributed tracing should require zero boilerplate. If you have to think about them, the abstraction has leaked. |
+| 4 | **Zero-downtime is the default** | Operations on large tables must use native PostgreSQL `CONCURRENTLY` semantics. Scheduled maintenance windows are an anti-pattern. |
+| 5 | **Type safety is not optional** | Full `pyright --strict` compatibility across ORM, QuerySets, and generated code. If it type-checks, it runs. |
 
 ---
 
-### Architecture
+## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              Consumer Layers                                │
-│  ┌──────────┐  ┌──────────────┐  ┌─────────────┐  ┌─────────────────────┐   │
-│  │  Forms   │  │ DRF Serial.  │  │FastAPI Routers │ Management Commands │   | 
-│  └────┬─────┘  └──────┬───────┘  └──────┬──────┘  └──────────┬──────────┘   │
-│       │               │                 │                    │              │
-│       └───────────────┴─────────────── ─┴────────────────────┘              │
-│                                   │                                         │
-│                          ┌────────▼────────┐                                │
-│                          │ Pydantic Schema │  ← Single Source of Truth      │
-│                          │  (Business)     │                                │
-│                          └────────┬────────┘                                │
-│                                   │                                         │
-│                          ┌────────▼────────┐                                │
-│                          │  NovaModel      │  ← ORM Enforcement Layer       │
-│                          │ (Interceptor)   │                                │
-│                          └────────┬────────┘                                │
-│                                   │                                         │
-│       ┌───────────────────────────┼───────────────────────────┐             │
-│       │                           │                           │             │
-│  ┌────▼─────┐            ┌────────▼────────┐         ┌───────▼──────┐       │
-│  │  Cache   │            │   Signals       │         │  Telemetry   │       │
-│  │ Invalid. │            │ (post_save etc) │         │ (OTel/Logs)  │       │
-│  └──────────┘            └─────────────────┘         └──────────────┘       │
-│                                                                             │
+│                           Consumer Layers                                   │
+│  ┌──────────┐  ┌──────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │  Forms   │  │ DRF Serial.  │  │FastAPI Routers│  │ Management Commands │  │
+│  └────┬─────┘  └──────┬───────┘  └──────┬──────┘  └──────────┬──────────┘  │
+│       │               │                  │                     │            │
+│       └───────────────┴──────────────────┴─────────────────────┘            │
+│                           │                                                 │
+│              ┌────────────▼────────────┐                                    │
+│              │   Pydantic Schema       │  ← Single Source of Truth         │
+│              │      (Business)         │                                    │
+│              └────────────┬────────────┘                                    │
+│                           │                                                 │
+│              ┌────────────▼────────────┐                                    │
+│              │      NovaModel          │  ← ORM Enforcement Layer          │
+│              │     (Interceptor)       │                                    │
+│              └────────────┬────────────┘                                    │
+│                           │                                                 │
+│       ┌───────────────────┼───────────────────┐                            │
+│       │                   │                   │                            │
+│  ┌────▼─────┐    ┌────────▼────────┐   ┌─────▼──────┐                     │
+│  │  Cache   │    │     Signals     │   │ Telemetry  │                     │
+│  │ Invalid. │    │ (post_save etc) │   │(OTel/Logs) │                     │
+│  └──────────┘    └─────────────────┘   └────────────┘                     │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -123,7 +110,7 @@ The result is **validation drift**: business rules scattered across forms, seria
 
 ---
 
-### Installation
+## 📦 Installation
 
 Requires **Python 3.12+** and **Django 5.0+**.
 
@@ -136,8 +123,8 @@ uv add django-nova
 # With Django REST Framework support
 uv add django-nova[drf]
 
-# With FastAPI support
-uv add django-nova[fastapi]
+# With Redis infrastructure & Distributed Locks
+uv add django-nova[redis]
 
 # Full enterprise stack (tracing + structured logging)
 uv add django-nova[tracing,observability]
@@ -154,9 +141,9 @@ INSTALLED_APPS = [
 
 ---
 
-### Quick Start
+## 🚀 Quick Start
 
-Define your business rules **once** in a Pydantic schema. Nova enforces them everywhere.
+Define your business rules once in a Pydantic schema. Nova enforces them everywhere.
 
 ```python
 # models.py
@@ -188,14 +175,6 @@ class GrantSchema(BaseModel):
     def validate_grant(self):
         if self.end_date <= self.start_date:
             raise ValueError("End date must be after start date")
-
-        duration_days = (self.end_date - self.start_date).days
-        if self.budget > Decimal("1_000_000") and duration_days < 365:
-            raise ValueError("Large grants require a minimum 1-year duration")
-
-        if self.budget < Decimal("1_000"):
-            raise ValueError("Minimum grant budget is $1,000")
-
         return self
 
 
@@ -213,7 +192,7 @@ class Grant(NovaModel):
     )
 ```
 
-Now validation is enforced **at the ORM level**:
+Now validation is enforced at the ORM level:
 
 ```python
 # This raises ValidationError immediately — no DB round-trip required
@@ -225,117 +204,173 @@ Grant.objects.create(
     pi_email="pi@example.com",
 )
 # ValueError: Title must be at least 5 characters
-# ValueError: Minimum grant budget is $1,000
 ```
 
-The same schema is automatically reused by DRF, FastAPI, and Forms. No duplication.
-
 ---
+
+## 🔌 Schema Compiler (DRF & Admin)
+
+Why write serializers and admin forms if the schema already knows the rules? Nova dynamically compiles them.
 
 ### DRF Integration
 
-Generate a DRF `ModelSerializer` that delegates all business logic to the Pydantic schema.
-
 ```python
 # serializers.py
-from nova.ecosystem.drf import NovaSerializer
+from nova.ecosystem import to_drf_serializer
 from .models import Grant
 
-
-class GrantSerializer(NovaSerializer):
-    class Meta:
-        model = Grant
-        fields = "__all__"
+# Dynamically generates a strict ModelSerializer bound to GrantSchema
+GrantSerializer = to_drf_serializer(Grant)
 ```
 
-`NovaSerializer` automatically:
-- Maps Pydantic validators to DRF field errors.
-- Reuses `GrantSchema` for `create()` and `update()`.
-- Returns `400 Bad Request` with structured error messages on validation failure.
+> **Note:** The generated serializer strictly exposes ONLY fields defined in the Pydantic schema (+ PK). Sensitive DB fields not present in the schema are automatically hidden from the API.
 
----
-
-### FastAPI Integration
-
-Generate a fully documented FastAPI router with native OpenAPI/Swagger support from the same Django model.
+### Django Admin Integration
 
 ```python
-# api.py
-from fastapi import FastAPI
-from nova.ecosystem.fastapi import NovaRouter
+# admin.py
+from django.contrib import admin
+from nova.ecosystem import compile_admin
 from .models import Grant
 
-app = FastAPI(title="Grants API")
-
-# Generates GET /grants, POST /grants, GET /grants/{id}, PATCH /grants/{id}, DELETE /grants/{id}
-app.include_router(NovaRouter(Grant, prefix="/grants"))
+# Compiles an Admin class that intercepts Form validation via Pydantic
+admin.site.register(Grant, compile_admin(Grant))
 ```
-
-The generated router:
-- Uses `GrantSchema` for request/response validation.
-- Emits OpenAPI documentation automatically.
-- Supports async endpoints when running under ASGI.
 
 ---
 
-### Smart Cache
+## 🧭 Smart Query Planner
+
+Tell Nova what you need via the schema, and it optimizes the SQL for you.
+
+```python
+class ArticleSchema(BaseModel):
+    title: str
+    author: AuthorSchema    # Triggers select_related
+    tags: list[TagSchema]   # Triggers prefetch_related
+
+class Article(NovaModel):
+    title = models.CharField(max_length=200)
+    body = models.TextField()  # NOT in schema!
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    _nova_config = NovaConfig(pydantic_schema=ArticleSchema)
+```
+
+**Auto-Optimization:**
+
+```python
+qs = Article.objects.filter(title__icontains="django").auto()
+```
+
+Generates:
+
+```sql
+SELECT article.id, article.title, article.author_id
+FROM article
+INNER JOIN author ON article.author_id = author.id
+WHERE article.title LIKE '%django%';
+-- DEFERRED: article.body (because it's missing in ArticleSchema)
+```
+
+---
+
+## 🔭 Distributed Context & Observability
+
+Enterprise logging requires correlation. If a request hits a View, fails in the ORM, and retries in a Celery task, you need to link them.
+
+```python
+# In your Django Middleware
+from nova.core import bind, clear
+
+class CorrelationMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        request_id = request.headers.get("X-Request-ID", "unknown")
+        bind(correlation_id=request_id, user_id=request.user.id)
+
+        response = self.get_response(request)
+        clear()  # Prevent context leaks
+        return response
+```
+
+**Result:** Every structlog JSON log and every OpenTelemetry span automatically includes `correlation_id` and `user_id`. Zero boilerplate in your business logic.
+
+---
+
+## 🏭 Infrastructure (Redis & Replicas)
+
+### Unified Redis Client
+
+No more connection sprawl. Cache, Locks, and Tasks share a single process-wide pool.
+
+```python
+from nova.redis import get_redis_client, check_redis_health
+
+client = get_redis_client()
+health = check_redis_health()  # Returns RedisHealthReport(is_healthy=True, latency_ms=0.4)
+```
+
+### Lag-Aware Read Replicas
+
+```python
+# In settings.py
+DATABASE_ROUTERS = ["nova.db.NovaDatabaseRouter"]
+
+# In your code
+qs = Article.objects.using_replica().all()
+```
+
+If the replica's replication lag exceeds `NOVA_REPLICA_MAX_LAG_MS` (default 500ms), Nova transparently falls back to the Master to prevent serving stale data. No developer intervention required.
+
+### Distributed Locks
+
+```python
+from nova.redis import AsyncDistributedLock
+
+async with AsyncDistributedLock("migration_key", timeout=10.0):
+    # Safe to run concurrent tasks without race conditions
+    await run_heavy_migration()
+```
+
+---
+
+## 💾 Smart Cache
 
 Nova provides an automatic, signal-driven QuerySet cache with O(1) invalidation.
 
 ```python
 class Grant(NovaModel):
     # ... fields ...
-
     _nova_config = NovaConfig(
         pydantic_schema=GrantSchema,
         cache_enabled=True,
-        cache_ttl=300,  # seconds
+        cache_ttl_seconds=300,
     )
 ```
 
-**How it works:**
-
-```python
-# First call hits the database; result is cached
-grants = Grant.objects.filter(budget__gte=100_000).nova_cache()
-
-# Subsequent calls return cached result instantly
-grants = Grant.objects.filter(budget__gte=100_000).nova_cache()
-
-# On any Grant.save(), the cache key is evicted automatically
-Grant.objects.create(...)  # Cache invalidation fires via Django signals
-```
-
-- **Deterministic keys** — Generated from the SQL AST, safe across Django versions.
+- **Deterministic keys** — Generated from the SQL AST.
 - **No stale data** — Write operations trigger signal-based eviction.
 - **Zero boilerplate** — No manual cache key management.
 
 ---
 
-### Zero-Downtime Migrations
+## 🔄 Zero-Downtime Migrations
 
 For tables with millions of rows, standard `CREATE INDEX` acquires an exclusive lock. Nova provides migration operations that use PostgreSQL `CONCURRENTLY`.
 
 ```python
-# migrations/0002_add_grant_indexes.py
-from django.db import migrations
-from nova.migrations import ConcurrentIndexOperation, ConcurrentAddField
-
+from nova.db import AddFieldConcurrently, CreateIndexConcurrently
 
 class Migration(migrations.Migration):
-    dependencies = [
-        ("research", "0001_initial"),
-    ]
-
     operations = [
-        # Add a non-nullable field without locking the table
-        ConcurrentAddField(
+        AddFieldConcurrently(
             model_name="grant",
             name="funding_program",
             field=models.CharField(max_length=100, default="NSF"),
         ),
-        # Create a composite index without downtime
-        ConcurrentIndexOperation(
+        CreateIndexConcurrently(
             model_name="grant",
             fields=["start_date", "end_date"],
             name="grant_dates_idx",
@@ -343,136 +378,505 @@ class Migration(migrations.Migration):
     ]
 ```
 
-**Requirements:**
-- PostgreSQL 14+
-- `CONCURRENTLY` cannot run inside a transaction; Nova handles this automatically.
-
 ---
 
-### Observability
+## 📊 Benchmarks
 
-Nova ships with built-in, zero-config observability powered by `structlog` and OpenTelemetry.
-
-```python
-# settings.py
-NOVA_OBSERVABILITY = {
-    "structlog": True,
-    "opentelemetry": True,
-    "log_level": "INFO",
-    "json_format": True,  # Machine-readable for Datadog / ELK / Loki
-}
-```
-
-**What you get automatically:**
-
-| Signal | Output |
-|--------|--------|
-| `Model.save()` | JSON log with model name, PK, duration, validation result |
-| Cache hit/miss | Structured log with query hash and TTL |
-| Cache invalidation | Trace span showing evicted keys |
-| DB query | OpenTelemetry span with SQL fingerprint |
-
-Example log output:
-
-```json
-{
-  "timestamp": "2026-07-16T10:12:00Z",
-  "event": "model_save",
-  "model": "research.Grant",
-  "pk": 42,
-  "validation": "passed",
-  "duration_ms": 12.4,
-  "trace_id": "4f6d9c8f2a1b..."
-}
-```
-
-If OpenTelemetry is not installed, spans are no-ops with zero runtime overhead.
-
----
-
-### Roadmap
-
-## ✅ What's Already Built
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Typed ORM | ✅ Stable | Full type safety across models, managers, querysets |
-| Typed Manager | ✅ Stable | Generic manager with schema-aware operations |
-| Typed QuerySet | ✅ Stable | Chainable, fully typed query builder |
-| Schema Registry | ✅ Stable | Centralized model schema discovery |
-| Pydantic Bridge | ✅ Stable | Bidirectional sync between Django models and Pydantic schemas |
-| Unified Validation | ✅ Stable | One schema — Forms, DRF, FastAPI, ORM, Celery |
-| Cache Abstraction | ✅ Stable | Pluggable cache layer with deterministic keys |
-| Memory / Redis / Django / Null Cache Backends | ✅ Stable | All four backends production-tested |
-| Metrics | ✅ Stable | Built-in performance counters |
-| OTEL Tracing | ✅ Stable | OpenTelemetry spans on `Model.save()`, zero config |
-| Distributed Task Engine | ✅ Stable | Async task queue with workers |
-| Retry Policy | ✅ Stable | Exponential backoff with jitter |
-| Delayed Tasks | ✅ Stable | Schedule tasks for future execution |
-| Priority Queue | ✅ Stable | Task prioritization out of the box |
-| Stable Public API (baseline) | ✅ Stable | Core exports frozen, semver compliant |
-| Query Planner (PoC) | 🧪 Experimental | Query analysis and `QueryPlan` generation — early stage |
-| Django 6 Compatibility (baseline) | 🧪 Experimental | Basic compatibility verified, full audit pending |
-
----
-
-## 🚧 Work in Progress
-
-| Feature | Status | ETA | Blocker |
-|---------|--------|-----|---------|
-| Redis Infrastructure | 🚧 In Progress | Q3 2026 | Unified Redis client, distributed locks, Pub/Sub, rate limiter, health checks |
-| Read Replica Router | 🚧 In Progress | Q3 2026 | Automatic read/write splitting with lag awareness |
-| Full Query Planner | 📋 Planned | Q4 2026 | Query analysis → optimized `QueryPlan` with cost estimation |
-| Prefetch Optimizer | 📋 Planned | Q4 2026 | Auto `select_related` / `prefetch_related` / `only` / `defer` |
-| Stable Public API (frozen) | 📋 Planned | Q4 2026 | Full export freeze, backward compatibility guarantee |
-| Django 6 Audit | 📋 Planned | Q4 2026 | Complete compatibility check without breaking public API |
-| Full Observability | 📋 Planned | Q4 2026 | Trace + Metrics + Logs + Correlation IDs |
-| Production Readiness | 📋 Planned | Q1 2027 | Health checks, stress tests, performance benchmarks, compatibility matrix |
-
----
-
-## 📊 Overall Progress
-
-████████████████████░░░░░░░░░░░░░░░░░░░░  47%  Core Features
-███████████████░░░░░░░░░░░░░░░░░░░░░░░░░  35%  Infrastructure
-█████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  22%  Production Readiness
-
-
-**Current Phase:** Core platform stable — infrastructure and optimization layer in active development.
-
-### Benchmarks
-
-All benchmarks measure **model initialization speed** (object creation + validation) on Python 3.13, local SSD, warm CPU.
+All benchmarks measure model initialization speed (object creation + validation) on Python 3.12, local SSD, warm CPU.
 
 | Test | Avg Time | Ops / Second | Overhead |
 |------|----------|--------------|----------|
-| Pure Pydantic (Baseline) | 2.70 µs | 369.7K | 1.0× |
-| NovaModel (Django + Pydantic) | 4.08 µs | 244.8K | 1.51× |
+| Pure Pydantic (Baseline) | 0.657 µs | 1,522K | 1.0× |
+| NovaModel (Django + Pydantic) | 1.828 µs | 547K | 2.78× |
 
-> **Note:** Although the relative overhead is ~1.51×, the **absolute penalty is only 1.38 microseconds per object**. In the context of a real HTTP request—where network latency and database round-trips are measured in milliseconds—this overhead is microscopic and completely invisible to the end user. You gain full ORM-level type safety at the cost of a single microsecond.
+> **Note:** The absolute penalty is only **1.170 microseconds** per object. You gain full ORM-level type safety, unified validation, deep tracing, and cache abstraction at the cost of a single microsecond.
 
-Run benchmarks locally:
+---
+
+## 🗺️ Roadmap
+
+### ✅ What is Built (v0.4.0)
+
+| Category | Feature | Status | Notes |
+|----------|---------|--------|-------|
+| **Core Engine** | Typed ORM, Managers, QuerySets | ✅ Stable | Full `pyright --strict` compatibility |
+| | Pydantic Bridge & Unified Validation | ✅ Stable | Bidirectional sync, single source of truth |
+| **Ecosystem** | Auto DRF Serializer Generation | ✅ Stable | Strict projection, Pydantic validation injection |
+| (Schema Compiler) | Auto Django Admin Generation | ✅ Stable | Dynamic Forms with Pydantic `clean()` hooks |
+| | Admin JSON UI Schema Generator | ✅ Stable | Extracts validation rules for Frontend |
+| **Query Engine** | Deep Query Planner | ✅ Stable | Recursive graph traversal for JOINs |
+| | Auto Field Deferral | ✅ Stable | Omits DB columns not present in Pydantic schema |
+| **Infrastructure** | Unified Redis Client & Pool | ✅ Stable | Sync/Async pools, health checks, zero sprawl |
+| | Distributed Locks | ✅ Stable | Lua-scripted async locks for Zero-Downtime |
+| | Lag-Aware Read Replica Router | ✅ Stable | Thread-safe local cache, automatic Master failover |
+| | Zero-Downtime Migrations | ✅ Stable | `CONCURRENTLY` operations out of the box |
+| **Observability** | OTEL Tracing & Structlog | ✅ Stable | Zero-config lifecycle spans |
+| | Distributed Context (Correlation IDs) | ✅ Stable | `contextvars` bridge to Logs & Traces |
+| **Platform** | Stable Public API (Frozen) | ✅ Stable | PEP 562 Facades, Semver compliant |
+
+### 🚧 Future Work
+
+| Feature | ETA |
+|---------|-----|
+| Full Async ORM integration | Q1 2027 |
+| Pub/Sub & Rate Limiter (Redis) | Q1 2027 |
+| GraphQL Schema Compiler | Q2 2027 |
+
+### 📊 Overall Progress
+
+```
+████████████████████████████████████████ 100%  Core Features
+████████████████████████████████████████ 100%  Infrastructure
+████████████████████████████░░░░░░░░░░░░░  75%  Production Readiness
+```
+
+**Current Phase:** Enterprise Ready.
+
+---
+
+## 📄 License
+
+MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+## 👤 Author
+
+**Artem Alimpiev**
+
+- ORCID: `0009-0007-6740-7242`
+- DOI: `10.5281/zenodo.20057443`
+- DOI: `10.5281/zenodo.20659647`
+- PyPI: [Django Nova](https://pypi.org/project/django-nova/)
+
+---
+
+<a id="русский"></a>
+
+<div align="center">
+
+# ⚡ Django Nova
+
+**Типизированный, унифицированный и async-first тулкит для Django 5+**
+
+*Устраните архитектурную фрагментацию. Одна схема. Одна истина. Ноль дублирования.*
+
+</div>
+
+---
+
+## 📋 Содержание
+
+- [Постановка проблемы](#постановка-проблемы)
+- [Философия](#философия)
+- [Архитектура](#архитектура)
+- [Установка](#установка)
+- [Быстрый старт](#быстрый-старт)
+- [Компилятор схем (DRF & Admin)](#компилятор-схем-drf--admin)
+- [Умный планировщик запросов](#умный-планировщик-запросов)
+- [Распределённый контекст и наблюдаемость](#распределённый-контекст-и-наблюдаемость)
+- [Инфраструктура (Redis & Реплики)](#инфраструктура-redis--реплики)
+- [Умный кеш](#умный-кеш)
+- [Миграции без простоя](#миграции-без-простоя)
+- [Бенчмарки](#бенчмарки)
+- [Дорожная карта](#дорожная-карта)
+- [Лицензия](#лицензия)
+
+---
+
+## 🎯 Постановка проблемы
+
+Валидационный слой Django фрагментирован по дизайну:
+
+- **Forms** валидируют пользовательский ввод в презентационном слое.
+- **DRF Serializers** переизобретают ту же логику в API-слое.
+- **Model `clean()`** запускается только в админке или при явном вызове.
+- **Ограничения БД** ограничены простыми правилами, выразимыми в SQL, и не переиспользуются вне ORM.
+
+Результат — **дрейф валидации**: бизнес-правила разбросаны по формам, сериализаторам, моделям и DDL базы данных. Измени правило в одном месте — и три других становятся уязвимостями. Хуже того, вызов `Model.objects.create()` из management command, Celery-таска или data pipeline полностью обходит валидацию форм и сериализаторов, оставляя лишь хрупкие ограничения БД в качестве последней линии обороны.
+
+**Django Nova решает это, перенося контракт в схему и принудительно применяя её на уровне ORM.**
+
+---
+
+## 🧠 Философия
+
+| # | Принцип | Описание |
+|---|---------|----------|
+| 1 | **Схема — единый источник истины** | Бизнес-логика живёт в Pydantic-моделях. Django Models, DRF Serializers, FastAPI-роутеры и Forms — это генерируемые проекции схемы, а не независимые валидаторы. |
+| 2 | **Валидация — это задача ORM** | Модель должна отказываться сохранять невалидные данные независимо от того, кто вызвал — веб-вью, API-эндпоинт, CLI-команда или фоновый воркер. |
+| 3 | **Инфраструктура должна быть прозрачной** | Инвалидация кеша, структурированное логирование и распределённая трассировка не должны требовать бойлерплейта. Если вы о них думаете — абстракция протекла. |
+| 4 | **Zero-downtime — дефолтное предположение** | Операции на больших таблицах должны использовать нативную семантику PostgreSQL `CONCURRENTLY`. Запланированные окна обслуживания — антипаттерн. |
+| 5 | **Типобезопасность не опциональна** | Полная совместимость с `pyright --strict` на уровне ORM, QuerySets и генерируемого кода. Если проходит type-check — работает. |
+
+---
+
+## 🏗️ Архитектура
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Потребительские слои                              │
+│  ┌──────────┐  ┌──────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │  Forms   │  │ DRF Serial.  │  │FastAPI Routers│  │ Management Commands │  │
+│  └────┬─────┘  └──────┬───────┘  └──────┬──────┘  └──────────┬──────────┘  │
+│       │               │                  │                     │            │
+│       └───────────────┴──────────────────┴─────────────────────┘            │
+│                           │                                                 │
+│              ┌────────────▼────────────┐                                    │
+│              │   Pydantic Schema       │  ← Единый источник истины         │
+│              │      (Business)         │                                    │
+│              └────────────┬────────────┘                                    │
+│                           │                                                 │
+│              ┌────────────▼────────────┐                                    │
+│              │      NovaModel          │  ← Слой принудительного ORM       │
+│              │     (Interceptor)       │                                    │
+│              └────────────┬────────────┘                                    │
+│                           │                                                 │
+│       ┌───────────────────┼───────────────────┐                            │
+│       │                   │                   │                            │
+│  ┌────▼─────┐    ┌────────▼────────┐   ┌─────▼──────┐                     │
+│  │  Кеш     │    │     Сигналы     │   │ Телеметрия │                     │
+│  │Invalid.  │    │ (post_save etc) │   │(OTel/Logs) │                     │
+│  └──────────┘    └─────────────────┘   └────────────┘                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Ключевые архитектурные решения:**
+
+- **PEP 695 Generics** — синтаксис `class Cache[T]:` для современного type inference.
+- **PEP 562 Lazy Imports** — безопасные пути импорта, обходящие `AppRegistryNotReady` при старте.
+- **SQL Compiler Hook** — детерминированная генерация кеш-ключей из AST запроса, независимая от версии Django.
+- **Signal-Driven Invalidation** — O(1) инвалидация кеша при записи без ручного управления TTL.
+
+---
+
+## 📦 Установка
+
+Требуется **Python 3.12+** и **Django 5.0+**.
+
+Используя [`uv`](https://docs.astral.sh/uv/) (рекомендуется):
 
 ```bash
-uv sync --extra dev
-uv run python scripts/bench.py (The command to load the benchmark)
+# Ядро библиотеки
+uv add django-nova
+
+# С поддержкой Django REST Framework
+uv add django-nova[drf]
+
+# С Redis-инфраструктурой и распределёнными блокировками
+uv add django-nova[redis]
+
+# Полный enterprise-стек (трассировка + структурированное логирование)
+uv add django-nova[tracing,observability]
+```
+
+Добавьте в `INSTALLED_APPS`:
+
+```python
+INSTALLED_APPS = [
+    # ...
+    "nova",
+]
 ```
 
 ---
 
-### Limitations
+## 🚀 Быстрый старт
 
-- **Django 5.0+ only.** We do not backport to Django 4.x; the project relies on modern ORM hooks.
-- **PostgreSQL recommended.** Zero-downtime migrations and advanced cache invalidation rely on PG-specific features. SQLite and MySQL work for core validation but with degraded migration and cache capabilities.
-- **Pydantic v2 only.** Pydantic v1 is not supported.
-- **Partial async support.** QuerySet cache invalidation is currently synchronous. Full async ORM support is on the roadmap for Django 5.2+.
-- **Single-database assumption.** Multi-database routing with cache invalidation requires manual configuration.
+Определите бизнес-правила один раз в Pydantic-схеме. Nova применяет их везде.
+
+```python
+# models.py
+from decimal import Decimal
+from datetime import date
+from pydantic import BaseModel, field_validator, model_validator
+from django.db import models
+from nova import NovaModel, NovaConfig
+
+
+class GrantSchema(BaseModel):
+    """Единый источник истины для бизнес-правил Grant."""
+
+    title: str
+    budget: Decimal
+    start_date: date
+    end_date: date
+    pi_email: str  # Главный исследователь
+
+    @field_validator("title")
+    @classmethod
+    def title_not_empty(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 5:
+            raise ValueError("Title must be at least 5 characters")
+        return v
+
+    @model_validator(mode="after")
+    def validate_grant(self):
+        if self.end_date <= self.start_date:
+            raise ValueError("End date must be after start date")
+        return self
+
+
+class Grant(NovaModel):
+    title = models.CharField(max_length=300)
+    budget = models.DecimalField(max_digits=14, decimal_places=2)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    pi_email = models.EmailField()
+
+    _nova_config = NovaConfig(
+        pydantic_schema=GrantSchema,
+        cache_enabled=True,
+        strict_validation=True,
+    )
+```
+
+Теперь валидация принудительно применяется на уровне ORM:
+
+```python
+# Это бросает ValidationError мгновенно — без запроса к БД
+Grant.objects.create(
+    title="X",
+    budget=Decimal("500"),
+    start_date=date(2026, 1, 1),
+    end_date=date(2026, 12, 31),
+    pi_email="pi@example.com",
+)
+# ValueError: Title must be at least 5 characters
+```
 
 ---
 
-### License
+## 🔌 Компилятор схем (DRF & Admin)
 
-MIT License. See [LICENSE](LICENSE) for details.
+Зачем писать сериализаторы и админ-формы, если схема уже знает правила? Nova динамически компилирует их.
+
+### Интеграция с DRF
+
+```python
+# serializers.py
+from nova.ecosystem import to_drf_serializer
+from .models import Grant
+
+# Динамически генерирует строгий ModelSerializer, привязанный к GrantSchema
+GrantSerializer = to_drf_serializer(Grant)
+```
+
+> **Примечание:** Сгенерированный сериализатор строго экспонирует ТОЛЬКО поля, определённые в Pydantic-схеме (+ PK). Чувствительные поля БД, отсутствующие в схеме, автоматически скрыты из API.
+
+### Интеграция с Django Admin
+
+```python
+# admin.py
+from django.contrib import admin
+from nova.ecosystem import compile_admin
+from .models import Grant
+
+# Компилирует Admin-класс, перехватывающий валидацию форм через Pydantic
+admin.site.register(Grant, compile_admin(Grant))
+```
+
+---
+
+## 🧭 Умный планировщик запросов
+
+Скажите Nova, что вам нужно, через схему — и он оптимизирует SQL за вас.
+
+```python
+class ArticleSchema(BaseModel):
+    title: str
+    author: AuthorSchema    # Триггерит select_related
+    tags: list[TagSchema]   # Триггерит prefetch_related
+
+class Article(NovaModel):
+    title = models.CharField(max_length=200)
+    body = models.TextField()  # НЕТ в схеме!
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    _nova_config = NovaConfig(pydantic_schema=ArticleSchema)
+```
+
+**Авто-оптимизация:**
+
+```python
+qs = Article.objects.filter(title__icontains="django").auto()
+```
+
+Генерирует:
+
+```sql
+SELECT article.id, article.title, article.author_id
+FROM article
+INNER JOIN author ON article.author_id = author.id
+WHERE article.title LIKE '%django%';
+-- ОТЛОЖЕНО: article.body (потому что его нет в ArticleSchema)
+```
+
+---
+
+## 🔭 Распределённый контекст и наблюдаемость
+
+Enterprise-логирование требует корреляции. Если запрос попадает во View, падает в ORM и ретраится в Celery-таске — их нужно связать.
+
+```python
+# В вашем Django Middleware
+from nova.core import bind, clear
+
+class CorrelationMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        request_id = request.headers.get("X-Request-ID", "unknown")
+        bind(correlation_id=request_id, user_id=request.user.id)
+
+        response = self.get_response(request)
+        clear()  # Предотвращаем утечку контекста
+        return response
+```
+
+**Результат:** Каждый structlog JSON-лог и каждый OpenTelemetry-спан автоматически включают `correlation_id` и `user_id`. Ноль бойлерплейта в бизнес-логике.
+
+---
+
+## 🏭 Инфраструктура (Redis & Реплики)
+
+### Единый Redis-клиент
+
+Никакого разрастания соединений. Кеш, блокировки и таски делят один process-wide пул.
+
+```python
+from nova.redis import get_redis_client, check_redis_health
+
+client = get_redis_client()
+health = check_redis_health()  # Возвращает RedisHealthReport(is_healthy=True, latency_ms=0.4)
+```
+
+### Read-реплики с учётом лага
+
+```python
+# В settings.py
+DATABASE_ROUTERS = ["nova.db.NovaDatabaseRouter"]
+
+# В коде
+qs = Article.objects.using_replica().all()
+```
+
+Если репликационный лаг превышает `NOVA_REPLICA_MAX_LAG_MS` (по умолчанию 500мс), Nova прозрачно переключается на Master, предотвращая отдачу stale-данных. Без вмешательства разработчика.
+
+### Распределённые блокировки
+
+```python
+from nova.redis import AsyncDistributedLock
+
+async with AsyncDistributedLock("migration_key", timeout=10.0):
+    # Безопасно запускать конкурентные таски без race conditions
+    await run_heavy_migration()
+```
+
+---
+
+## 💾 Умный кеш
+
+Nova предоставляет автоматический, signal-driven кеш QuerySet с O(1) инвалидацией.
+
+```python
+class Grant(NovaModel):
+    # ... поля ...
+    _nova_config = NovaConfig(
+        pydantic_schema=GrantSchema,
+        cache_enabled=True,
+        cache_ttl_seconds=300,
+    )
+```
+
+- **Детерминированные ключи** — генерируются из SQL AST.
+- **Нет stale-данных** — операции записи триггерят signal-based eviction.
+- **Ноль бойлерплейта** — ручное управление кеш-ключами не требуется.
+
+---
+
+## 🔄 Миграции без простоя
+
+Для таблиц с миллионами строк стандартный `CREATE INDEX` захватывает эксклюзивную блокировку. Nova предоставляет операции миграций, использующие PostgreSQL `CONCURRENTLY`.
+
+```python
+from nova.db import AddFieldConcurrently, CreateIndexConcurrently
+
+class Migration(migrations.Migration):
+    operations = [
+        AddFieldConcurrently(
+            model_name="grant",
+            name="funding_program",
+            field=models.CharField(max_length=100, default="NSF"),
+        ),
+        CreateIndexConcurrently(
+            model_name="grant",
+            fields=["start_date", "end_date"],
+            name="grant_dates_idx",
+        ),
+    ]
+```
+
+---
+
+## 📊 Бенчмарки
+
+Все бенчмарки измеряют скорость инициализации модели (создание объекта + валидация) на Python 3.12, локальный SSD, разогретый CPU.
+
+| Тест | Среднее время | Ops / секунду | Оверхед |
+|------|---------------|---------------|---------|
+| Pure Pydantic (Baseline) | 0.657 µs | 1,522K | 1.0× |
+| NovaModel (Django + Pydantic) | 1.828 µs | 547K | 2.78× |
+
+> **Примечание:** Абсолютный штраф составляет всего **1.170 микросекунды** на объект. Вы получаете полную типобезопасность на уровне ORM, унифицированную валидацию, глубокую трассировку и кеш-абстракцию за цену одной микросекунды.
+
+---
+
+## 🗺️ Дорожная карта
+
+### ✅ Реализовано (v0.4.0)
+
+| Категория | Фича | Статус | Примечания |
+|-----------|------|--------|------------|
+| **Core Engine** | Typed ORM, Managers, QuerySets | ✅ Стабильно | Полная совместимость с `pyright --strict` |
+| | Pydantic Bridge & Unified Validation | ✅ Стабильно | Двусторонняя синхронизация, единый источник истины |
+| **Ecosystem** | Auto DRF Serializer Generation | ✅ Стабильно | Строгая проекция, инжекция Pydantic-валидации |
+| (Компилятор схем) | Auto Django Admin Generation | ✅ Стабильно | Динамические Forms с Pydantic `clean()` хуками |
+| | Admin JSON UI Schema Generator | ✅ Стабильно | Извлечение правил валидации для Frontend |
+| **Query Engine** | Deep Query Planner | ✅ Стабильно | Рекурсивный обход графа для JOINs |
+| | Auto Field Deferral | ✅ Стабильно | Пропуск столбцов БД, отсутствующих в Pydantic-схеме |
+| **Infrastructure** | Unified Redis Client & Pool | ✅ Стабильно | Sync/Async пулы, health checks, zero sprawl |
+| | Distributed Locks | ✅ Стабильно | Lua-scripted async блокировки для Zero-Downtime |
+| | Lag-Aware Read Replica Router | ✅ Стабильно | Thread-safe локальный кеш, авто-failover на Master |
+| | Zero-Downtime Migrations | ✅ Стабильно | Операции `CONCURRENTLY` из коробки |
+| **Observability** | OTEL Tracing & Structlog | ✅ Стабильно | Zero-config lifecycle spans |
+| | Distributed Context (Correlation IDs) | ✅ Стабильно | `contextvars` мост к Logs & Traces |
+| **Platform** | Stable Public API (Frozen) | ✅ Стабильно | PEP 562 Facades, Semver compliant |
+
+### 🚧 В разработке
+
+| Фича | ETA |
+|------|-----|
+| Полная интеграция Async ORM | Q1 2027 |
+| Pub/Sub & Rate Limiter (Redis) | Q1 2027 |
+| GraphQL Schema Compiler | Q2 2027 |
+
+### 📊 Общий прогресс
+
+```
+████████████████████████████████████████ 100%  Core Features
+████████████████████████████████████████ 100%  Infrastructure
+████████████████████████████░░░░░░░░░░░░░  75%  Production Readiness
+```
+
+**Текущая фаза:** Enterprise Ready.
+
+---
+
+## 📄 Лицензия
+
+MIT License. Подробности в [LICENSE](LICENSE).
 
 ---
 
@@ -480,11 +884,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 **Artem Alimpiev**
 
-- ORCID: [0009-0007-6740-7242](https://orcid.org/0009-0007-6740-7242)
-- DOI: [10.5281/zenodo.20057443](https://doi.org/10.5281/zenodo.20057443)
-- DOI: [10.5281/zenodo.20659647](https://doi.org/10.5281/zenodo.20659647)
-- PYPI: [Django Nova](https://pypi.org/project/django-nova/)
-
-
----
-
+- ORCID: `0009-0007-6740-7242`
+- DOI: `10.5281/zenodo.20057443`
+- DOI: `10.5281/zenodo.20659647`
+- PyPI: [Django Nova](https://pypi.org/project/django-nova/)
