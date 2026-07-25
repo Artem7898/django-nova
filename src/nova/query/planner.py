@@ -35,6 +35,59 @@ class QueryPlan:
         return not (self.select_related or self.prefetch_related or self.defer or self.only)
 
 
+def _calculate_deferred_fields(
+    model_class: type[NovaModel],
+    schema: type[BaseModel],
+    select_paths: list[str]
+) -> list[str]:
+    """
+    Calculates which database columns to DEFER based on the Pydantic schema.
+    If a field is NOT in the schema, we don't fetch it from the DB.
+    """
+    django_fields = set()
+    relation_map = {}
+
+    # 1. Collect actual DB columns (attname) and map relations (name -> attname)
+    for f in model_class._meta.get_fields():
+        # We skip feedbacks (reverse FK, M2M) and many-to-many
+        if f.auto_created or f.many_to_many:
+            continue
+
+        if hasattr(f, 'attname'):
+            django_fields.add(f.name)
+            django_fields.add(f.attname)
+
+            # Remembering the mapping of links
+            if f.is_relation and f.attname != f.name:
+                relation_map[f.name] = f.attname
+
+    # 2. Determine which fields the Pydantic schema actually NEEDS
+    needed_fields = set(schema.model_fields.keys())
+
+    # 3. Expand relation needs: if 'author' is in Pydantic, 'author_id' is REQUIRED in SQL
+    for rel_name, rel_attname in relation_map.items():
+        if rel_name in needed_fields:
+            needed_fields.add(rel_attname)
+
+    # Also consider paths from select_related (e.g., 'author__profile' means 'author_id' is needed)
+    for path in select_paths:
+        root_rel = path.split("__")[0]
+        if root_rel in relation_map:
+            needed_fields.add(relation_map[root_rel])
+
+    # 4. SAFETY: NEVER defer the Primary Key
+    pk_name = model_class._meta.pk.name
+    pk_attname = model_class._meta.pk.attname
+    needed_fields.add(pk_name)
+    needed_fields.add(pk_attname)
+
+    # 5. Calculate the difference: Django fields minus Pydantic fields
+    # We defer using the column name (attname) because .defer() operates on DB columns
+    to_defer = [f for f in django_fields if f not in needed_fields and f not in relation_map.values()]
+
+    return to_defer
+
+
 def analyze_schema_for_relations(
     schema: type[BaseModel, object],
     exclude: tuple[str, ...] = ()
@@ -46,13 +99,10 @@ def analyze_schema_for_relations(
     visited: set[type[BaseModel]] = set()
     hints = find_deep_relations(schema=schema, visited=visited)
 
-
+    # Optimization: remove redundant prefixes
     def _remove_redundant_paths(paths: list[str]) -> list[str]:
         unique_paths = list(set(paths))
-        return [
-            p for p in unique_paths
-            if not any(p != other and other.startswith(f"{p}__") for other in unique_paths)
-        ]
+        return [p for p in unique_paths if not any(p != other and other.startswith(f"{p}__") for other in unique_paths)]
 
     clean_select = _remove_redundant_paths(hints["select"])
 
@@ -71,6 +121,7 @@ def analyze_schema_for_relations(
 def build_query_plan(model_class: type[NovaModel]) -> QueryPlan:
     """
     Main entry point to generate a QueryPlan for a specific model.
+    Includes JOINs and Field-level optimization (defer).
     """
     config = getattr(model_class, '_nova_config', None)
 
@@ -82,9 +133,17 @@ def build_query_plan(model_class: type[NovaModel]) -> QueryPlan:
         exclude=config.exclude_from_pydantic
     )
 
+    # Calculate fields to defer
+    deferred = _calculate_deferred_fields(
+        model_class=model_class,
+        schema=config.pydantic_schema,
+        select_paths=hints["select"]
+    )
+
     return QueryPlan(
         select_related=hints["select"],
-        prefetch_related=hints["prefetch"]
+        prefetch_related=hints["prefetch"],
+        defer=deferred
     )
 
 
@@ -96,6 +155,12 @@ def apply_plan(queryset: Any, plan: QueryPlan) -> Any:
         qs = qs.select_related(*plan.select_related)
     if plan.prefetch_related:
         qs = qs.prefetch_related(*plan.prefetch_related)
+
+    # Apply field-level optimizations
+    if plan.defer:
+        qs = qs.defer(*plan.defer)
+    # Note: .only() and .defer() are mutually exclusive in Django.
+    # We prioritize .defer() because it's safer (allows adding new fields to DB without breaking queries).
 
     return qs
 

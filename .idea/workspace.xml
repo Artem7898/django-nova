@@ -4,28 +4,27 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2040f54d-711a-4dfd-88d1-7c5051d4a070" name="Changes" comment="fix: ensure test __init__ files are tracked">
-      <change afterPath="$PROJECT_DIR$/src/nova/query/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/nova/query/planner.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/nova/tasks/backends/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/nova/tasks/backends/asyncio_backend.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/nova/tasks/backends/celery_backend.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/nova/tasks/backends/protocol.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/nova/tasks/backends/redis_backend.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/nova/tasks/exceptions.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/nova/tasks/models.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/query/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/query/test_planner.py" afterDir="false" />
+    <list default="true" id="2040f54d-711a-4dfd-88d1-7c5051d4a070" name="Changes" comment="Stable Public API">
+      <change afterPath="$PROJECT_DIR$/src/nova/core/context.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/nova/redis/health.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/nova/redis/locks.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/nova/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/admin/api.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/admin/api.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/nova/conf.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/conf.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/nova/tasks/engine.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/tasks/engine.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/nova/typing/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/typing/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/nova/typing/querysets.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/typing/querysets.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/core/test_tracing_tasks.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/core/test_tracing_tasks.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_full_integration.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_full_integration.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/core/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/core/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/core/tracing.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/core/tracing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/db/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/db/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/db/router.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/db/router.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/ecosystem/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/ecosystem/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/ecosystem/drf.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/ecosystem/drf.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/query/planner.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/query/planner.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/redis/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/redis/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/test_observability.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/core/test_observability.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/db/test_router.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/db/test_router.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uv.lock" beforeDir="false" afterPath="$PROJECT_DIR$/uv.lock" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -76,7 +75,7 @@
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
     &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;fix/ruff-warnings&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;release/v0.3.2&quot;,
     &quot;last_opened_file_path&quot;: &quot;/home/atrem/PycharmProjects/django-nova&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
@@ -293,7 +292,31 @@
       <option name="project" value="LOCAL" />
       <updated>1784392270295</updated>
     </task>
-    <option name="localTasksCounter" value="25" />
+    <task id="LOCAL-00025" summary="Updating and adding a file README.md">
+      <option name="closed" value="true" />
+      <created>1784527341650</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1784527341650</updated>
+    </task>
+    <task id="LOCAL-00026" summary="feat: unified redis client, replica router, deep query planner (v0.3.2)">
+      <option name="closed" value="true" />
+      <created>1784539519955</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1784539519955</updated>
+    </task>
+    <task id="LOCAL-00027" summary="Stable Public API">
+      <option name="closed" value="true" />
+      <created>1784659038932</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1784659038932</updated>
+    </task>
+    <option name="localTasksCounter" value="28" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -325,6 +348,9 @@
     <MESSAGE value="Updated documentation about Django Nova" />
     <MESSAGE value="The schema as the only source of confidence" />
     <MESSAGE value="fix: ensure test __init__ files are tracked" />
-    <option name="LAST_COMMIT_MESSAGE" value="fix: ensure test __init__ files are tracked" />
+    <MESSAGE value="Updating and adding a file README.md" />
+    <MESSAGE value="feat: unified redis client, replica router, deep query planner (v0.3.2)" />
+    <MESSAGE value="Stable Public API" />
+    <option name="LAST_COMMIT_MESSAGE" value="Stable Public API" />
   </component>
 </project>
