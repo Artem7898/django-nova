@@ -62,7 +62,15 @@ class NovaAsyncError(NovaError):
         super().__init__(message, details=details)
 
 
+
+class NovaRateLimitError(NovaError):
+    """Raised when a rate limit is exceeded."""
+
+    def __init__(self, message: str, *, limit: int = 0, window_secs: int = 0) -> None:
+        details = {"limit": str(limit), "window_secs": str(window_secs)}
+        super().__init__(message, details=details)
+
+
 class NovaWarning(Warning):
     """Warning for non-fatal Nova issues."""
-
     pass
