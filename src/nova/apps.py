@@ -6,10 +6,14 @@ from django.apps import apps as django_apps
 
 class NovaAppConfig(AppConfig):
     name = "nova"
-
     verbose_name = "Django Nova"
 
     def ready(self) -> None:
+        # 1. Register System Checks (Fail-Fast mechanism)
+        # Importing the module triggers the @register("nova") decorator
+        import nova.core.checks  # noqa: F401
+
+        # 2. Connect Cache Invalidation Signals
         from nova.cache.invalidation import connect_invalidation
         from nova.typing.models import NovaModel
 
