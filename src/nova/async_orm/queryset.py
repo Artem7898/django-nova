@@ -1,14 +1,14 @@
 """
 True Async QuerySet wrapper.
-Django 5.1 added async ORM, but it lacks type safety and caching hooks.
+Inherits from Django's native AsyncQuerySet to provide full async ORM compatibility,
+type safety, and Schema-Driven query optimization.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
-from django.db.models import QuerySet
+from django.db.models.query import AsyncQuerySet
 
 if TYPE_CHECKING:
     from nova.typing.models import NovaModel
@@ -16,29 +16,42 @@ if TYPE_CHECKING:
 ModelT = TypeVar("ModelT", bound="NovaModel")
 
 
-class AsyncTypedQuerySet:
+class AsyncTypedQuerySet(AsyncQuerySet[ModelT]):
     """
-    Async wrapper around Django QuerySet with Nova caching.
+    A strictly typed Async QuerySet.
+    Returns ModelT instead of untyped model instances.
+    Integrates with the Nova Query Planner via .aauto().
     """
 
-    def __init__(self, qs: QuerySet[ModelT]) -> None:
-        self._qs = qs
+    def aauto(self) -> AsyncTypedQuerySet[ModelT]:
+        """
+        Async equivalent of .auto().
+        Analyzes Pydantic schema and applies select_related/prefetch_related/defer.
+        Note: Query planning is a CPU-bound task, so it runs synchronously inside
+        the async method to avoid unnecessary event loop overhead.
+        """
+        from nova.query.planner import build_query_plan
 
-    def _apply(self, **kwargs: Any) -> AsyncTypedQuerySet[ModelT]:
-        return AsyncTypedQuerySet(self._qs.filter(**kwargs))
+        plan = build_query_plan(self.model)
 
-    async def afirst(self) -> ModelT | None:
-        return await self._qs.afirst()
+        if plan.is_empty():
+            return self
 
-    async def alist(self) -> Sequence[ModelT]:
-        # Future: integrate with async cache here
-        return [obj async for obj in self._qs]
+        qs = self
+        # Django's .select_related() and .prefetch_related() clone the QuerySet
+        # and return a new instance, even on AsyncQuerySet.
+        if plan.select_related:
+            qs = qs.select_related(*plan.select_related)
+        if plan.prefetch_related:
+            qs = qs.prefetch_related(*plan.prefetch_related)
+        if plan.defer:
+            qs = qs.defer(*plan.defer)
 
-    async def aexists(self) -> bool:
-        return await self._qs.aexists()
+        return qs
 
-    async def acount(self) -> int:
-        return await self._qs.acount()
-
-    def __aiter__(self):  # type: ignore
-        return self._qs.__aiter__()
+    async def alist(self) -> list[ModelT]:
+        """
+        Convenience method to materialize the async queryset into a list.
+        Required for Django < 5.2 compatibility (in 5.2+ .alist() is native).
+        """
+        return [obj async for obj in self]

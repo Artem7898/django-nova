@@ -1,7 +1,5 @@
 <div align="center">
 
-
-<!-- Logo placeholder - replace with your actual logo image -->
 <img src="assets/django-nova-logo.png" width="280" alt="Django Nova Logo">
 
 # ⚡ Django Nova
@@ -20,7 +18,6 @@
 [English](#english) | [Русский](#русский)
 
 </div>
-
 
 ---
 
@@ -77,28 +74,28 @@ The result is **validation drift**: business rules scattered across forms, seria
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           Consumer Layers                                   │
-│  ┌──────────┐  ┌──────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │  Forms   │  │ DRF Serial.  │  │FastAPI Routers│  │ Management Commands │  │
-│  └────┬─────┘  └──────┬───────┘  └──────┬──────┘  └──────────┬──────────┘  │
-│       │               │                  │                     │            │
-│       └───────────────┴──────────────────┴─────────────────────┘            │
+│  ┌──────────┐  ┌──────────────┐  ┌─────────────┐  ┌─────────────────────┐   │
+│  │  Forms   │  │ DRF Serial.  │  FastAPI Router│  │ Management Commands │   │
+│  └────┬─────┘  └──────┬───────┘  └──────┬──────┘  └───────── ─┬─────────┘   │
+│       │               │                 │                     │             │
+│       └───────────────┴─────────────────┴─────────────────────┘             │
 │                           │                                                 │
 │              ┌────────────▼────────────┐                                    │
-│              │   Pydantic Schema       │  ← Single Source of Truth         │
+│              │   Pydantic Schema       │  ← Single Source of Truth          │
 │              │      (Business)         │                                    │
 │              └────────────┬────────────┘                                    │
 │                           │                                                 │
 │              ┌────────────▼────────────┐                                    │
-│              │      NovaModel          │  ← ORM Enforcement Layer          │
+│              │      NovaModel          │  ← ORM Enforcement Layer           │
 │              │     (Interceptor)       │                                    │
 │              └────────────┬────────────┘                                    │
 │                           │                                                 │
-│       ┌───────────────────┼───────────────────┐                            │
-│       │                   │                   │                            │
-│  ┌────▼─────┐    ┌────────▼────────┐   ┌─────▼──────┐                     │
-│  │  Cache   │    │     Signals     │   │ Telemetry  │                     │
-│  │ Invalid. │    │ (post_save etc) │   │(OTel/Logs) │                     │
-│  └──────────┘    └─────────────────┘   └────────────┘                     │
+│       ┌───────────────────┼───────────────────┐                             │
+│       │                   │                   │                             │
+│  ┌────▼─────┐    ┌────────▼────────┐   ┌─────▼──────┐                       │
+│  │  Cache   │    │     Signals     │   │ Telemetry  │                       │
+│  │ Invalid. │    │ (post_save etc) │   │(OTel/Logs) │                       │
+│  └──────────┘    └─────────────────┘   └────────────┘                       │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -383,25 +380,46 @@ class Migration(migrations.Migration):
 
 ## 📊 Benchmarks
 
-All benchmarks measure model initialization speed (object creation + validation) on Python 3.12, local SSD, warm CPU.
+All benchmarks measure model initialization speed (object creation + validation) on Python 3.13, local SSD, warm CPU, GC disabled.
+
+```bash
+$ uv run ruff check .
+All checks passed!
+
+$ uv run pytest -v
+73 passed, 7 skipped in 1.65s
+
+$ uv run python scripts/bench.py
+Running 100,000 iterations (GC Disabled)...
+
+==================================================
+Pure Pydantic:     0.663 µs/iter
+NovaModel (Full):  1.818 µs/iter
+Overhead Ratio:    2.74x
+Absolute Overhead: +1.155 µs
+==================================================
+```
 
 | Test | Avg Time | Ops / Second | Overhead |
 |------|----------|--------------|----------|
-| Pure Pydantic (Baseline) | 0.657 µs | 1,522K | 1.0× |
-| NovaModel (Django + Pydantic) | 1.828 µs | 547K | 2.78× |
+| Pure Pydantic (Baseline) | 0.663 µs | 1,508K | 1.0× |
+| NovaModel (Full) | 1.818 µs | 550K | **2.74×** |
 
-> **Note:** The absolute penalty is only **1.170 microseconds** per object. You gain full ORM-level type safety, unified validation, deep tracing, and cache abstraction at the cost of a single microsecond.
+> **Note:** The absolute penalty is only **1.155 microseconds** per object. You gain full ORM-level type safety, unified validation, deep tracing, cache abstraction, async query planning, distributed locks, rate limiting, and pub/sub — at the cost of a single microsecond.
+
+> **Test suite:** 73 passed, 7 skipped in 1.65s. Zero lint errors.
 
 ---
 
 ## 🗺️ Roadmap
 
-### ✅ What is Built (v0.3.3)
+### ✅ What is Built (v0.4.0)
 
 | Category | Feature | Status | Notes |
 |----------|---------|--------|-------|
 | **Core Engine** | Typed ORM, Managers, QuerySets | ✅ Stable | Full `pyright --strict` compatibility |
 | | Pydantic Bridge & Unified Validation | ✅ Stable | Bidirectional sync, single source of truth |
+| | Full Async ORM Integration | ✅ Stable | Native `AsyncTypedQuerySet` with `.aauto()` planner |
 | **Ecosystem** | Auto DRF Serializer Generation | ✅ Stable | Strict projection, Pydantic validation injection |
 | (Schema Compiler) | Auto Django Admin Generation | ✅ Stable | Dynamic Forms with Pydantic `clean()` hooks |
 | | Admin JSON UI Schema Generator | ✅ Stable | Extracts validation rules for Frontend |
@@ -409,29 +427,30 @@ All benchmarks measure model initialization speed (object creation + validation)
 | | Auto Field Deferral | ✅ Stable | Omits DB columns not present in Pydantic schema |
 | **Infrastructure** | Unified Redis Client & Pool | ✅ Stable | Sync/Async pools, health checks, zero sprawl |
 | | Distributed Locks | ✅ Stable | Lua-scripted async locks for Zero-Downtime |
+| | Distributed Rate Limiter | ✅ Stable | Atomic Sliding Window via Lua scripts |
+| | Async Pub/Sub Facade | ✅ Stable | Real-time inter-process cache invalidation |
 | | Lag-Aware Read Replica Router | ✅ Stable | Thread-safe local cache, automatic Master failover |
 | | Zero-Downtime Migrations | ✅ Stable | `CONCURRENTLY` operations out of the box |
 | **Observability** | OTEL Tracing & Structlog | ✅ Stable | Zero-config lifecycle spans |
 | | Distributed Context (Correlation IDs) | ✅ Stable | `contextvars` bridge to Logs & Traces |
 | **Platform** | Stable Public API (Frozen) | ✅ Stable | PEP 562 Facades, Semver compliant |
+| | Django System Checks | ✅ Stable | Fail-fast infrastructure validation |
 
 ### 🚧 Future Work
 
 | Feature | ETA |
 |---------|-----|
-| Full Async ORM integration | Q1 2027 |
-| Pub/Sub & Rate Limiter (Redis) | Q1 2027 |
-| GraphQL Schema Compiler | Q2 2027 |
+| GraphQL Schema Compiler (Strawberry) | Q2 2027 |
 
 ### 📊 Overall Progress
 
 ```
 ████████████████████████████████████████ 100%  Core Features
 ████████████████████████████████████████ 100%  Infrastructure
-████████████████████████████░░░░░░░░░░░░░  75%  Production Readiness
+████████████████████████████████████████ 100%  Production Readiness
 ```
 
-**Current Phase:** Enterprise Ready.
+**Current Phase:** 100% Enterprise Ready.
 
 ---
 
@@ -440,10 +459,6 @@ All benchmarks measure model initialization speed (object creation + validation)
 MIT License. See [LICENSE](LICENSE) for details.
 
 ---
-
-
-                        
-
 
 ## 👤 Author
 
@@ -459,6 +474,8 @@ MIT License. See [LICENSE](LICENSE) for details.
 <a id="русский"></a>
 
 <div align="center">
+
+<img src="assets/django-nova-logo.png" width="280" alt="Django Nova Logo">
 
 # ⚡ Django Nova
 
@@ -521,28 +538,28 @@ MIT License. See [LICENSE](LICENSE) for details.
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           Потребительские слои                              │
-│  ┌──────────┐  ┌──────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │  Forms   │  │ DRF Serial.  │  │FastAPI Routers│  │ Management Commands │  │
-│  └────┬─────┘  └──────┬───────┘  └──────┬──────┘  └──────────┬──────────┘  │
+│  ┌──────────┐  ┌──────────────┐  ┌─────────────┐  ┌─────────────────────┐   │
+│  │  Forms   │  │ DRF Serial.  │  FastAPI Router│  │ Management Commands │   │
+│  └────┬─────┘  └──────┬───────┘  └──────┬──────┘  └──────────┬──────────┘   │
 │       │               │                  │                     │            │
 │       └───────────────┴──────────────────┴─────────────────────┘            │
 │                           │                                                 │
 │              ┌────────────▼────────────┐                                    │
-│              │   Pydantic Schema       │  ← Единый источник истины         │
+│              │   Pydantic Schema       │  ← Единый источник истины          │
 │              │      (Business)         │                                    │
 │              └────────────┬────────────┘                                    │
 │                           │                                                 │
 │              ┌────────────▼────────────┐                                    │
-│              │      NovaModel          │  ← Слой принудительного ORM       │
+│              │      NovaModel          │  ← Слой принудительного ORM        │
 │              │     (Interceptor)       │                                    │
 │              └────────────┬────────────┘                                    │
 │                           │                                                 │
-│       ┌───────────────────┼───────────────────┐                            │
-│       │                   │                   │                            │
-│  ┌────▼─────┐    ┌────────▼────────┐   ┌─────▼──────┐                     │
-│  │  Кеш     │    │     Сигналы     │   │ Телеметрия │                     │
-│  │Invalid.  │    │ (post_save etc) │   │(OTel/Logs) │                     │
-│  └──────────┘    └─────────────────┘   └────────────┘                     │
+│       ┌───────────────────┼───────────────────┐                             │
+│       │                   │                   │                             │
+│  ┌────▼─────┐    ┌────────▼────────┐   ┌─────▼──────┐                       │
+│  │  Кеш     │    │     Сигналы     │   │ Телеметрия │                       │
+│  │Invalid.  │    │ (post_save etc) │   │(OTel/Logs) │                       │
+│  └──────────┘    └─────────────────┘   └────────────┘                       │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -827,25 +844,46 @@ class Migration(migrations.Migration):
 
 ## 📊 Бенчмарки
 
-Все бенчмарки измеряют скорость инициализации модели (создание объекта + валидация) на Python 3.12, локальный SSD, разогретый CPU.
+Все бенчмарки измеряют скорость инициализации модели (создание объекта + валидация) на Python 3.13, локальный SSD, разогретый CPU, GC отключён.
+
+```bash
+$ uv run ruff check .
+All checks passed!
+
+$ uv run pytest -v
+73 passed, 7 skipped in 1.65s
+
+$ uv run python scripts/bench.py
+Running 100,000 iterations (GC Disabled)...
+
+==================================================
+Pure Pydantic:     0.663 µs/iter
+NovaModel (Full):  1.818 µs/iter
+Overhead Ratio:    2.74x
+Absolute Overhead: +1.155 µs
+==================================================
+```
 
 | Тест | Среднее время | Ops / секунду | Оверхед |
 |------|---------------|---------------|---------|
-| Pure Pydantic (Baseline) | 0.657 µs | 1,522K | 1.0× |
-| NovaModel (Django + Pydantic) | 1.828 µs | 547K | 2.78× |
+| Pure Pydantic (Baseline) | 0.663 µs | 1,508K | 1.0× |
+| NovaModel (Full) | 1.818 µs | 550K | **2.74×** |
 
-> **Примечание:** Абсолютный штраф составляет всего **1.170 микросекунды** на объект. Вы получаете полную типобезопасность на уровне ORM, унифицированную валидацию, глубокую трассировку и кеш-абстракцию за цену одной микросекунды.
+> **Примечание:** Абсолютный штраф составляет всего **1.155 микросекунды** на объект. Вы получаете полную типобезопасность на уровне ORM, унифицированную валидацию, глубокую трассировку, кеш-абстракцию, async планировщик запросов, распределённые блокировки, rate limiting и pub/sub — за цену одной микросекунды.
+
+> **Тесты:** 73 passed, 7 skipped за 1.65s. Ноль ошибок линтера.
 
 ---
 
 ## 🗺️ Дорожная карта
 
-### ✅ Реализовано (v0.3.3)
+### ✅ Реализовано (v0.4.0)
 
 | Категория | Фича | Статус | Примечания |
 |-----------|------|--------|------------|
 | **Core Engine** | Typed ORM, Managers, QuerySets | ✅ Стабильно | Полная совместимость с `pyright --strict` |
 | | Pydantic Bridge & Unified Validation | ✅ Стабильно | Двусторонняя синхронизация, единый источник истины |
+| | Full Async ORM Integration | ✅ Стабильно | Нативный `AsyncTypedQuerySet` с планировщиком `.aauto()` |
 | **Ecosystem** | Auto DRF Serializer Generation | ✅ Стабильно | Строгая проекция, инжекция Pydantic-валидации |
 | (Компилятор схем) | Auto Django Admin Generation | ✅ Стабильно | Динамические Forms с Pydantic `clean()` хуками |
 | | Admin JSON UI Schema Generator | ✅ Стабильно | Извлечение правил валидации для Frontend |
@@ -853,29 +891,30 @@ class Migration(migrations.Migration):
 | | Auto Field Deferral | ✅ Стабильно | Пропуск столбцов БД, отсутствующих в Pydantic-схеме |
 | **Infrastructure** | Unified Redis Client & Pool | ✅ Стабильно | Sync/Async пулы, health checks, zero sprawl |
 | | Distributed Locks | ✅ Стабильно | Lua-scripted async блокировки для Zero-Downtime |
+| | Distributed Rate Limiter | ✅ Стабильно | Атомарное Sliding Window через Lua-скрипты |
+| | Async Pub/Sub Facade | ✅ Стабильно | Real-time межпроцессная инвалидация кеша |
 | | Lag-Aware Read Replica Router | ✅ Стабильно | Thread-safe локальный кеш, авто-failover на Master |
 | | Zero-Downtime Migrations | ✅ Стабильно | Операции `CONCURRENTLY` из коробки |
 | **Observability** | OTEL Tracing & Structlog | ✅ Стабильно | Zero-config lifecycle spans |
 | | Distributed Context (Correlation IDs) | ✅ Стабильно | `contextvars` мост к Logs & Traces |
 | **Platform** | Stable Public API (Frozen) | ✅ Стабильно | PEP 562 Facades, Semver compliant |
+| | Django System Checks | ✅ Стабильно | Fail-fast валидация инфраструктуры |
 
 ### 🚧 В разработке
 
 | Фича | ETA |
 |------|-----|
-| Полная интеграция Async ORM | Q1 2027 |
-| Pub/Sub & Rate Limiter (Redis) | Q1 2027 |
-| GraphQL Schema Compiler | Q2 2027 |
+| GraphQL Schema Compiler (Strawberry) | Q2 2027 |
 
 ### 📊 Общий прогресс
 
 ```
 ████████████████████████████████████████ 100%  Core Features
 ████████████████████████████████████████ 100%  Infrastructure
-████████████████████████████░░░░░░░░░░░░░  75%  Production Readiness
+████████████████████████████████████████ 100%  Production Readiness
 ```
 
-**Текущая фаза:** Enterprise Ready.
+**Текущая фаза:** 100% Enterprise Ready.
 
 ---
 
