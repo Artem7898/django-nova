@@ -107,6 +107,35 @@ The result is **validation drift**: business rules scattered across forms, seria
 - **Signal-Driven Invalidation** — O(1) cache eviction on write without manual TTL management.
 
 ---
+## Comparison
+
+| Feature | Django Nova | Django Ninja | Django Modern | drf-pydantic | Vanilla Django |
+|---------|:-----------:|:------------:|:-------------:|:------------:|:--------------:|
+| **Validation Layer** | ORM `save()` | API decorators | Model layer | DRF Serializers | Forms / `clean()` |
+| **ORM Enforcement** | ✅ Automatic | ❌ None | ✅ Automatic | ❌ None | ⚠️ Opt-in |
+| **Schema Source** | Pydantic → Model | Model → Schema | Model fields | Pydantic → Serializer | Model only |
+| **Pydantic v2** | ✅ Yes | ✅ Yes | ❌ No | ✅ Yes | ❌ N/A |
+| **Async ORM** | ✅ Native | ✅ Native | ❌ Sync only | ❌ Sync only | ⚠️ Partial |
+| **DRF Serializer Gen** | ✅ `to_drf_serializer()` | ❌ No | ❌ No | ✅ `.drf_serializer` | ❌ N/A |
+| **FastAPI Router Gen** | ✅ `NovaRouter()` | ❌ No | ❌ No | ❌ No | ❌ N/A |
+| **Admin Form Gen** | ✅ `compile_admin()` | ❌ No | ❌ No | ❌ No | ❌ N/A |
+| **QuerySet Cache** | ✅ Signal-driven | ❌ No | ❌ No | ❌ No | ❌ No |
+| **Read Replica Routing** | ✅ Lag-aware | ❌ No | ❌ No | ❌ No | ❌ No |
+| **Distributed Locks** | ✅ Redis Lua | ❌ No | ❌ No | ❌ No | ❌ No |
+| **Rate Limiting** | ✅ Sliding window | ❌ No | ❌ No | ❌ No | ❌ No |
+| **Pub/Sub Cache Invalidation** | ✅ Async facade | ❌ No | ❌ No | ❌ No | ❌ No |
+| **Zero-Downtime Migrations** | ✅ `CONCURRENTLY` | ❌ No | ❌ No | ❌ No | ❌ Locking |
+| **Structured Logging (structlog)** | ✅ Zero-config | ❌ No | ❌ No | ❌ No | ❌ No |
+| **OpenTelemetry Tracing** | ✅ Lifecycle spans | ❌ No | ❌ No | ❌ No | ❌ No |
+| **Distributed Context (correlation IDs)** | ✅ `contextvars` bridge | ❌ No | ❌ No | ❌ No | ❌ No |
+| **Auto Query Optimization** | ✅ Deep planner | ❌ No | ❌ No | ❌ No | ❌ No |
+| **Field Deferral** | ✅ Schema-driven | ❌ No | ❌ No | ❌ No | ❌ No |
+| **Type Safety** | `pyright --strict` end-to-end | API layer only | Limited | Serializer layer only | Limited |
+| **Community Size** | Small | Large (10×) | Tiny | Medium | Massive |
+| **Best For** | Multi-entry data integrity | API-only projects | Type-strict Django models | Incremental DRF adoption | Simple CRUD |
+
+> **One-line distinction:** Django Ninja is an **API framework** that uses Pydantic. Django Nova is a **data integrity toolkit** that happens to generate APIs.
+
 
 ## 📦 Installation
 
