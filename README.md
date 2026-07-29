@@ -125,7 +125,7 @@ The result is **validation drift**: business rules scattered across forms, seria
 | **QuerySet Cache** | ✅ Signal-driven O(1) | ❌ No | ❌ No | ❌ No |
 | **Read Replica Routing** | ✅ Lag-aware | ❌ No | ❌ No | ❌ No |
 | **Distributed Locks** | ✅ Redis Lua | ❌ No | ❌ No | ❌ No |
-| **Rate Limiting** | ✅ Sliding window | ❌ No | ⚠️ Via Ninja Extra | ❌ No |
+| **Rate Limiting** | ✅ Sliding window | ✅ Different backend and algorithms | ⚠️ Via Ninja Extra | ❌ No |
 | **Pub/Sub Cache Invalidation** | ✅ Async facade | ❌ No | ❌ No | ❌ No |
 | **Zero-Downtime Migrations** | ✅ `CONCURRENTLY` | ❌ No | ❌ No | ❌ No |
 | **Structured Logging** | ✅ Zero-config structlog | ❌ No | ❌ No | ❌ No |
