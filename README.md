@@ -109,35 +109,35 @@ The result is **validation drift**: business rules scattered across forms, seria
 ---
 ## Comparison
 
-| Feature | Django Nova |                Django Modern REST             | Django Ninja | drf-pydantic |
-|---------|:-----------:|:---------------------------------------------:|:------------:|:------------:|
-| **Primary Role** | ORM toolkit + ecosystem bridge |                  API framework                | API framework (DRF alternative) | DRF Serializer bridge |
-| **Validation Layer** | ORM `save()` |                 API controllers               | API decorators | DRF Serializers |
-| **ORM Enforcement** | ✅ Automatic |                      ❌ None                   | ❌ None | ❌ None |
+| Feature | Django Nova |                Django Modern REST                | Django Ninja | drf-pydantic |
+|---------|:-----------:|:------------------------------------------------:|:------------:|:------------:|
+| **Primary Role** | ORM toolkit + ecosystem bridge |                  API framework                   | API framework (DRF alternative) | DRF Serializer bridge |
+| **Validation Layer** | ORM `save()` |                 API controllers                  | API decorators | DRF Serializers |
+| **ORM Enforcement** | ✅ Automatic |                      ❌ None                      | ❌ None | ❌ None |
 | **Schema Flexibility** | Pydantic v2 only | Pydantic, msgspec, attrs, dataclasses, TypedDict | Pydantic v2 only | Pydantic v2 only |
-| **Pydantic v2** | ✅ Yes |                 ✅ Yes (optional)              | ✅ Yes | ✅ Yes |
-| **Async Support** | ✅ Native async ORM |        ✅ Native async (no sync_to_async)      | ✅ Native async API | ❌ Sync only |
-| **Free-threading Support** | ❌ Unknown |                     ✅ Tested                  | ❌ Unknown | ❌ Unknown |
-| **DRF Serializer Gen** | ✅ `to_drf_serializer()` |               ❌ No (replaces DRF)             | ❌ No (replaces DRF) | ✅ `.drf_serializer` |
-| **FastAPI Router Gen** | ✅ `NovaRouter()` |                       ❌ No                    | ❌ No | ❌ No |
-| **Admin Form Gen** | ✅ `compile_admin()` |                       ❌ No                    | ❌ No | ❌ No |
-| **OpenAPI Docs** | ✅ Via FastAPI bridge |            ✅ Native 3.1/3.2 semantic          | ✅ Native, automatic | ❌ No |
-| **QuerySet Cache** | ✅ Signal-driven O(1) |                       ❌ No                    | ❌ No | ❌ No |
-| **Read Replica Routing** | ✅ Lag-aware |                      ✅ Different backend and algorithms                         | ❌ No | ❌ No |
-| **Distributed Locks** | ✅ Redis Lua |                       ❌ No                    | ❌ No | ❌ No |
-| **Rate Limiting** | ✅ Sliding window |                       ❌ No                    | ⚠️ Via Ninja Extra | ❌ No |
-| **Pub/Sub Cache Invalidation** | ✅ Async facade |                       ❌ No                    | ❌ No | ❌ No |
-| **Zero-Downtime Migrations** | ✅ `CONCURRENTLY` |                       ❌ No                    | ❌ No | ❌ No |
-| **Structured Logging** | ✅ Zero-config structlog |                       ❌ No                    | ❌ No | ❌ No |
-| **OpenTelemetry Tracing** | ✅ Lifecycle spans |                       ❌ No                    | ❌ No | ❌ No |
-| **Distributed Context** | ✅ `contextvars` bridge |                       ❌ No                    | ❌ No | ❌ No |
-| **Auto Query Optimization** | ✅ Deep planner + field deferral |                       ❌ No                    | ❌ No | ❌ No |
-| **Compiled Performance (mypyc)** | ❌ No |                 ✅ 4–10× speedup               | ❌ No | ❌ No |
-| **Content Negotiation** | ❌ No |         ✅ JSON, msgpack, SSE, JSON Lines      | ❌ No | ❌ No |
-| **Type Safety** | `pyright --strict` end-to-end |      `mypy` + `pyright` + `pyrefly` strict    | Type hints + Pydantic (API layer) | Pydantic validation in DRF |
-| **Performance Focus** | +1.155 µs per `save()` |       7,026 RPS async (fastest Django API)    | Fast API layer (Pydantic v2 Rust) | Zero runtime overhead |
-| **Django Version Support** | 5.0+ |                       5.0+                    | 2.1+ | 2.2+ |
-| **Python Version Support** | 3.12+ |                      3.11+                    | 3.7+ | 3.7+ |
+| **Pydantic v2** | ✅ Yes |                 ✅ Yes (optional)                 | ✅ Yes | ✅ Yes |
+| **Async Support** | ✅ Native async ORM |        ✅ Native async (no sync_to_async)         | ✅ Native async API | ❌ Sync only |
+| **Free-threading Support** | ❌ Unknown |                     ✅ Tested                     | ❌ Unknown | ❌ Unknown |
+| **DRF Serializer Gen** | ✅ `to_drf_serializer()` |               ❌ No (replaces DRF)                | ❌ No (replaces DRF) | ✅ `.drf_serializer` |
+| **FastAPI Router Gen** | ✅ `NovaRouter()` |                       ❌ No                       | ❌ No | ❌ No |
+| **Admin Form Gen** | ✅ `compile_admin()` |                       ❌ No                       | ❌ No | ❌ No |
+| **OpenAPI Docs** | ✅ Via FastAPI bridge |            ✅ Native 3.1/3.2 semantic             | ✅ Native, automatic | ❌ No |
+| **QuerySet Cache** | ✅ Signal-driven O(1) |                       ❌ No                       | ❌ No | ❌ No |
+| **Read Replica Routing** | ✅ Lag-aware |                           ❌ No                         | ❌ No | ❌ No |
+| **Distributed Locks** | ✅ Redis Lua |                       ❌ No                       | ❌ No | ❌ No |
+| **Rate Limiting** | ✅ Sliding window |                         ✅ Different backend and algorithms                           | ⚠️ Via Ninja Extra | ❌ No |
+| **Pub/Sub Cache Invalidation** | ✅ Async facade |                       ❌ No                       | ❌ No | ❌ No |
+| **Zero-Downtime Migrations** | ✅ `CONCURRENTLY` |                       ❌ No                       | ❌ No | ❌ No |
+| **Structured Logging** | ✅ Zero-config structlog |                       ❌ No                       | ❌ No | ❌ No |
+| **OpenTelemetry Tracing** | ✅ Lifecycle spans |                       ❌ No                       | ❌ No | ❌ No |
+| **Distributed Context** | ✅ `contextvars` bridge |                       ❌ No                       | ❌ No | ❌ No |
+| **Auto Query Optimization** | ✅ Deep planner + field deferral |                       ❌ No                       | ❌ No | ❌ No |
+| **Compiled Performance (mypyc)** | ❌ No |                 ✅ 4–10× speedup                  | ❌ No | ❌ No |
+| **Content Negotiation** | ❌ No |         ✅ JSON, msgpack, SSE, JSON Lines         | ❌ No | ❌ No |
+| **Type Safety** | `pyright --strict` end-to-end |      `mypy` + `pyright` + `pyrefly` strict       | Type hints + Pydantic (API layer) | Pydantic validation in DRF |
+| **Performance Focus** | +1.155 µs per `save()` |       7,026 RPS async (fastest Django API)       | Fast API layer (Pydantic v2 Rust) | Zero runtime overhead |
+| **Django Version Support** | 5.0+ |                       5.0+                       | 2.1+ | 2.2+ |
+| **Python Version Support** | 3.12+ |                      3.11+                       | 3.7+ | 3.7+ |
 
 
 > **One-line distinction:** Django Modern REST is a **blazingly fast, pluggable API framework** (not bound to Pydantic). Django Ninja is a **FastAPI-style API framework inside Django**. drf-pydantic is a **bridge for DRF users who want Pydantic validation**. Django Nova is a **data integrity toolkit** that enforces validation at the ORM level and generates APIs as a side effect.
