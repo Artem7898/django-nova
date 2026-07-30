@@ -7,16 +7,21 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from pydantic import BaseModel
 
 from nova.query.relations import find_deep_relations
 
 if TYPE_CHECKING:
+    from django.db.models.query import QuerySet
+
     from nova.typing.models import NovaModel
 
 logger = logging.getLogger(__name__)
+
+# Объявляем TypeVar для сохранения типа QuerySet при оптимизации
+QS = TypeVar("QS", bound="QuerySet[Any]")
 
 
 @dataclass(frozen=True)
@@ -44,22 +49,26 @@ def _calculate_deferred_fields(
     Calculates which database columns to DEFER based on the Pydantic schema.
     If a field is NOT in the schema, we don't fetch it from the DB.
     """
-    django_fields = set()
-    relation_map = {}
+    django_fields: set[str] = set()
+    relation_map: dict[str, str] = {}
 
     # 1. Collect actual DB columns (attname) and map relations (name -> attname)
     for f in model_class._meta.get_fields():
-        # We skip feedbacks (reverse FK, M2M) and many-to-many
         if f.auto_created or f.many_to_many:
             continue
 
-        if hasattr(f, 'attname'):
-            django_fields.add(f.name)
-            django_fields.add(f.attname)
 
-            # Remembering the mapping of links
-            if f.is_relation and f.attname != f.name:
-                relation_map[f.name] = f.attname
+        attname = getattr(f, 'attname', None)
+        name = getattr(f, 'name', None)
+        is_relation = getattr(f, 'is_relation', False)
+
+        if attname and name:
+            django_fields.add(name)
+            django_fields.add(attname)
+
+
+            if is_relation and attname != name:
+                relation_map[name] = attname
 
     # 2. Determine which fields the Pydantic schema actually NEEDS
     needed_fields = set(schema.model_fields.keys())
@@ -75,21 +84,22 @@ def _calculate_deferred_fields(
         if root_rel in relation_map:
             needed_fields.add(relation_map[root_rel])
 
-    # 4. SAFETY: NEVER defer the Primary Key
-    pk_name = model_class._meta.pk.name
-    pk_attname = model_class._meta.pk.attname
-    needed_fields.add(pk_name)
-    needed_fields.add(pk_attname)
+    # 4. SAFETY: NEVER defer the Primary Key. Гарантируем наличие PK анализатору через cast/assert
+    pk_field = model_class._meta.pk
+    if pk_field is not None:
+        pk_name = getattr(pk_field, 'name', 'id')
+        pk_attname = getattr(pk_field, 'attname', 'id')
+        needed_fields.add(pk_name)
+        needed_fields.add(pk_attname)
 
     # 5. Calculate the difference: Django fields minus Pydantic fields
-    # We defer using the column name (attname) because .defer() operates on DB columns
     to_defer = [f for f in django_fields if f not in needed_fields and f not in relation_map.values()]
 
     return to_defer
 
 
 def analyze_schema_for_relations(
-    schema: type[BaseModel, object],
+    schema: type[BaseModel],
     exclude: tuple[str, ...] = ()
 ) -> dict[str, list[str]]:
     """
@@ -104,17 +114,21 @@ def analyze_schema_for_relations(
         unique_paths = list(set(paths))
         return [p for p in unique_paths if not any(p != other and other.startswith(f"{p}__") for other in unique_paths)]
 
-    clean_select = _remove_redundant_paths(hints["select"])
+    # We convert it to the list[str] type, since find_deep_relations returns a raw dict
+    raw_select = cast("list[str]", hints.get("select", []))
+    raw_prefetch = cast("list[str]", hints.get("prefetch", []))
+
+    clean_select = _remove_redundant_paths(raw_select)
 
     if exclude:
         return {
             "select": [s for s in clean_select if s.split("__")[0] not in exclude],
-            "prefetch": [p for p in hints["prefetch"] if p not in exclude]
+            "prefetch": [p for p in raw_prefetch if p not in exclude]
         }
 
     return {
         "select": clean_select,
-        "prefetch": hints["prefetch"]
+        "prefetch": raw_prefetch
     }
 
 
@@ -125,7 +139,7 @@ def build_query_plan(model_class: type[NovaModel]) -> QueryPlan:
     """
     config = getattr(model_class, '_nova_config', None)
 
-    if not config or not config.pydantic_schema:
+    if not config or not getattr(config, 'pydantic_schema', None):
         return QueryPlan()
 
     hints = analyze_schema_for_relations(
@@ -147,25 +161,23 @@ def build_query_plan(model_class: type[NovaModel]) -> QueryPlan:
     )
 
 
-def apply_plan(queryset: Any, plan: QueryPlan) -> Any:
+def apply_plan[QS: QuerySet[Any]](queryset: QS, plan: QueryPlan) -> QS:
     """Pure execution function. Applies a QueryPlan to a Django QuerySet."""
     qs = queryset
 
     if plan.select_related:
-        qs = qs.select_related(*plan.select_related)
+        qs = cast(QS, qs.select_related(*plan.select_related))
     if plan.prefetch_related:
-        qs = qs.prefetch_related(*plan.prefetch_related)
+        qs = cast(QS, qs.prefetch_related(*plan.prefetch_related))
 
     # Apply field-level optimizations
     if plan.defer:
-        qs = qs.defer(*plan.defer)
-    # Note: .only() and .defer() are mutually exclusive in Django.
-    # We prioritize .defer() because it's safer (allows adding new fields to DB without breaking queries).
+        qs = cast(QS, qs.defer(*plan.defer))
 
     return qs
 
 
-def apply_optimizations(queryset: Any, model_class: type[NovaModel]) -> Any:
+def apply_optimizations[QS: QuerySet[Any]](queryset: QS, model_class: type[NovaModel]) -> QS:
     """Convenience wrapper for backward compatibility."""
     plan = build_query_plan(model_class)
     return apply_plan(queryset, plan)

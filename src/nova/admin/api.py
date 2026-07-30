@@ -6,26 +6,31 @@ Extracts UI-friendly JSON schemas and generates Django ModelAdmin classes.
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, get_args, get_origin
+from typing import TYPE_CHECKING, Any, Final, cast, get_args, get_origin
 
 from django.db.models.fields import NOT_PROVIDED
+from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
 
 from nova.admin.types import AdminFieldSchema, AdminSchema
 
 if TYPE_CHECKING:
+    from pydantic.fields import FieldInfo
+
     from nova.typing.models import NovaModel
 
-# Safe Import for Django Admin
+# --- ARCHITECTURE FREEZE: Pyright-Safe Import Pattern ---
+_admin_available: bool = True
 try:
     from django import forms
     from django.contrib import admin
-
-    ADMIN_AVAILABLE = True
 except ImportError:
-    admin = None
-    forms = None
-    ADMIN_AVAILABLE = False
+    forms = None  # type: ignore[assignment, misc]
+    admin = None  # type: ignore[assignment, misc]
+    _admin_available = False
+
+ADMIN_AVAILABLE: Final[bool] = _admin_available
+# --------------------------------------------------------
 
 
 _FRONTEND_TYPE_MAP: dict[type[Any], str] = {
@@ -35,7 +40,7 @@ _FRONTEND_TYPE_MAP: dict[type[Any], str] = {
     bool: "boolean",
 }
 
-GENERIC_PYDANTIC_ERRORS = {
+GENERIC_PYDANTIC_ERRORS: Final[set[str]] = {
     "Field required",
     "Input should be a valid string",
     "Input should be a valid number",
@@ -58,7 +63,9 @@ def get_admin_schema(model_cls: type[NovaModel]) -> AdminSchema:
     schema_cls = nova_config.pydantic_schema
     fields_def: dict[str, AdminFieldSchema] = {}
 
-    for field_name, field_info in schema_cls.model_fields.items():
+    model_fields: dict[str, FieldInfo] = schema_cls.model_fields
+
+    for field_name, field_info in model_fields.items():
         frontend_type = _resolve_frontend_type(field_info.annotation)
         django_field = model_cls._meta.get_field(field_name)
         is_required = _is_required(field_info, django_field)
@@ -78,18 +85,16 @@ def get_admin_schema(model_cls: type[NovaModel]) -> AdminSchema:
 # 2. DYNAMIC DJANGO ADMIN COMPILER (Backend)
 # ==========================================
 
-def compile_admin(model_cls: type[NovaModel]) -> type[admin.ModelAdmin]:
+def compile_admin(model_cls: type[NovaModel]) -> type[Any]:
     """
     Generates a Django ModelAdmin that enforces Pydantic validation via Forms.
-
-    Usage:
-        class Article(NovaModel):
-            _nova_config = NovaConfig(pydantic_schema=ArticleSchema)
-
-        admin.site.register(Article, compile_admin(Article))
     """
-    if not ADMIN_AVAILABLE:
+    if not ADMIN_AVAILABLE or admin is None or forms is None:
         raise ImportError("Django admin must be available to compile admins.")
+
+    # Strict Context Statement (Type Guard) for Pyright
+    assert admin is not None
+    assert forms is not None
 
     nova_config = getattr(model_cls, "_nova_config", None)
     if not nova_config or not nova_config.pydantic_schema:
@@ -97,43 +102,38 @@ def compile_admin(model_cls: type[NovaModel]) -> type[admin.ModelAdmin]:
 
     pydantic_schema = nova_config.pydantic_schema
 
-    class NovaAdminForm(forms.ModelForm):
+    class NovaAdminForm(forms.ModelForm):  # type: ignore[misc, raw-checker]
         class Meta:
             model = model_cls
             fields = "__all__"
 
         def clean(self) -> dict[str, Any]:
-            """
-            Intercept Django Form validation to inject Pydantic business logic.
-            """
             cleaned_data = super().clean()
+            payload = cleaned_data if cleaned_data is not None else {}
 
             try:
-                # Validate the entire payload against the Pydantic schema
-                pydantic_schema.model_validate(cleaned_data)
+                pydantic_schema.model_validate(payload)
             except PydanticValidationError as exc:
-                # Translate Pydantic errors into Django Form errors
-                form_errors = {}
-                for err in exc.errors():
-                    loc = err.get("loc", ("__all__",))
-                    # Map Pydantic loc to Django field names
-                    field_name = loc[0] if loc and loc[0] != "__root__" else "__all__"
-                    msg = err.get("msg", "Validation error")
+                form_errors: dict[str, list[str]] = {}
 
-                    # Django forms expect error lists
+                for err in cast("list[dict[str, Any]]", exc.errors()):
+                    loc = err.get("loc", ("__all__",))
+                    field_name = str(loc[0]) if loc and loc[0] != "__root__" else "__all__"
+                    msg = str(err.get("msg", "Validation error"))
+
                     form_errors.setdefault(field_name, []).append(msg)
 
+                assert forms is not None
                 raise forms.ValidationError(form_errors) from exc
             except Exception as exc:
+                assert forms is not None
                 raise forms.ValidationError(str(exc)) from exc
 
-            return cleaned_data
+            return payload
 
-    class NovaModelAdmin(admin.ModelAdmin):
+    class NovaModelAdmin(admin.ModelAdmin):  # type: ignore[misc]
         form = NovaAdminForm
-        # In the future, we can auto-populate list_display based on Pydantic schema here.
 
-    # Aesthetics: rename the class to match the model
     NovaModelAdmin.__name__ = f"{model_cls.__name__}Admin"
     NovaModelAdmin.__qualname__ = f"{model_cls.__name__}Admin"
 
@@ -144,9 +144,11 @@ def compile_admin(model_cls: type[NovaModel]) -> type[admin.ModelAdmin]:
 # INTERNAL HELPERS
 # ==========================================
 
-def _build_valid_payload(schema_cls: type) -> dict[str, Any]:
+def _build_valid_payload(schema_cls: type[BaseModel]) -> dict[str, Any]:
     payload: dict[str, Any] = {}
-    for field_name, field_info in schema_cls.model_fields.items():
+    model_fields: dict[str, FieldInfo] = schema_cls.model_fields
+
+    for field_name, field_info in model_fields.items():
         annotation = field_info.annotation
         if field_info.default is not None:
             payload[field_name] = field_info.default
@@ -178,10 +180,10 @@ def _is_required(field_info: Any, django_field: Any) -> bool:
         return False
     if django_field.null or django_field.blank:
         return False
-    return field_info.is_required()
+    return bool(getattr(field_info, "is_required", lambda: True)())
 
 
-def _extract_validation_rules(schema_cls: type, field_name: str, annotation: Any) -> str | None:
+def _extract_validation_rules(schema_cls: type[BaseModel], field_name: str, annotation: Any) -> str | None:
     core_annotation = annotation
     if hasattr(core_annotation, "__origin__"):
         args = get_args(core_annotation)
@@ -206,11 +208,12 @@ def _extract_validation_rules(schema_cls: type, field_name: str, annotation: Any
         try:
             schema_cls.model_validate(payload)
         except PydanticValidationError as exc:
-            if not exc.errors():
+            errors = cast("list[dict[str, Any]]", exc.errors())
+            if not errors:
                 continue
             relevant_msgs = [
-                err.get("msg")
-                for err in exc.errors()
+                str(err.get("msg"))
+                for err in errors
                 if field_name in err.get("loc", []) and err.get("msg")
             ]
             if not relevant_msgs:
@@ -222,4 +225,5 @@ def _extract_validation_rules(schema_cls: type, field_name: str, annotation: Any
 
     if generic_msgs:
         return "; ".join(list(dict.fromkeys(generic_msgs)))
+
     return None

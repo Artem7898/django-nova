@@ -11,7 +11,7 @@ Production requirements:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django.db.models.signals import post_delete, post_save
 
@@ -34,17 +34,10 @@ def connect_invalidation(
     Connect cache invalidation signals for a Nova model.
 
     Safe to call multiple times.
-
-    Parameters
-    ----------
-    model_cls:
-        Model class.
-
-    cache:
-        Optional cache backend instance.
     """
 
-    if not model_cls._nova_config.cache_enabled:
+    nova_config = getattr(model_cls, "_nova_config", None)
+    if not nova_config or not getattr(nova_config, "cache_enabled", False):
         return
 
     target_cache = cache or get_default_cache()
@@ -58,7 +51,14 @@ def connect_invalidation(
         return
 
     def _invalidate(sender: Any, **kwargs: Any) -> None:
-        model_name = sender._meta.model_name
+        meta: Any = getattr(sender, "_meta", None)
+        if meta is None:
+            return
+
+        model_name = cast(str, getattr(meta, "model_name", ""))
+        if not model_name:
+            return
+
         count = target_cache.invalidate_model(model_name)
 
         if count > 0:
@@ -68,13 +68,13 @@ def connect_invalidation(
                 model_name,
             )
 
-    post_save.connect(
+    post_save.connect(  # type: ignore[reportUnknownMemberType]
         _invalidate,
         sender=model_cls,
         weak=False,
     )
 
-    post_delete.connect(
+    post_delete.connect(  # type: ignore[reportUnknownMemberType]
         _invalidate,
         sender=model_cls,
         weak=False,

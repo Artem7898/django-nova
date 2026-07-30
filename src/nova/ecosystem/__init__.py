@@ -1,4 +1,4 @@
-"""Ecosystem Projections: Auto-generation for DRF, FastAPI, Admin."""
+"""Ecosystem Projections: Auto-generation for DRF, FastAPI, Admin, GraphQL."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ __all__ = [
     "compile_admin",
     "get_admin_schema",
     "to_drf_serializer",
+    "to_strawberry_type",
 ]
 
 def __getattr__(name: str):
@@ -24,6 +25,9 @@ def __getattr__(name: str):
     if name == "compile_admin":
         from nova.admin.api import compile_admin
         return compile_admin
+    if name == "to_strawberry_type":
+        from nova.ecosystem.graphql import to_strawberry_type
+        return to_strawberry_type
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
@@ -31,3 +35,4 @@ if TYPE_CHECKING:
     from nova.admin.api import compile_admin, get_admin_schema
     from nova.ecosystem.drf import to_drf_serializer
     from nova.ecosystem.fastapi import FastAPIBridge
+    from nova.ecosystem.graphql import to_strawberry_type

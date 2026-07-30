@@ -1,64 +1,51 @@
 """
 Distributed Tracing layer for Django Nova using OpenTelemetry.
 Architecture: Implements the "Safe Import" pattern with full OTEL lifecycle.
-Automatically injects Distributed Context (Correlation IDs) into spans.
 """
 
 from __future__ import annotations
 
 import functools
 from collections.abc import Callable, Generator
-from contextlib import contextmanager
+from contextlib import contextmanager  # <-- ВОТ ЭТА СТРОКА БЫЛА ПОТЕРЯНА
 from typing import Any, ParamSpec, TypeVar
 
-# --- Safe Import Block ---
+# --- Safe Import Block (Architecture Freeze compliant) ---
 try:
     from opentelemetry import trace
     from opentelemetry.trace import Span, Status, StatusCode, Tracer
 
-    OTEL_AVAILABLE = True
+    _otel_available = True
 except ImportError:
-    trace = None
-    Span = None  # type: ignore
-    Tracer = None  # type: ignore
-    Status = None  # type: ignore
-    StatusCode = None  # type: ignore
-    OTEL_AVAILABLE = False
+    # Pyright stubs to prevent cascade `None` type failures
+    trace = None  # type: ignore[assignment, misc]
+    Span = object  # type: ignore[assignment, misc]
+    Tracer = object  # type: ignore[assignment, misc]
+    Status = object  # type: ignore[assignment, misc]
+    StatusCode = object  # type: ignore[assignment, misc]
+    _otel_available = False
 
+# --- Generic types for decorators ---
 P = ParamSpec("P")
 R = TypeVar("R")
 
 
-def get_tracer(name: str = "nova.core") -> Tracer | None:
+def get_tracer(name: str = "nova.core") -> Tracer | None:  # type: ignore[valid-type]
     """Returns an OpenTelemetry Tracer instance or None."""
-    if not OTEL_AVAILABLE or not trace:
+    if not _otel_available or not trace:
         return None
     return trace.get_tracer(name)
 
 
 @contextmanager
-def nova_span(name: str, **attributes: Any) -> Generator[Span | None, None, None]:
-    """
-    Context manager implementing the full OTEL span lifecycle.
-    Automatically injects variables from nova.context into span attributes.
-    """
+def nova_span(name: str, **attributes: Any) -> Generator[Span | None, None, None]:  # type: ignore[valid-type]
+    """Context manager implementing the full OTEL span lifecycle."""
     tracer = get_tracer()
     if not tracer:
         yield None
         return
 
     with tracer.start_as_current_span(name, attributes=attributes) as span:
-        # --- NOVA INNOVATION: Inject Distributed Context ---
-        if span is not None:
-            try:
-                from nova.core.context import get_all
-                ctx_data = get_all()
-                if ctx_data:
-                    span.set_attributes(ctx_data)
-            except Exception:
-                pass # Context module not available or misconfigured
-        # ----------------------------------------------------
-
         try:
             yield span
         except Exception as exc:
@@ -74,7 +61,7 @@ def nova_span(name: str, **attributes: Any) -> Generator[Span | None, None, None
 def _trace_decorator(component: str, action: str, **extra_attrs: Any) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Internal helper to generate typed decorators."""
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
-        if not OTEL_AVAILABLE:
+        if not _otel_available:
             return func
 
         @functools.wraps(func)
@@ -92,17 +79,24 @@ def _trace_decorator(component: str, action: str, **extra_attrs: Any) -> Callabl
 # --- Public Specific Decorators ---
 
 def trace_model(operation: str = "execute") -> Callable[[Callable[P, R]], Callable[P, R]]:
+    """Decorator to trace Django Model operations."""
     return _trace_decorator(component="model", action=operation)
 
 def trace_cache(operation: str = "get") -> Callable[[Callable[P, R]], Callable[P, R]]:
+    """Decorator to trace Cache operations."""
     return _trace_decorator(component="cache", action=operation)
 
 def trace_task(task_name: str = "run") -> Callable[[Callable[P, R]], Callable[P, R]]:
+    """Decorator to trace Background Task execution."""
     return _trace_decorator(component="task", action=task_name)
 
 def trace_validation(schema_name: str = "unknown") -> Callable[[Callable[P, R]], Callable[P, R]]:
+    """Decorator to trace Pydantic validation layer."""
     return _trace_decorator(component="validation", action="validate", schema=schema_name)
 
+
+# Backward compatibility alias for tests
+OTEL_AVAILABLE = _otel_available
 
 __all__ = [
     "OTEL_AVAILABLE",

@@ -4,15 +4,50 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="12c80581-c716-4427-9391-e4d39ddb2281" name="Changes" comment="" />
+    <list default="true" id="12c80581-c716-4427-9391-e4d39ddb2281" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/pyrightconfig.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/nova/ecosystem/graphql.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/test_performance.py" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/test_performance.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/bench.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/bench.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/admin/api.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/admin/api.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/admin/components.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/admin/components.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/apps.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/apps.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/async_orm/manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/async_orm/manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/async_orm/queryset.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/async_orm/queryset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/cache/backends/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/cache/backends/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/cache/backends/pool.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/cache/backends/pool.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/cache/backends/redis.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/cache/backends/redis.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/cache/invalidation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/cache/invalidation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/cache/queryset_cache.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/cache/queryset_cache.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/core/checks.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/core/checks.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/core/observability.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/core/observability.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/core/tracing.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/core/tracing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/ecosystem/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/ecosystem/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/ecosystem/drf.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/ecosystem/drf.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/query/planner.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/query/planner.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/nova/query/relations.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/nova/query/relations.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uv.lock" beforeDir="false" afterPath="$PROJECT_DIR$/uv.lock" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "git-widget-placeholder": "release/v0.4.2",
+    "git-widget-placeholder": "feat/release/v0.4.3",
     "node.js.selected.package.tslint": "(autodetect)"
   }
 }]]></component>
