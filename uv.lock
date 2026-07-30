@@ -471,7 +471,7 @@ wheels = [
 
 [[package]]
 name = "django-nova"
-version = "0.3.4"
+version = "0.4.3"
 source = { editable = "." }
 dependencies = [
     { name = "cachetools" },
@@ -519,6 +519,13 @@ tracing = [
     { name = "opentelemetry-api" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "coverage" },
+    { name = "pyright" },
+    { name = "pytest-cov" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "asyncio-throttle", marker = "extra == 'tasks'", specifier = ">=1.0" },
@@ -550,6 +557,13 @@ requires-dist = [
     { name = "uvicorn", marker = "extra == 'fastapi'", specifier = ">=0.30" },
 ]
 provides-extras = ["async", "cache", "tracing", "drf", "fastapi", "tasks", "dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "coverage", specifier = ">=7.15.2" },
+    { name = "pyright", specifier = ">=1.1.411" },
+    { name = "pytest-cov", specifier = ">=7.1.0" },
+]
 
 [[package]]
 name = "djangorestframework"

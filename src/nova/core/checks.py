@@ -5,13 +5,19 @@ Fails fast before accepting traffic if infrastructure is misconfigured.
 
 from __future__ import annotations
 
-from django.core.checks import Error, register
+from typing import Any
+
+from django.apps import AppConfig
+from django.core.checks import CheckMessage, Error, register
 from django.core.checks import Warning as DjangoWarning
+from pydantic import errors
 
 
 @register("nova")
-def check_nova_infrastructure(app_configs, **kwargs) -> list[Error | DjangoWarning]:
-    errors: list[Error | DjangoWarning] = []
+def check_nova_infrastructure(
+    app_configs: list[AppConfig] | None = None,
+    **kwargs: Any
+) -> list[CheckMessage]:
 
     from django.apps import apps
 

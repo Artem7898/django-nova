@@ -1,0 +1,15 @@
+{
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    "tests"
+  ],
+  "typeCheckingMode": "strict",
+  "reportMissingImports": "none",
+  "reportMissingTypeStubs": "none",
+  "reportPrivateUsage": "error",
+  "reportUnusedImport": "error",
+  "reportUndefinedVariable": "error"
+}

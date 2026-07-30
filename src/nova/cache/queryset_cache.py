@@ -8,7 +8,10 @@ import hashlib
 import json
 from collections.abc import Callable
 from functools import wraps
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
+
+# FIX FOR GENERIC BOUND: Импортируем базовую модель Django для ограничения дженерика
+from django.db.models import Model
 
 from nova.cache.backends.memory import MemoryCacheBackend
 from nova.cache.backends.protocol import CacheBackend
@@ -21,12 +24,12 @@ if TYPE_CHECKING:
 
 P = ParamSpec("P")
 R = TypeVar("R")
-ModelT = TypeVar("ModelT")
+ModelT = TypeVar("ModelT", bound=Model)
 
 logger = get_logger(__name__)
 
 
-class QuerySetCache[ModelT]:
+class QuerySetCache[ModelT: Model]:
     """Type-safe cache for Django QuerySet results with full tracing lifecycle."""
 
     def __init__(
@@ -43,9 +46,13 @@ class QuerySetCache[ModelT]:
 
     def _generate_key(self, queryset: QuerySet[ModelT]) -> tuple[str, str]:
         try:
-            model_name = queryset.model._meta.model_name
-            compiler = queryset.query.get_compiler(using=queryset.db)
-            sql, params = compiler.as_sql()
+            meta: Any = getattr(queryset.model, "_meta", None)
+            model_name = cast(str, getattr(meta, "model_name", "unknown_model"))
+
+            query_obj: Any = getattr(queryset, "query", None)
+            compiler = query_obj.get_compiler(using=queryset.db)
+
+            sql, params = cast("tuple[str, Any]", compiler.as_sql())
             safe_params = json.dumps(params, sort_keys=True, default=str)
             raw_key = f"{self._key_prefix}:{model_name}:{sql}:{safe_params}"
             return hashlib.sha256(raw_key.encode()).hexdigest(), model_name
@@ -57,18 +64,18 @@ class QuerySetCache[ModelT]:
         key, model_name = self._generate_key(queryset)
 
         with nova_span("nova.cache.get", model=model_name) as span:
-            result = self._backend.get(key)
+            result = cast("list[ModelT] | None", self._backend.get(key))
 
             if result is not None:
                 if span:
                     span.set_attribute("cache.outcome", "hit")
                 with nova_span("nova.cache.hit", model=model_name):
-                    pass # Trace event for hit
+                    pass
             else:
                 if span:
                     span.set_attribute("cache.outcome", "miss")
                 with nova_span("nova.cache.miss", model=model_name):
-                    pass # Trace event for miss
+                    pass
 
             return result
 
@@ -77,7 +84,7 @@ class QuerySetCache[ModelT]:
         key, model_name = self._generate_key(queryset)
 
         with nova_span("nova.cache.lookup", model=model_name) as span:
-            cached = self._backend.get(key)
+            cached = cast("list[ModelT] | None", self._backend.get(key))
             if cached is not None:
                 if span:
                     span.set_attribute("cache.outcome", "hit")
@@ -117,7 +124,7 @@ class QuerySetCache[ModelT]:
 
     @property
     def stats(self) -> dict[str, Any]:
-        backend_stats = self._backend.stats()
+        backend_stats = cast("dict[str, Any]", self._backend.stats())
         backend_stats["tracked_models"] = len(self._model_keys)
         return backend_stats
 
@@ -139,7 +146,7 @@ def cached_queryset(
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             result = func(*args, **kwargs)
             if hasattr(result, "model") and hasattr(result, "query"):
-                return actual_cache.get_or_set(result)
+                return cast(R, actual_cache.get_or_set(cast("QuerySet[Any]", result)))
             return result
         return wrapper
     return decorator

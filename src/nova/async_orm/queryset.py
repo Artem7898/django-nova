@@ -1,45 +1,33 @@
 """
 True Async QuerySet wrapper.
-Inherits from Django's native AsyncQuerySet to provide full async ORM compatibility,
-type safety, and Schema-Driven query optimization.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Any, cast
 
-from django.db.models.query import AsyncQuerySet
+from django.db.models import QuerySet
 
 if TYPE_CHECKING:
     from nova.typing.models import NovaModel
 
-ModelT = TypeVar("ModelT", bound="NovaModel")
 
-
-class AsyncTypedQuerySet(AsyncQuerySet[ModelT]):
+class AsyncTypedQuerySet[ModelT: NovaModel](QuerySet[Any]):
     """
     A strictly typed Async QuerySet.
-    Returns ModelT instead of untyped model instances.
-    Integrates with the Nova Query Planner via .aauto().
     """
 
     def aauto(self) -> AsyncTypedQuerySet[ModelT]:
-        """
-        Async equivalent of .auto().
-        Analyzes Pydantic schema and applies select_related/prefetch_related/defer.
-        Note: Query planning is a CPU-bound task, so it runs synchronously inside
-        the async method to avoid unnecessary event loop overhead.
-        """
         from nova.query.planner import build_query_plan
 
-        plan = build_query_plan(self.model)
+        model_cls = cast("type[NovaModel]", self.model)
+        plan = build_query_plan(model_cls)
 
         if plan.is_empty():
             return self
 
-        qs = self
-        # Django's .select_related() and .prefetch_related() clone the QuerySet
-        # and return a new instance, even on AsyncQuerySet.
+        qs: QuerySet[Any] = self
+
         if plan.select_related:
             qs = qs.select_related(*plan.select_related)
         if plan.prefetch_related:
@@ -47,11 +35,8 @@ class AsyncTypedQuerySet(AsyncQuerySet[ModelT]):
         if plan.defer:
             qs = qs.defer(*plan.defer)
 
-        return qs
+        return cast("AsyncTypedQuerySet[ModelT]", qs)
 
     async def alist(self) -> list[ModelT]:
-        """
-        Convenience method to materialize the async queryset into a list.
-        Required for Django < 5.2 compatibility (in 5.2+ .alist() is native).
-        """
-        return [obj async for obj in self]
+        """Materialize the async queryset into a list."""
+        return [cast(ModelT, obj) async for obj in self]
