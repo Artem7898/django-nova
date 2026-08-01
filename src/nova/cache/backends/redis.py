@@ -1,18 +1,15 @@
-"""
-Redis cache backend.
-"""
+"""Redis cache backend."""
 
 from __future__ import annotations
 
 import logging
-from typing import Any, Final, cast
+from typing import Any, Final
 
 from nova.cache.backends.protocol import CacheBackend
 from nova.core.exceptions import NovaCacheError
 
 logger = logging.getLogger(__name__)
 
-# FIX E402: Все импорты находятся строго вверху. Блок try/except идет следом.
 _redis_available: bool = True
 try:
     from redis.exceptions import RedisError  # type: ignore[reportMissingImports]
@@ -38,7 +35,7 @@ class RedisCacheBackend(CacheBackend):
             logger.warning("Passing 'url' to RedisCacheBackend is deprecated.")
 
         self._key_prefix: str = key_prefix
-        self._client: Any = cast(Any, get_redis_client())
+        self._client: Any = get_redis_client()
 
         try:
             from nova.cache.serializers import (

@@ -1,19 +1,18 @@
-"""
-Thin Task Engine Facade.
-"""
+"""Thin Task Engine Facade."""
 
 from __future__ import annotations
 
 from typing import Any
 
 from nova.tasks.backends.asyncio_backend import AsyncioBackend
+from nova.tasks.backends.protocol import TaskBackend, TaskFunc
 from nova.tasks.models import TaskResult
 
 
 class NovaTaskEngine:
     """Orchestrator for background tasks."""
 
-    def __init__(self, backend: Any = None, **kwargs: Any) -> None:
+    def __init__(self, backend: TaskBackend | None = None, **kwargs: Any) -> None:
         if backend is not None:
             self._backend = backend
         else:
@@ -25,10 +24,9 @@ class NovaTaskEngine:
     async def stop(self) -> None:
         await self._backend.stop()
 
-
     def submit(
         self,
-        func: Any,
+        func: TaskFunc,
         *args: Any,
         delay: float = 0.0,
         max_retries: int = 0,

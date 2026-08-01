@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 __all__ = [
     "NovaTaskEngine",
     "TaskBackend",
-    "TaskError",
     "TaskResult",
     "nova_task",
 ]
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     if name == "nova_task":
         from nova.tasks.decorators import nova_task
         return nova_task
@@ -22,9 +21,6 @@ def __getattr__(name: str):
     if name == "TaskResult":
         from nova.tasks.models import TaskResult
         return TaskResult
-    if name == "TaskError":
-        from nova.tasks.exceptions import TaskError
-        return TaskError
     if name == "TaskBackend":
         from nova.tasks.backends.protocol import TaskBackend
         return TaskBackend
@@ -34,5 +30,4 @@ if TYPE_CHECKING:
     from nova.tasks.backends.protocol import TaskBackend
     from nova.tasks.decorators import nova_task
     from nova.tasks.engine import NovaTaskEngine
-    from nova.tasks.exceptions import TaskError
     from nova.tasks.models import TaskResult

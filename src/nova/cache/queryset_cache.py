@@ -1,6 +1,4 @@
-"""
-Intelligent QuerySet caching with automatic invalidation and OTEL Instrumentation.
-"""
+"""Intelligent QuerySet caching with automatic invalidation and OTEL Instrumentation."""
 
 from __future__ import annotations
 
@@ -10,7 +8,6 @@ from collections.abc import Callable
 from functools import wraps
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
 
-# FIX FOR GENERIC BOUND: Импортируем базовую модель Django для ограничения дженерика
 from django.db.models import Model
 
 from nova.cache.backends.memory import MemoryCacheBackend
@@ -124,7 +121,8 @@ class QuerySetCache[ModelT: Model]:
 
     @property
     def stats(self) -> dict[str, Any]:
-        backend_stats = cast("dict[str, Any]", self._backend.stats())
+        # Cast removed: Protocol.stats() already returns dict[str, Any]
+        backend_stats = self._backend.stats()
         backend_stats["tracked_models"] = len(self._model_keys)
         return backend_stats
 

@@ -36,7 +36,7 @@ class NovaCacheError(NovaError):
     """Raised on cache operation failure."""
 
     def __init__(self, message: str, *, cache_key: str | None = None) -> None:
-        details = {}
+        details: dict[str, str] = {}
         if cache_key:
             details["cache_key"] = cache_key[:16]
         super().__init__(message, details=details)
@@ -46,7 +46,7 @@ class NovaConfigurationError(NovaError):
     """Raised on incorrect Nova configuration."""
 
     def __init__(self, message: str, *, setting: str | None = None) -> None:
-        details = {}
+        details: dict[str, str] = {}
         if setting:
             details["setting"] = setting
         super().__init__(message, details=details)
@@ -56,18 +56,17 @@ class NovaAsyncError(NovaError):
     """Raised on async operation failure."""
 
     def __init__(self, message: str, *, operation: str | None = None) -> None:
-        details = {}
+        details: dict[str, str] = {}
         if operation:
             details["operation"] = operation
         super().__init__(message, details=details)
-
 
 
 class NovaRateLimitError(NovaError):
     """Raised when a rate limit is exceeded."""
 
     def __init__(self, message: str, *, limit: int = 0, window_secs: int = 0) -> None:
-        details = {"limit": str(limit), "window_secs": str(window_secs)}
+        details: dict[str, str] = {"limit": str(limit), "window_secs": str(window_secs)}
         super().__init__(message, details=details)
 
 

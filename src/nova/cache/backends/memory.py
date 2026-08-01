@@ -34,7 +34,7 @@ class MemoryCacheBackend(CacheBackend):
         maxsize: int = 1000,
         ttl: int = 60,
     ) -> None:
-        self._cache: TTLCache[str, Any] = TTLCache(
+        self._cache: TTLCache[str, Any] = TTLCache(  # type: ignore[assignment]
             maxsize=maxsize,
             ttl=ttl,
         )

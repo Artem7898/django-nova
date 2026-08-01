@@ -475,7 +475,7 @@ Absolute Overhead: +1.155 µs
 ### ✅ What is Built (v0.4.3)
 
 | Category | Feature | Status | Notes |
-|----------|---------|--------|-------|
+|----------|---------|-|-------|
 | **Core Engine** | Typed ORM, Managers, QuerySets | ✅ Stable | Full `pyright --strict` compatibility |
 | | Pydantic Bridge & Unified Validation | ✅ Stable | Bidirectional sync, single source of truth |
 | | Full Async ORM Integration | ✅ Stable | Native `AsyncTypedQuerySet` with `.aauto()` planner |
@@ -494,12 +494,7 @@ Absolute Overhead: +1.155 µs
 | | Distributed Context (Correlation IDs) | ✅ Stable | `contextvars` bridge to Logs & Traces |
 | **Platform** | Stable Public API (Frozen) | ✅ Stable | PEP 562 Facades, Semver compliant |
 | | Django System Checks | ✅ Stable | Fail-fast infrastructure validation |
-
-### 🚧 Future Work
-
-| Feature | ETA |
-|---------|-----|
-| GraphQL Schema Compiler (Strawberry) | Q2 2027 |
+| | GraphQL Schema Compiler (Strawberry) |✅ Stable | The recursive compiler in Strawberry.|
 
 ### 📊 Overall Progress
 
@@ -936,10 +931,10 @@ Absolute Overhead: +1.155 µs
 
 ## 🗺️ Дорожная карта
 
-### ✅ Реализовано (v0.4.3)
+### ✅ Реализовано (v0.5.0)
 
 | Категория | Фича | Статус | Примечания |
-|-----------|------|--------|------------|
+|-----------|------|--|------------|
 | **Core Engine** | Typed ORM, Managers, QuerySets | ✅ Стабильно | Полная совместимость с `pyright --strict` |
 | | Pydantic Bridge & Unified Validation | ✅ Стабильно | Двусторонняя синхронизация, единый источник истины |
 | | Full Async ORM Integration | ✅ Стабильно | Нативный `AsyncTypedQuerySet` с планировщиком `.aauto()` |
@@ -958,12 +953,7 @@ Absolute Overhead: +1.155 µs
 | | Distributed Context (Correlation IDs) | ✅ Стабильно | `contextvars` мост к Logs & Traces |
 | **Platform** | Stable Public API (Frozen) | ✅ Стабильно | PEP 562 Facades, Semver compliant |
 | | Django System Checks | ✅ Стабильно | Fail-fast валидация инфраструктуры |
-
-### 🚧 В разработке
-
-| Фича | ETA |
-|------|-----|
-| GraphQL Schema Compiler (Strawberry) | Q2 2027 |
+| | GraphQL Schema Compiler (Strawberry) | ✅ Стабильно  | Рекурсивный компилятор в Strawberry.|
 
 ### 📊 Общий прогресс
 

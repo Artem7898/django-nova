@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 __all__ = [
     "AddFieldConcurrently",
@@ -13,7 +13,7 @@ __all__ = [
     "report_replica_lag",
 ]
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     if name == "NovaDatabaseRouter":
         from nova.db.router import NovaDatabaseRouter
         return NovaDatabaseRouter

@@ -24,9 +24,9 @@ def nova_task(name: str | None = None) -> Callable[[TaskFunc], TaskFunc]:
             engine = get_engine()
             return engine.submit(func, *args, **kwargs)
 
-        # Attach metadata for introspection
-        wrapper._nova_task_name = name or func.__name__  # type: ignore
+        # Safe attribute access for strict type checkers (Callable has no __name__)
+        wrapper._nova_task_name = name or getattr(func, "__name__", "unknown")  # type: ignore
         wrapper._is_nova_task = True  # type: ignore
-        return wrapper
+        return wrapper  # type: ignore
 
     return decorator

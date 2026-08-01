@@ -1,5 +1,4 @@
-"""
-Migration splitter for large data migrations.
+"""Migration splitter for large data migrations.
 Prevents OOM and transaction timeouts during RunPython.
 """
 
@@ -16,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def chunked_migration(
-    func: Callable[[Any, Any], None],
+    func: Callable[..., None],  # Changed from [[Any, Any], None] to allow **kwargs (like pks=...)
     batch_size: int = 1000,
 ) -> RunPython:
     """
@@ -28,9 +27,6 @@ def chunked_migration(
     """
 
     def chunked_wrapper(apps: Any, schema_editor: Any) -> None:
-        # Initial setup: get the model inside the function
-        # The user's function is responsible for yielding querysets.
-        # Example implementation:
         Model = apps.get_model("app", "Model")
         qs = Model.objects.all().order_by("pk")
 

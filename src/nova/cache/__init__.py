@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 __all__ = [
     "QuerySetCache",
     "connect_invalidation",
 ]
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     if name == "QuerySetCache":
         from nova.cache.queryset_cache import QuerySetCache
         return QuerySetCache

@@ -1,20 +1,14 @@
-"""
-Pydantic-based Django settings.
-Eliminates the antipattern of accessing settings via untyped strings.
-"""
-
+"""Pydantic-based Django settings."""
 from __future__ import annotations
 
 from typing import Any
 
-from pydantic import Field, PostgresDsn, RedisDsn
+from pydantic import Field, RedisDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class NovaSettings(BaseSettings):
-    """
-    Type-safe settings. Reads from environment variables and .env file.
-    """
+    """Type-safe settings. Reads from environment variables and .env file."""
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -27,7 +21,7 @@ class NovaSettings(BaseSettings):
     secret_key: str = Field(..., description="Django SECRET_KEY")
     debug: bool = False
     allowed_hosts: list[str] = ["localhost"]
-    database_url: PostgresDsn = Field(
+    database_url: str = Field(
         default="postgres://user:pass@localhost:5432/db",
         description="PostgreSQL connection string",
     )
@@ -49,7 +43,7 @@ class NovaSettings(BaseSettings):
             "DATABASES": {
                 "default": {
                     "ENGINE": "django.db.backends.postgresql",
-                    "URL": db_url,  # Requires django-environ or custom DB backend
+                    "URL": db_url,
                 }
             },
             "NOVA": {

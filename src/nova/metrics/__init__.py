@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 __all__ = [
     "Counter",
@@ -10,7 +10,7 @@ __all__ = [
     "Timer",
 ]
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     if name == "MetricsRegistry":
         from nova.metrics.registry import MetricsRegistry
         return MetricsRegistry

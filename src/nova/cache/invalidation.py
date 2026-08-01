@@ -1,17 +1,9 @@
-"""
-Event-driven cache invalidation using Django signals.
-
-Production requirements:
-- idempotent signal registration
-- multiple cache backends support
-- safe autoreload behaviour
-- zero duplicate handlers
-"""
+"""Event-driven cache invalidation using Django signals."""
 
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 from django.db.models.signals import post_delete, post_save
 
@@ -30,22 +22,14 @@ def connect_invalidation(
     model_cls: type[NovaModel],
     cache: QuerySetCache[Any] | None = None,
 ) -> None:
-    """
-    Connect cache invalidation signals for a Nova model.
-
-    Safe to call multiple times.
-    """
-
+    """Connect cache invalidation signals for a Nova model. Safe to call multiple times."""
     nova_config = getattr(model_cls, "_nova_config", None)
     if not nova_config or not getattr(nova_config, "cache_enabled", False):
         return
 
     target_cache = cache or get_default_cache()
 
-    connection_key = (
-        model_cls,
-        id(target_cache),
-    )
+    connection_key = (model_cls, id(target_cache))
 
     if connection_key in _CONNECTED_SIGNALS:
         return
@@ -55,7 +39,7 @@ def connect_invalidation(
         if meta is None:
             return
 
-        model_name = cast(str, getattr(meta, "model_name", ""))
+        model_name: str = getattr(meta, "model_name", "")
         if not model_name:
             return
 
@@ -68,17 +52,8 @@ def connect_invalidation(
                 model_name,
             )
 
-    post_save.connect(  # type: ignore[reportUnknownMemberType]
-        _invalidate,
-        sender=model_cls,
-        weak=False,
-    )
-
-    post_delete.connect(  # type: ignore[reportUnknownMemberType]
-        _invalidate,
-        sender=model_cls,
-        weak=False,
-    )
+    post_save.connect(_invalidate, sender=model_cls, weak=False)  # type: ignore[arg-type]
+    post_delete.connect(_invalidate, sender=model_cls, weak=False)  # type: ignore[arg-type]
 
     _CONNECTED_SIGNALS.add(connection_key)
 

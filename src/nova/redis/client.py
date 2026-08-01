@@ -5,29 +5,34 @@ Provides process-wide connection pools for both Sync and Async contexts.
 
 from __future__ import annotations
 
+import inspect
 import logging
-from typing import TYPE_CHECKING
+from typing import Any
 
 from nova.conf import nova_settings
 from nova.core.exceptions import NovaCacheError
 
 logger = logging.getLogger(__name__)
 
-_sync_client: redis.Redis | None = None
-_async_client: redis.asyncio.Redis | None = None
+_sync_client: Any = None
+_async_client: Any = None
 
 try:
-    import redis
+    import redis as _redis_module
 except ImportError:
-    redis = None  # type: ignore
+    _redis_module = None
 
 try:
-    import redis.asyncio as aioredis
+    import redis.asyncio as _aioredis_module
 except ImportError:
-    aioredis = None  # type: ignore
+    _aioredis_module = None
+
+# Explicit `Any` alias prevents Pyright from cascading `None` to module attributes
+redis: Any = _redis_module
+aioredis: Any = _aioredis_module
 
 
-def _get_sync_pool() -> redis.ConnectionPool:
+def _get_sync_pool() -> Any:
     if redis is None:
         raise NovaCacheError("Redis package is not installed. Install it via: pip install 'django-nova[redis]'")
 
@@ -41,7 +46,7 @@ def _get_sync_pool() -> redis.ConnectionPool:
     )
 
 
-def get_redis_client() -> redis.Redis:
+def get_redis_client() -> Any:
     """Returns the global singleton synchronous Redis client."""
     global _sync_client
 
@@ -54,7 +59,7 @@ def get_redis_client() -> redis.Redis:
     return _sync_client
 
 
-def _get_async_pool() -> aioredis.ConnectionPool:
+def _get_async_pool() -> Any:
     if aioredis is None:
         raise NovaCacheError("Async redis package is not installed. Install it via: pip install 'django-nova[redis]'")
 
@@ -67,7 +72,7 @@ def _get_async_pool() -> aioredis.ConnectionPool:
     )
 
 
-def get_async_redis_client() -> aioredis.Redis:
+def get_async_redis_client() -> Any:
     """Returns the global singleton asynchronous Redis client."""
     global _async_client
 
@@ -88,17 +93,13 @@ def close_redis_clients() -> None:
         if client is not None:
             try:
                 close_method = getattr(client, "aclose", client.close)
-                import asyncio
-                if asyncio.iscoroutinefunction(close_method):
-                    logger.warning(f"{client_name} Redis client requires async closing, relying on GC.")
+                if inspect.iscoroutinefunction(close_method):
+                    logger.warning("%s Redis client requires async closing, relying on GC.", client_name)
                 else:
                     close_method()
-                logger.info(f"{client_name} Redis client connection pool closed.")
+                logger.info("%s Redis client connection pool closed.", client_name)
             except Exception as e:
-                logger.error(f"Error closing {client_name} Redis client: %s", e)
+                logger.error("Error closing %s Redis client: %s", client_name, e)
 
     _sync_client = None
     _async_client = None
-
-if TYPE_CHECKING:
-    import redis.asyncio as aioredis

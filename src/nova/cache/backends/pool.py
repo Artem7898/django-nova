@@ -1,28 +1,22 @@
-"""
-Redis connection pool management.
-"""
+"""Redis connection pool management."""
 
 from __future__ import annotations
 
 from typing import Any, Final
 
-_redis_available: bool = True
 try:
-    import redis
-    from redis import ConnectionPool as RedisPool
+    import redis as _redis_module
 except ImportError:
-    redis = None  # type: ignore[assignment]
-    RedisPool = Any  # type: ignore[assignment, misc]
-    _redis_available = False
+    _redis_module = None
 
-REDIS_AVAILABLE: Final[bool] = _redis_available
+# Explicit `Any` alias prevents Pyright from cascading `None` to module attributes
+redis: Any = _redis_module
+REDIS_AVAILABLE: Final[bool] = _redis_module is not None
 _pool: Any = None
 
 
 def get_redis_pool(url: str) -> Any:
-    """
-    Thread-safe Redis connection pool factory.
-    """
+    """Thread-safe Redis connection pool factory."""
     global _pool
 
     if not REDIS_AVAILABLE or redis is None:
@@ -30,10 +24,8 @@ def get_redis_pool(url: str) -> Any:
             'No Redis dependencies were found. Run: pip install "django-nova[cache]"'
         )
 
-    assert redis is not None
-
     if _pool is None:
-        _pool = redis.ConnectionPool.from_url(
+        _pool = redis.ConnectionPool.from_url(  # type: ignore[union-attr]
             url,
             max_connections=100,
             retry_on_timeout=True,
