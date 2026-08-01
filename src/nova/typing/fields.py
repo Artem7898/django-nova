@@ -1,5 +1,4 @@
-"""
-Custom typed fields for Django.
+"""Custom typed fields for Django.
 Adds Pydantic-compatible type annotations to Django descriptors.
 """
 
@@ -10,7 +9,7 @@ from typing import Any
 from django.db import models
 
 
-class TypedField[T](models.Field):
+class TypedField[T](models.Field[Any, T]):  # type: ignore[type-arg]
     """
     A Django Field that explicitly declares its Python type.
 
@@ -19,7 +18,7 @@ class TypedField[T](models.Field):
             score: float = TypedField[float](FloatField)
     """
 
-    def __init__(self, field_instance: models.Field, **kwargs: Any) -> None:
+    def __init__(self, field_instance: models.Field[Any, Any], **kwargs: Any) -> None:
         self._inner_field = field_instance
         super().__init__(**kwargs)
         # Copy constraints from inner field
@@ -28,7 +27,7 @@ class TypedField[T](models.Field):
         self.default = field_instance.default
         self.max_length = getattr(field_instance, "max_length", None)
 
-    def db_type(self, connection: Any) -> str:
+    def db_type(self, connection: Any) -> str | None:
         return self._inner_field.db_type(connection)
 
     def get_prep_value(self, value: Any) -> Any:

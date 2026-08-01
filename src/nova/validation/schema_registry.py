@@ -6,10 +6,11 @@ from pydantic import BaseModel
 
 
 class SchemaRegistry:
-    _schemas: dict[
-        tuple[type[Any], bool],
-        type[BaseModel],
-    ] = {}
+    """
+    Strictly typed registry for generated Pydantic schemas.
+    Key is strictly the Django Model class.
+    """
+    _schemas: dict[type[Any], type[BaseModel]] = {}
 
     @classmethod
     def register(
@@ -17,11 +18,9 @@ class SchemaRegistry:
         model_cls: type[Any],
         schema: type[BaseModel],
         *,
-        include_relations: bool = False,
+        include_relations: bool = False,  # Kept for API compatibility
     ) -> None:
-        cls._schemas[
-            (model_cls, include_relations)
-        ] = schema
+        cls._schemas[model_cls] = schema
 
     @classmethod
     def get(
@@ -30,12 +29,7 @@ class SchemaRegistry:
         *,
         include_relations: bool = False,
     ) -> type[BaseModel] | None:
-        return cls._schemas.get(
-            (
-                model_cls,
-                include_relations,
-            )
-        )
+        return cls._schemas.get(model_cls)
 
     @classmethod
     def clear(cls) -> None:

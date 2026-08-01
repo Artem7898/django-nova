@@ -11,11 +11,10 @@ from datetime import UTC, datetime
 from typing import Any
 
 from nova.core.tracing import nova_span
+from nova.tasks.backends.protocol import TaskFunc
 from nova.tasks.models import TaskResult
 
 logger = logging.getLogger(__name__)
-
-TaskFunc = Any
 
 
 @dataclass
@@ -23,8 +22,8 @@ class _TaskPayload:
     """Internal structure to pass task metadata through the queue."""
     task_id: str
     func: TaskFunc
-    args: tuple
-    kwargs: dict
+    args: tuple[Any, ...]
+    kwargs: dict[str, Any]
     delay: float = 0.0
     max_retries: int = 0
     retry_delay: float = 1.0
@@ -35,17 +34,15 @@ class AsyncioBackend:
     """Executes tasks using a local asyncio queue, supporting retries and delays."""
 
     def __init__(self, max_concurrent: int = 4) -> None:
-
         self._queue: asyncio.Queue[_TaskPayload] = asyncio.Queue()
         self._results: dict[str, TaskResult] = {}
         self._max_concurrent = max_concurrent
-        self._workers: list[asyncio.Task] = []
+        self._workers: list[asyncio.Task[None]] = []
 
     async def _worker(self) -> None:
         while True:
             payload: _TaskPayload = await self._queue.get()
             result = self._results[payload.task_id]
-
 
             if payload.attempts == 0 and payload.delay > 0:
                 await asyncio.sleep(payload.delay)
@@ -54,7 +51,9 @@ class AsyncioBackend:
             if result.started_at is None:
                 result.started_at = datetime.now(UTC)
 
-            with nova_span("nova.task.execute", task_id=payload.task_id, task_name=payload.func.__name__) as span:
+            task_name = getattr(payload.func, "__name__", "unknown")
+
+            with nova_span("nova.task.execute", task_id=payload.task_id, task_name=task_name) as span:
                 start_exec = time.perf_counter()
                 try:
                     res = await payload.func(*payload.args, **payload.kwargs)
@@ -64,7 +63,6 @@ class AsyncioBackend:
                     if span:
                         span.set_attribute("task.status", "SUCCESS")
                 except Exception as e:
-                    # 2. Обработка повторных попыток (Retries)
                     if payload.attempts < payload.max_retries:
                         payload.attempts += 1
                         result.attempts = payload.attempts
@@ -77,11 +75,9 @@ class AsyncioBackend:
 
                         logger.warning("Task %s failed, retrying %d/%d", payload.task_id, payload.attempts, payload.max_retries)
 
-
                         await asyncio.sleep(payload.retry_delay)
                         self._queue.put_nowait(payload)
                     else:
-                        # All attempts have been exhausted
                         result.status = "FAILED"
                         result.error = str(e)
                         result.attempts = payload.attempts + 1
@@ -120,7 +116,9 @@ class AsyncioBackend:
     ) -> str:
         task_id = uuid.uuid4().hex
 
-        with nova_span("nova.task.submit", task_name=func.__name__) as span:
+        task_name = getattr(func, "__name__", "unknown")
+
+        with nova_span("nova.task.submit", task_name=task_name) as span:
             self._results[task_id] = TaskResult(id=task_id)
 
             payload = _TaskPayload(

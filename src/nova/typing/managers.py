@@ -27,5 +27,5 @@ class NovaManager(models.Manager[ModelT]):
             model=self.model,
             query=self.model._base_manager.all().query,
             using=self._db,
-            hints=self._hints,
+            hints=getattr(self, "_hints", {}),
         )

@@ -1,5 +1,4 @@
-"""
-Distributed Tracing layer for Django Nova using OpenTelemetry.
+"""Distributed Tracing layer for Django Nova using OpenTelemetry.
 Architecture: Implements the "Safe Import" pattern with full OTEL lifecycle.
 """
 
@@ -7,30 +6,37 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Callable, Generator
-from contextlib import contextmanager  # <-- ВОТ ЭТА СТРОКА БЫЛА ПОТЕРЯНА
+from contextlib import contextmanager
 from typing import Any, ParamSpec, TypeVar
 
 # --- Safe Import Block (Architecture Freeze compliant) ---
-try:
-    from opentelemetry import trace
-    from opentelemetry.trace import Span, Status, StatusCode, Tracer
 
+class _StubSpan:
+    """Fallback stub for OpenTelemetry Span when OTEL is not installed."""
+    def set_attribute(self, key: str, value: Any) -> None: ...
+    def record_exception(self, exc: BaseException) -> None: ...
+    def set_status(self, status: Any) -> None: ...
+
+try:
+    import opentelemetry.trace as trace
     _otel_available = True
 except ImportError:
-    # Pyright stubs to prevent cascade `None` type failures
-    trace = None  # type: ignore[assignment, misc]
-    Span = object  # type: ignore[assignment, misc]
-    Tracer = object  # type: ignore[assignment, misc]
-    Status = object  # type: ignore[assignment, misc]
-    StatusCode = object  # type: ignore[assignment, misc]
+    # Explicitly annotate as Any directly in except to completely prevent Unknown cascading
+    trace: Any = None
     _otel_available = False
+
+# Any aliases break the Unknown chain completely
+Span: Any = _StubSpan
+Tracer: Any = object
+Status: Any = object
+StatusCode: Any = object
 
 # --- Generic types for decorators ---
 P = ParamSpec("P")
 R = TypeVar("R")
 
 
-def get_tracer(name: str = "nova.core") -> Tracer | None:  # type: ignore[valid-type]
+def get_tracer(name: str = "nova.core") -> Any:
     """Returns an OpenTelemetry Tracer instance or None."""
     if not _otel_available or not trace:
         return None
@@ -38,7 +44,7 @@ def get_tracer(name: str = "nova.core") -> Tracer | None:  # type: ignore[valid-
 
 
 @contextmanager
-def nova_span(name: str, **attributes: Any) -> Generator[Span | None, None, None]:  # type: ignore[valid-type]
+def nova_span(name: str, **attributes: Any) -> Generator[Any, None, None]:
     """Context manager implementing the full OTEL span lifecycle."""
     tracer = get_tracer()
     if not tracer:

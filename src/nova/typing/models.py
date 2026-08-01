@@ -1,11 +1,4 @@
-"""
-Typed model mixins for Django 5.
-
-Scientific motivation: Type safety eliminates entire classes of bugs
-that are catastrophic in research software (silent data corruption,
-incorrect query construction). This is reproducible research at the
-code level.
-"""
+"""Typed model mixins for Django 5."""
 
 from __future__ import annotations
 
@@ -16,7 +9,7 @@ from typing import (
     Protocol,
     Self,
     TypeVar,
-    override,
+    cast,
     runtime_checkable,
 )
 
@@ -44,13 +37,6 @@ class TypedModelProtocol(Protocol):
 class NovaConfig:
     """
     Configuration for Nova model behavior.
-
-    Attributes:
-        pydantic_schema: Optional Pydantic model class for validation.
-        cache_enabled: Enable intelligent QuerySet caching.
-        cache_ttl_seconds: Default TTL for cached queries.
-        strict_validation: Raise on validation failure vs warn.
-        exclude_from_pydantic: Field names to exclude from schema generation.
     """
 
     __slots__ = (
@@ -84,20 +70,6 @@ class NovaModel(models.Model):
     2. Automatic Pydantic schema generation
     3. Unified validation (single source of truth)
     4. Smart caching hooks
-
-    Example:
-        class Author(NovaModel):
-            name = models.CharField(max_length=200)
-            email = models.EmailField(unique=True)
-            h_index = models.IntegerField(default=0)
-
-            _nova_config = NovaConfig(cache_enabled=True)
-
-        # Fully typed — pyright knows this is QuerySet[Author]
-        authors: QuerySet[Author] = Author.objects.filter(h_index__gte=10)
-
-        # Type-safe Pydantic conversion
-        schema: AuthorSchema = authors.first().to_pydantic()
     """
 
     _nova_config: ClassVar[NovaConfig] = NovaConfig()
@@ -105,25 +77,24 @@ class NovaModel(models.Model):
     class Meta:
         abstract = True
 
-    objects: ClassVar[NovaManager[Self]] = NovaManager()  # type: ignore[assignment] # type: ignore[assignment]
+    objects: ClassVar[NovaManager[Self]] = NovaManager()  # type: ignore[assignment]
 
-    @override
-    def save(
-        self,
-        force_insert: bool = False,
-        force_update: bool = False,
-        using: str | None = None,
-        update_fields: Sequence[str] | None = None,
+    def save(  # type: ignore[override]
+            self,
+            force_insert: bool = False,
+            force_update: bool = False,
+            using: str | None = None,
+            update_fields: Sequence[str] | None = None,
     ) -> None:
         """Save with unified validation and deep tracing lifecycle."""
         db = using or self._state.db or "default"
 
         with nova_span(
-            "nova.model.save",
-            model=self._meta.label,
-            pk=getattr(self, self._meta.pk.attname, None),
-            database=db,
-            table=self._meta.db_table
+                "nova.model.save",
+                model=self._meta.label,
+                pk=getattr(self, self._meta.pk.attname, None),
+                database=db,
+                table=self._meta.db_table
         ) as span:
             # 1. Validation Phase
             with nova_span("nova.validation.run", model=self._meta.label) as val_span:
@@ -153,48 +124,24 @@ class NovaModel(models.Model):
         validate_model_instance(self)
 
     def to_pydantic(self) -> BaseModel:
-        """
-        Convert model instance to Pydantic schema.
-
-        Returns:
-            Pydantic model instance with all field values.
-
-        Raises:
-            ValueError: If no schema configured and auto-generation fails.
-            ValidationError: If values don't conform to schema.
-        """
+        """Convert model instance to Pydantic schema."""
         from nova.validation.pydantic_bridge import model_to_pydantic
 
         return model_to_pydantic(self)
 
     @classmethod
     def from_pydantic(cls: type[ModelT], schema: BaseModel) -> ModelT:
-        """
-        Create model instance from Pydantic schema.
-
-        Args:
-            schema: Validated Pydantic model instance.
-
-        Returns:
-            New model instance (not saved).
-
-        Raises:
-            ValueError: If schema doesn't match model.
-        """
+        """Create model instance from Pydantic schema."""
         from nova.validation.pydantic_bridge import pydantic_to_model
 
-        return pydantic_to_model(cls, schema)
+        return cast(ModelT, pydantic_to_model(cls, schema))
 
     def to_dict(self) -> dict[str, object]:
-        """
-        Serialize to plain dict with proper type coercion.
-
-        Scientific context: Useful for JSON serialization in
-        reproducible research pipelines where Pydantic overhead
-        is not needed.
-        """
+        """Serialize to plain dict with proper type coercion."""
         data: dict[str, object] = {}
         for field in self._meta.get_fields():
+            if not isinstance(field, models.Field):
+                continue
             if not hasattr(field, "attname"):
                 continue
             if field.name in self._nova_config.exclude_from_pydantic:

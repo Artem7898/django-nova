@@ -6,13 +6,12 @@ Provides strict typing and safety guarantees for concurrent operations.
 from __future__ import annotations
 
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
 
 from nova.core.exceptions import NovaCacheError
 
-# Lua script ensures atomicity: only the owner can release the lock
 UNLOCK_SCRIPT = """
 if redis.call("get", KEYS[1]) == ARGV[1] then
     return redis.call("del", KEYS[1])
@@ -23,16 +22,11 @@ end
 
 
 class AsyncDistributedLock:
-    """
-    An async context manager for distributed locking using Redis.
-    Usage:
-        async with AsyncDistributedLock("my_resource", timeout=10.0):
-            # do work
-    """
+    """An async context manager for distributed locking using Redis."""
 
     def __init__(self, name: str, timeout: float = 10.0, blocking_timeout: float = 5.0) -> None:
         self.name = f"nova:lock:{name}"
-        self.timeout = int(timeout * 1000)  # Redis uses milliseconds for PX
+        self.timeout = int(timeout * 1000)
         self.blocking_timeout = blocking_timeout
         self.identifier: str = str(uuid.uuid4())
         self._acquired: bool = False
@@ -40,7 +34,6 @@ class AsyncDistributedLock:
     async def __aenter__(self) -> AsyncDistributedLock:
         await self.acquire()
         if not self._acquired:
-            # If we couldn't acquire within blocking_timeout, we must fail safely
             raise NovaCacheError(f"Could not acquire lock '{self.name}' within {self.blocking_timeout}s")
         return self
 
@@ -51,7 +44,6 @@ class AsyncDistributedLock:
         from nova.redis.client import get_async_redis_client
 
         client = get_async_redis_client()
-        # SET key value NX PX timeout
         self._acquired = bool(
             await client.set(
                 self.name,
@@ -73,15 +65,9 @@ class AsyncDistributedLock:
         self._acquired = False
 
 
-# Convenience function for quick locking without instantiating the class
 @asynccontextmanager
-async def async_lock(resource_name: str, timeout: float = 10.0) -> AsyncIterator[None]:
+async def async_lock(resource_name: str, timeout: float = 10.0) -> AsyncGenerator[None, None]:
     """Async context manager shortcut for distributed locks."""
-    lock = AsyncDistributedLock(resource_name, timeout=timeout)
-    await lock.acquire()
-    if not lock._acquired:
-        raise NovaCacheError(f"Failed to acquire async lock for '{resource_name}'")
-    try:
+    # Clean implementation: delegates to __aenter__/__aexit__ without accessing private _acquired
+    async with AsyncDistributedLock(resource_name, timeout=timeout):
         yield
-    finally:
-        await lock.release()
