@@ -30,6 +30,7 @@
 - [Architecture](#architecture)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [🛡️ Validation Boundary](#%EF%B8%8F-validation-boundary)
 - [Schema Compiler (DRF & Admin)](#schema-compiler-drf--admin)
 - [Smart Query Planner](#smart-query-planner)
 - [Distributed Context & Observability](#distributed-context--observability)
@@ -48,7 +49,7 @@ Django's validation layer is fragmented by design:
 
 - **Forms** validate user input in the presentation layer.
 - **DRF Serializers** re-implement the same logic in the API layer.
-- **Model clean()** runs only inside the admin or when explicitly called.
+- **Model `clean()`** runs only inside the admin or when explicitly called.
 - **Database constraints** are limited to simple, DB-expressible rules and are not reusable outside the ORM.
 
 The result is **validation drift**: business rules scattered across forms, serializers, models, and database DDL. Change a rule in one place, and the other three become liabilities. Worse, calling `Model.objects.create()` from a management command, a Celery task, or a data pipeline bypasses form and serializer validation entirely, leaving only brittle DB constraints as a safety net.
@@ -71,14 +72,15 @@ The result is **validation drift**: business rules scattered across forms, seria
 
 ## 🏗️ Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           Consumer Layers                                   │
 │  ┌──────────┐  ┌──────────────┐  ┌─────────────┐  ┌─────────────────────┐   │
-│  │  Forms   │  │ DRF Serial.  │  FastAPI Router│  │ Management Commands │   │
-│  └────┬─────┘  └──────┬───────┘  └──────┬──────┘  └───────── ─┬─────────┘   │
-│       │               │                 │                     │             │
-│       └───────────────┴─────────────────┴─────────────────────┘             │
+│  │  Forms   │  │ DRF Serial.  │  │ FastAPI     │  │ Management          │   │
+│  │          │  │              │  │ Router      │  │ Commands            │   │ 
+│  └────┬─────┘  └──────┬───────┘  └──────┬──────┘  └──────────┬──────────┘   │
+│       │               │                 │                    │              │
+│       └───────────────┴─────────────────┴────────────────────┘              │
 │                           │                                                 │
 │              ┌────────────▼────────────┐                                    │
 │              │   Pydantic Schema       │  ← Single Source of Truth          │
@@ -90,11 +92,11 @@ The result is **validation drift**: business rules scattered across forms, seria
 │              │     (Interceptor)       │                                    │
 │              └────────────┬────────────┘                                    │
 │                           │                                                 │
-│       ┌───────────────────┼───────────────────┐                             │
-│       │                   │                   │                             │
+│       ┌───────────────────┼──────────────────┐                              │
+│       │                   │                  │                              │
 │  ┌────▼─────┐    ┌────────▼────────┐   ┌─────▼──────┐                       │
 │  │  Cache   │    │     Signals     │   │ Telemetry  │                       │
-│  │ Invalid. │    │ (post_save etc) │   │(OTel/Logs) │                       │
+│  │Invalid.  │    │ (post_save etc) │   │(OTel/Logs) │                       │
 │  └──────────┘    └─────────────────┘   └────────────┘                       │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -107,65 +109,67 @@ The result is **validation drift**: business rules scattered across forms, seria
 - **Signal-Driven Invalidation** — O(1) cache eviction on write without manual TTL management.
 
 ---
-## Comparison
 
-| Feature | Django Nova |                Django Modern REST                | Django Ninja | drf-pydantic |
-|---------|:-----------:|:------------------------------------------------:|:------------:|:------------:|
-| **Primary Role** | ORM toolkit + ecosystem bridge |                  API framework                   | API framework (DRF alternative) | DRF Serializer bridge |
-| **Validation Layer** | ORM `save()` |                 API controllers                  | API decorators | DRF Serializers |
-| **ORM Enforcement** | ✅ Automatic |                      ❌ None                      | ❌ None | ❌ None |
+## 📊 Comparison
+
+| Feature | Django Nova | Django Modern REST | Django Ninja | drf-pydantic |
+|---------|:-----------:|:------------------:|:------------:|:------------:|
+| **Primary Role** | ORM toolkit + ecosystem bridge | API framework | API framework (DRF alternative) | DRF Serializer bridge |
+| **Validation Layer** | ORM `save()` | API controllers | API decorators | DRF Serializers |
+| **ORM Enforcement** | ✅ Automatic | ❌ None | ❌ None | ❌ None |
 | **Schema Flexibility** | Pydantic v2 only | Pydantic, msgspec, attrs, dataclasses, TypedDict | Pydantic v2 only | Pydantic v2 only |
-| **Pydantic v2** | ✅ Yes |                 ✅ Yes (optional)                 | ✅ Yes | ✅ Yes |
-| **Async Support** | ✅ Native async ORM |        ✅ Native async (no sync_to_async)         | ✅ Native async API | ❌ Sync only |
-| **Free-threading Support** | ❌ Unknown |                     ✅ Tested                     | ❌ Unknown | ❌ Unknown |
-| **DRF Serializer Gen** | ✅ `to_drf_serializer()` |               ❌ No (replaces DRF)                | ❌ No (replaces DRF) | ✅ `.drf_serializer` |
-| **FastAPI Router Gen** | ✅ `NovaRouter()` |                       ❌ No                       | ❌ No | ❌ No |
-| **Admin Form Gen** | ✅ `compile_admin()` |                       ❌ No                       | ❌ No | ❌ No |
-| **OpenAPI Docs** | ✅ Via FastAPI bridge |            ✅ Native 3.1/3.2 semantic             | ✅ Native, automatic | ❌ No |
-| **QuerySet Cache** | ✅ Signal-driven O(1) |                       ❌ No                       | ❌ No | ❌ No |
-| **Read Replica Routing** | ✅ Lag-aware |                           ❌ No                         | ❌ No | ❌ No |
-| **Distributed Locks** | ✅ Redis Lua |                       ❌ No                       | ❌ No | ❌ No |
-| **Rate Limiting** | ✅ Sliding window |                         ✅ Different backend and algorithms                           | ⚠️ Via Ninja Extra | ❌ No |
-| **Pub/Sub Cache Invalidation** | ✅ Async facade |                       ❌ No                       | ❌ No | ❌ No |
-| **Zero-Downtime Migrations** | ✅ `CONCURRENTLY` |                       ❌ No                       | ❌ No | ❌ No |
-| **Structured Logging** | ✅ Zero-config structlog |                       ❌ No                       | ❌ No | ❌ No |
-| **OpenTelemetry Tracing** | ✅ Lifecycle spans |                       ❌ No                       | ❌ No | ❌ No |
-| **Distributed Context** | ✅ `contextvars` bridge |                       ❌ No                       | ❌ No | ❌ No |
-| **Auto Query Optimization** | ✅ Deep planner + field deferral |                       ❌ No                       | ❌ No | ❌ No |
-| **Compiled Performance (mypyc)** | ❌ No |                 ✅ 4–10× speedup                  | ❌ No | ❌ No |
-| **Content Negotiation** | ❌ No |         ✅ JSON, msgpack, SSE, JSON Lines         | ❌ No | ❌ No |
-| **Type Safety** | `pyright --strict` end-to-end |      `mypy` + `pyright` + `pyrefly` strict       | Type hints + Pydantic (API layer) | Pydantic validation in DRF |
-| **Performance Focus** | +1.155 µs per `save()` |       7,026 RPS async (fastest Django API)       | Fast API layer (Pydantic v2 Rust) | Zero runtime overhead |
-| **Django Version Support** | 5.0+ |                       5.0+                       | 2.1+ | 2.2+ |
-| **Python Version Support** | 3.12+ |                      3.11+                       | 3.7+ | 3.7+ |
-
+| **Pydantic v2** | ✅ Yes | ✅ Yes (optional) | ✅ Yes | ✅ Yes |
+| **Async Support** | ✅ Native async ORM | ✅ Native async (no sync_to_async) | ✅ Native async API | ❌ Sync only |
+| **Free-threading Support** | ❌ Unknown | ✅ Tested | ❌ Unknown | ❌ Unknown |
+| **DRF Serializer Gen** | ✅ `to_drf_serializer()` | ❌ No (replaces DRF) | ❌ No (replaces DRF) | ✅ `.drf_serializer` |
+| **FastAPI Router Gen** | ✅ `NovaRouter()` | ❌ No | ❌ No | ❌ No |
+| **Admin Form Gen** | ✅ `compile_admin()` | ❌ No | ❌ No | ❌ No |
+| **OpenAPI Docs** | ✅ Via FastAPI bridge | ✅ Native 3.1/3.2 semantic | ✅ Native, automatic | ❌ No |
+| **QuerySet Cache** | ✅ Signal-driven O(1) | ❌ No | ❌ No | ❌ No |
+| **Read Replica Routing** | ✅ Lag-aware | ❌ No | ❌ No | ❌ No |
+| **Distributed Locks** | ✅ Redis Lua | ❌ No | ❌ No | ❌ No |
+| **Rate Limiting** | ✅ Sliding window | ✅ Different backend and algorithms | ⚠️ Via Ninja Extra | ❌ No |
+| **Pub/Sub Cache Invalidation** | ✅ Async facade | ❌ No | ❌ No | ❌ No |
+| **Zero-Downtime Migrations** | ✅ `CONCURRENTLY` | ❌ No | ❌ No | ❌ No |
+| **Structured Logging** | ✅ Zero-config structlog | ❌ No | ❌ No | ❌ No |
+| **OpenTelemetry Tracing** | ✅ Lifecycle spans | ❌ No | ❌ No | ❌ No |
+| **Distributed Context** | ✅ `contextvars` bridge | ❌ No | ❌ No | ❌ No |
+| **Auto Query Optimization** | ✅ Deep planner + field deferral | ❌ No | ❌ No | ❌ No |
+| **Compiled Performance (mypyc)** | ❌ No | ✅ 4–10× speedup | ❌ No | ❌ No |
+| **Content Negotiation** | ❌ No | ✅ JSON, msgpack, SSE, JSON Lines | ❌ No | ❌ No |
+| **Type Safety** | `pyright --strict` end-to-end | `mypy` + `pyright` + `pyrefly` strict | Type hints + Pydantic (API layer) | Pydantic validation in DRF |
+| **Performance Focus** | +1.155 µs per `save()` | 7,026 RPS async (fastest Django API) | Fast API layer (Pydantic v2 Rust) | Zero runtime overhead |
+| **Django Version Support** | 5.0+ | 5.0+ | 2.1+ | 2.2+ |
+| **Python Version Support** | 3.12+ | 3.11+ | 3.7+ | 3.7+ |
 
 > **One-line distinction:** Django Modern REST is a **blazingly fast, pluggable API framework** (not bound to Pydantic). Django Ninja is a **FastAPI-style API framework inside Django**. drf-pydantic is a **bridge for DRF users who want Pydantic validation**. Django Nova is a **data integrity toolkit** that enforces validation at the ORM level and generates APIs as a side effect.
 
 ### Verified Facts
 
-**Django Ninja** 
-- API framework inspired by FastAPI, built on top of Django
-- Validation in API decorators via Pydantic v2 Rust core
-- `ModelSchema` generates Pydantic schemas FROM Django models
-- 100+ companies in production, v1.6
+**Django Ninja**
+- API framework inspired by FastAPI, built on top of Django.
+- Validation in API decorators via Pydantic v2 Rust core.
+- `ModelSchema` generates Pydantic schemas **from** Django models.
+- 100+ companies in production, v1.6.
 
-**drf-pydantic** 
-- Adds `.drf_serializer` attribute to Pydantic models
-- Translation Pydantic → DRF Serializer at class creation time (zero runtime overhead)
-- Optional Pydantic validation via `drf_config`
-- Supports nested models, per-field config, custom serializers
+**drf-pydantic**
+- Adds `.drf_serializer` attribute to Pydantic models.
+- Translation Pydantic → DRF Serializer at class creation time (zero runtime overhead).
+- Optional Pydantic validation via `drf_config`.
+- Supports nested models, per-field config, custom serializers.
 
-**Django Modern REST** 
-- API framework, not ORM toolkit
-- Pluggable schemas: Pydantic, msgspec, attrs, dataclasses, TypedDict
-- Fastest Django API framework: 7,026 RPS async (official benchmark)
-- Compiled with mypyc: 4–10× speedup on hot paths
-- Content negotiation: JSON, msgpack, SSE, JSON Lines
-- OpenAPI 3.1/3.2 semantic generation
-- 100% test coverage, 2000+ tests
-- Team-backed (wemake-services), not single-person
-- Testimonials from CPython and Django core developers
+**Django Modern REST**
+- API framework, not ORM toolkit.
+- Pluggable schemas: Pydantic, msgspec, attrs, dataclasses, TypedDict.
+- Fastest Django API framework: 7,026 RPS async (official benchmark).
+- Compiled with mypyc: 4–10× speedup on hot paths.
+- Content negotiation: JSON, msgpack, SSE, JSON Lines.
+- OpenAPI 3.1/3.2 semantic generation.
+- 100% test coverage, 2000+ tests.
+- Team-backed (wemake-services), not single-person.
+- Testimonials from CPython and Django core developers.
+
+---
 
 ## 📦 Installation
 
@@ -265,6 +269,38 @@ Grant.objects.create(
 
 ---
 
+## 🛡️ Validation Boundary
+
+Django Nova enforces the Pydantic contract strictly at the `Model.save()` boundary.
+
+### Validated Paths
+
+Any code path that triggers `save()` will run the full Pydantic schema validation (including cross‑field validators) before touching the database.
+
+```python
+instance = Grant(start_date="2024-12-31", end_date="2024-01-01")
+instance.save()  # ❌ Raises NovaValidationError (cross‑field invariant failed)
+
+instance.save(update_fields=["start_date"])  # ❌ Still validates the FULL model
+```
+
+### Intentionally Unvalidated Paths (ORM Boundaries)
+
+To maintain transparency and avoid "magic" overrides of Django's internal QuerySet mechanics, Nova does not intercept bulk or direct SQL operations.
+
+If you use these methods, you are responsible for ensuring data integrity:
+
+```python
+# Bypasses NovaModel.save() → Bypasses Pydantic Validation
+Grant.objects.filter(...).update(end_date="2024-01-01")
+Grant.objects.bulk_create([...])
+Grant.objects.bulk_update([...], ["end_date"])
+```
+
+**Architectural Decision:** We deliberately chose not to patch Django's internal QuerySet methods (like `bulk_create`) to force validation. Doing so would introduce hidden side‑effects, break QuerySet composition, and violate the principle of Transparent Infrastructure. If you need validation on bulk operations, validate your data before passing it to the QuerySet.
+
+---
+
 ## 🔌 Schema Compiler (DRF & Admin)
 
 Why write serializers and admin forms if the schema already knows the rules? Nova dynamically compiles them.
@@ -280,7 +316,7 @@ from .models import Grant
 GrantSerializer = to_drf_serializer(Grant)
 ```
 
-> **Note:** The generated serializer strictly exposes ONLY fields defined in the Pydantic schema (+ PK). Sensitive DB fields not present in the schema are automatically hidden from the API.
+> **Note:** The generated serializer strictly exposes **ONLY** fields defined in the Pydantic schema (+ PK). Sensitive DB fields not present in the schema are automatically hidden from the API.
 
 ### Django Admin Integration
 
@@ -305,6 +341,7 @@ class ArticleSchema(BaseModel):
     title: str
     author: AuthorSchema    # Triggers select_related
     tags: list[TagSchema]   # Triggers prefetch_related
+
 
 class Article(NovaModel):
     title = models.CharField(max_length=200)
@@ -338,6 +375,7 @@ Enterprise logging requires correlation. If a request hits a View, fails in the 
 ```python
 # In your Django Middleware
 from nova.core import bind, clear
+
 
 class CorrelationMiddleware:
     def __init__(self, get_response):
@@ -420,6 +458,7 @@ For tables with millions of rows, standard `CREATE INDEX` acquires an exclusive 
 ```python
 from nova.db import AddFieldConcurrently, CreateIndexConcurrently
 
+
 class Migration(migrations.Migration):
     operations = [
         AddFieldConcurrently(
@@ -462,43 +501,43 @@ Absolute Overhead: +1.155 µs
 | Test | Avg Time | Ops / Second | Overhead |
 |------|----------|--------------|----------|
 | Pure Pydantic (Baseline) | 0.663 µs | 1,508K | 1.0× |
-| NovaModel (Full) | 1.818 µs | 550K | **2.74×** |
+| NovaModel (Full) | 1.818 µs | 550K | 2.74× |
 
 > **Note:** The absolute penalty is only **1.155 microseconds** per object. You gain full ORM-level type safety, unified validation, deep tracing, cache abstraction, async query planning, distributed locks, rate limiting, and pub/sub — at the cost of a single microsecond.
 
-> **Test suite:** 73 passed, 7 skipped in 1.65s. Zero lint errors.
+Test suite: **73 passed, 7 skipped in 1.65s**. Zero lint errors.
 
 ---
 
 ## 🗺️ Roadmap
 
-### ✅ What is Built (v0.4.3)
+### ✅ What is Built 
 
 | Category | Feature | Status | Notes |
-|----------|---------|-|-------|
+|----------|---------|--------|-------|
 | **Core Engine** | Typed ORM, Managers, QuerySets | ✅ Stable | Full `pyright --strict` compatibility |
-| | Pydantic Bridge & Unified Validation | ✅ Stable | Bidirectional sync, single source of truth |
-| | Full Async ORM Integration | ✅ Stable | Native `AsyncTypedQuerySet` with `.aauto()` planner |
-| **Ecosystem** | Auto DRF Serializer Generation | ✅ Stable | Strict projection, Pydantic validation injection |
-| (Schema Compiler) | Auto Django Admin Generation | ✅ Stable | Dynamic Forms with Pydantic `clean()` hooks |
-| | Admin JSON UI Schema Generator | ✅ Stable | Extracts validation rules for Frontend |
+| **Core Engine** | Pydantic Bridge & Unified Validation | ✅ Stable | Bidirectional sync, single source of truth |
+| **Core Engine** | Full Async ORM Integration | ✅ Stable | Native `AsyncTypedQuerySet` with `.aauto()` planner |
+| **Ecosystem** (Schema Compiler) | Auto DRF Serializer Generation | ✅ Stable | Strict projection, Pydantic validation injection |
+| **Ecosystem** (Schema Compiler) | Auto Django Admin Generation | ✅ Stable | Dynamic Forms with Pydantic `clean()` hooks |
+| **Ecosystem** (Schema Compiler) | Admin JSON UI Schema Generator | ✅ Stable | Extracts validation rules for Frontend |
 | **Query Engine** | Deep Query Planner | ✅ Stable | Recursive graph traversal for JOINs |
-| | Auto Field Deferral | ✅ Stable | Omits DB columns not present in Pydantic schema |
+| **Query Engine** | Auto Field Deferral | ✅ Stable | Omits DB columns not present in Pydantic schema |
 | **Infrastructure** | Unified Redis Client & Pool | ✅ Stable | Sync/Async pools, health checks, zero sprawl |
-| | Distributed Locks | ✅ Stable | Lua-scripted async locks for Zero-Downtime |
-| | Distributed Rate Limiter | ✅ Stable | Atomic Sliding Window via Lua scripts |
-| | Async Pub/Sub Facade | ✅ Stable | Real-time inter-process cache invalidation |
-| | Lag-Aware Read Replica Router | ✅ Stable | Thread-safe local cache, automatic Master failover |
-| | Zero-Downtime Migrations | ✅ Stable | `CONCURRENTLY` operations out of the box |
+| **Infrastructure** | Distributed Locks | ✅ Stable | Lua-scripted async locks for Zero-Downtime |
+| **Infrastructure** | Distributed Rate Limiter | ✅ Stable | Atomic Sliding Window via Lua scripts |
+| **Infrastructure** | Async Pub/Sub Facade | ✅ Stable | Real-time inter-process cache invalidation |
+| **Infrastructure** | Lag-Aware Read Replica Router | ✅ Stable | Thread-safe local cache, automatic Master failover |
+| **Infrastructure** | Zero-Downtime Migrations | ✅ Stable | `CONCURRENTLY` operations out of the box |
 | **Observability** | OTEL Tracing & Structlog | ✅ Stable | Zero-config lifecycle spans |
-| | Distributed Context (Correlation IDs) | ✅ Stable | `contextvars` bridge to Logs & Traces |
+| **Observability** | Distributed Context (Correlation IDs) | ✅ Stable | `contextvars` bridge to Logs & Traces |
 | **Platform** | Stable Public API (Frozen) | ✅ Stable | PEP 562 Facades, Semver compliant |
-| | Django System Checks | ✅ Stable | Fail-fast infrastructure validation |
-| | GraphQL Schema Compiler (Strawberry) |✅ Stable | The recursive compiler in Strawberry.|
+| **Platform** | Django System Checks | ✅ Stable | Fail-fast infrastructure validation |
+| **Platform** | GraphQL Schema Compiler (Strawberry) | ✅ Stable | The recursive compiler in Strawberry |
 
 ### 📊 Overall Progress
 
-```
+```text
 ████████████████████████████████████████ 100%  Core Features
 ████████████████████████████████████████ 100%  Infrastructure
 ████████████████████████████████████████ 100%  Production Readiness
@@ -512,17 +551,16 @@ Absolute Overhead: +1.155 µs
 
 MIT License. See [LICENSE](LICENSE) for details.
 
----
-
 ## 👤 Author
 
 **Artem Alimpiev**
 
-- ORCID: `0009-0007-6740-7242`
-- DOI: `10.5281/zenodo.20057443`
-- DOI: `10.5281/zenodo.20659647`
+- ORCID: [0009-0007-6740-7242](https://orcid.org/0009-0007-6740-7242)
+- DOI: [10.5281/zenodo.20057443](https://doi.org/10.5281/zenodo.20057443)
+- DOI: [10.5281/zenodo.20659647](https://doi.org/10.5281/zenodo.20659647)
 - PyPI: [Django Nova](https://pypi.org/project/django-nova/)
 
+---
 ---
 
 <a id="русский"></a>
@@ -539,8 +577,6 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 </div>
 
----
-
 ## 📋 Содержание
 
 - [Постановка проблемы](#постановка-проблемы)
@@ -548,6 +584,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 - [Архитектура](#архитектура)
 - [Установка](#установка)
 - [Быстрый старт](#быстрый-старт)
+- [🛡️ Граница валидации](#%EF%B8%8F-граница-валидации)
 - [Компилятор схем (DRF & Admin)](#компилятор-схем-drf--admin)
 - [Умный планировщик запросов](#умный-планировщик-запросов)
 - [Распределённый контекст и наблюдаемость](#распределённый-контекст-и-наблюдаемость)
@@ -589,14 +626,15 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ## 🏗️ Архитектура
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           Потребительские слои                              │
-│  ┌──────────┐  ┌──────────────┐  ┌─────────────┐  ┌─────────────────────┐   │
-│  │  Forms   │  │ DRF Serial.  │  FastAPI Router│  │ Management Commands │   │
-│  └────┬─────┘  └──────┬───────┘  └──────┬──────┘  └──────────┬──────────┘   │
-│       │               │                  │                     │            │
-│       └───────────────┴──────────────────┴─────────────────────┘            │
+│  ┌──────────┐  ┌──────────────┐  ┌─────────────┐  ┌────────────────────┐    │
+│  │  Forms   │  │ DRF Serial.  │  │ FastAPI     │  │ Management         │    │
+│  │          │  │              │  │ Router      │  │ Commands           │    │
+│  └────┬─────┘  └──────┬───────┘  └──────┬──────┘  └─────────┬──────────┘    │
+│       │               │                 │                   │               │
+│       └───────────────┴─────────────────┴───────────────────┘               │
 │                           │                                                 │
 │              ┌────────────▼────────────┐                                    │
 │              │   Pydantic Schema       │  ← Единый источник истины          │
@@ -608,8 +646,8 @@ MIT License. See [LICENSE](LICENSE) for details.
 │              │     (Interceptor)       │                                    │
 │              └────────────┬────────────┘                                    │
 │                           │                                                 │
-│       ┌───────────────────┼───────────────────┐                             │
-│       │                   │                   │                             │
+│       ┌───────────────────┼──────────────────┐                              │
+│       │                   │                  │                              │
 │  ┌────▼─────┐    ┌────────▼────────┐   ┌─────▼──────┐                       │
 │  │  Кеш     │    │     Сигналы     │   │ Телеметрия │                       │
 │  │Invalid.  │    │ (post_save etc) │   │(OTel/Logs) │                       │
@@ -724,6 +762,38 @@ Grant.objects.create(
 
 ---
 
+## 🛡️ Граница валидации
+
+Django Nova строго применяет контракт Pydantic на границе `Model.save()`.
+
+### Валидируемые пути
+
+Любой путь кода, вызывающий `save()`, выполнит полную валидацию Pydantic-схемы (включая кросс‑полевые валидаторы) перед обращением к БД.
+
+```python
+instance = Grant(start_date="2024-12-31", end_date="2024-01-01")
+instance.save()  # ❌ Бросает NovaValidationError (нарушено кросс-полевое правило)
+
+instance.save(update_fields=["start_date"])  # ❌ Всё равно валидирует ВСЮ модель
+```
+
+### Намеренно невалидируемые пути (границы ORM)
+
+Чтобы сохранить прозрачность и избежать «магических» переопределений внутренней механики QuerySet Django, Nova не перехватывает массовые или прямые SQL-операции.
+
+Если вы используете эти методы, вы сами отвечаете за целостность данных:
+
+```python
+# Обходит NovaModel.save() → обходит Pydantic-валидацию
+Grant.objects.filter(...).update(end_date="2024-01-01")
+Grant.objects.bulk_create([...])
+Grant.objects.bulk_update([...], ["end_date"])
+```
+
+**Архитектурное решение:** Мы сознательно не патчим внутренние методы QuerySet (например, `bulk_create`), чтобы принудительно навязывать валидацию. Это внесло бы скрытые побочные эффекты, нарушило композицию QuerySet и противоречило бы принципу прозрачной инфраструктуры. Если вам нужна валидация на массовых операциях, валидируйте данные до передачи их в QuerySet.
+
+---
+
 ## 🔌 Компилятор схем (DRF & Admin)
 
 Зачем писать сериализаторы и админ-формы, если схема уже знает правила? Nova динамически компилирует их.
@@ -739,7 +809,7 @@ from .models import Grant
 GrantSerializer = to_drf_serializer(Grant)
 ```
 
-> **Примечание:** Сгенерированный сериализатор строго экспонирует ТОЛЬКО поля, определённые в Pydantic-схеме (+ PK). Чувствительные поля БД, отсутствующие в схеме, автоматически скрыты из API.
+> **Примечание:** Сгенерированный сериализатор строго экспонирует **ТОЛЬКО** поля, определённые в Pydantic-схеме (+ PK). Чувствительные поля БД, отсутствующие в схеме, автоматически скрыты из API.
 
 ### Интеграция с Django Admin
 
@@ -764,6 +834,7 @@ class ArticleSchema(BaseModel):
     title: str
     author: AuthorSchema    # Триггерит select_related
     tags: list[TagSchema]   # Триггерит prefetch_related
+
 
 class Article(NovaModel):
     title = models.CharField(max_length=200)
@@ -797,6 +868,7 @@ Enterprise-логирование требует корреляции. Если 
 ```python
 # В вашем Django Middleware
 from nova.core import bind, clear
+
 
 class CorrelationMiddleware:
     def __init__(self, get_response):
@@ -879,6 +951,7 @@ class Grant(NovaModel):
 ```python
 from nova.db import AddFieldConcurrently, CreateIndexConcurrently
 
+
 class Migration(migrations.Migration):
     operations = [
         AddFieldConcurrently(
@@ -921,43 +994,43 @@ Absolute Overhead: +1.155 µs
 | Тест | Среднее время | Ops / секунду | Оверхед |
 |------|---------------|---------------|---------|
 | Pure Pydantic (Baseline) | 0.663 µs | 1,508K | 1.0× |
-| NovaModel (Full) | 1.818 µs | 550K | **2.74×** |
+| NovaModel (Full) | 1.818 µs | 550K | 2.74× |
 
 > **Примечание:** Абсолютный штраф составляет всего **1.155 микросекунды** на объект. Вы получаете полную типобезопасность на уровне ORM, унифицированную валидацию, глубокую трассировку, кеш-абстракцию, async планировщик запросов, распределённые блокировки, rate limiting и pub/sub — за цену одной микросекунды.
 
-> **Тесты:** 73 passed, 7 skipped за 1.65s. Ноль ошибок линтера.
+Тесты: **73 passed, 7 skipped за 1.65s**. Ноль ошибок линтера.
 
 ---
 
 ## 🗺️ Дорожная карта
 
-### ✅ Реализовано (v0.5.0)
+### ✅ Реализовано 
 
 | Категория | Фича | Статус | Примечания |
-|-----------|------|--|------------|
+|-----------|------|--------|------------|
 | **Core Engine** | Typed ORM, Managers, QuerySets | ✅ Стабильно | Полная совместимость с `pyright --strict` |
-| | Pydantic Bridge & Unified Validation | ✅ Стабильно | Двусторонняя синхронизация, единый источник истины |
-| | Full Async ORM Integration | ✅ Стабильно | Нативный `AsyncTypedQuerySet` с планировщиком `.aauto()` |
-| **Ecosystem** | Auto DRF Serializer Generation | ✅ Стабильно | Строгая проекция, инжекция Pydantic-валидации |
-| (Компилятор схем) | Auto Django Admin Generation | ✅ Стабильно | Динамические Forms с Pydantic `clean()` хуками |
-| | Admin JSON UI Schema Generator | ✅ Стабильно | Извлечение правил валидации для Frontend |
+| **Core Engine** | Pydantic Bridge & Unified Validation | ✅ Стабильно | Двусторонняя синхронизация, единый источник истины |
+| **Core Engine** | Full Async ORM Integration | ✅ Стабильно | Нативный `AsyncTypedQuerySet` с планировщиком `.aauto()` |
+| **Ecosystem** (Компилятор схем) | Auto DRF Serializer Generation | ✅ Стабильно | Строгая проекция, инжекция Pydantic-валидации |
+| **Ecosystem** (Компилятор схем) | Auto Django Admin Generation | ✅ Стабильно | Динамические Forms с Pydantic `clean()` хуками |
+| **Ecosystem** (Компилятор схем) | Admin JSON UI Schema Generator | ✅ Стабильно | Извлечение правил валидации для Frontend |
 | **Query Engine** | Deep Query Planner | ✅ Стабильно | Рекурсивный обход графа для JOINs |
-| | Auto Field Deferral | ✅ Стабильно | Пропуск столбцов БД, отсутствующих в Pydantic-схеме |
+| **Query Engine** | Auto Field Deferral | ✅ Стабильно | Пропуск столбцов БД, отсутствующих в Pydantic-схеме |
 | **Infrastructure** | Unified Redis Client & Pool | ✅ Стабильно | Sync/Async пулы, health checks, zero sprawl |
-| | Distributed Locks | ✅ Стабильно | Lua-scripted async блокировки для Zero-Downtime |
-| | Distributed Rate Limiter | ✅ Стабильно | Атомарное Sliding Window через Lua-скрипты |
-| | Async Pub/Sub Facade | ✅ Стабильно | Real-time межпроцессная инвалидация кеша |
-| | Lag-Aware Read Replica Router | ✅ Стабильно | Thread-safe локальный кеш, авто-failover на Master |
-| | Zero-Downtime Migrations | ✅ Стабильно | Операции `CONCURRENTLY` из коробки |
+| **Infrastructure** | Distributed Locks | ✅ Стабильно | Lua-scripted async блокировки для Zero-Downtime |
+| **Infrastructure** | Distributed Rate Limiter | ✅ Стабильно | Атомарное Sliding Window через Lua-скрипты |
+| **Infrastructure** | Async Pub/Sub Facade | ✅ Стабильно | Real-time межпроцессная инвалидация кеша |
+| **Infrastructure** | Lag-Aware Read Replica Router | ✅ Стабильно | Thread-safe локальный кеш, авто-failover на Master |
+| **Infrastructure** | Zero-Downtime Migrations | ✅ Стабильно | Операции `CONCURRENTLY` из коробки |
 | **Observability** | OTEL Tracing & Structlog | ✅ Стабильно | Zero-config lifecycle spans |
-| | Distributed Context (Correlation IDs) | ✅ Стабильно | `contextvars` мост к Logs & Traces |
+| **Observability** | Distributed Context (Correlation IDs) | ✅ Стабильно | `contextvars` мост к Logs & Traces |
 | **Platform** | Stable Public API (Frozen) | ✅ Стабильно | PEP 562 Facades, Semver compliant |
-| | Django System Checks | ✅ Стабильно | Fail-fast валидация инфраструктуры |
-| | GraphQL Schema Compiler (Strawberry) | ✅ Стабильно  | Рекурсивный компилятор в Strawberry.|
+| **Platform** | Django System Checks | ✅ Стабильно | Fail-fast валидация инфраструктуры |
+| **Platform** | GraphQL Schema Compiler (Strawberry) | ✅ Стабильно | Рекурсивный компилятор в Strawberry |
 
 ### 📊 Общий прогресс
 
-```
+```text
 ████████████████████████████████████████ 100%  Core Features
 ████████████████████████████████████████ 100%  Infrastructure
 ████████████████████████████████████████ 100%  Production Readiness
@@ -971,13 +1044,11 @@ Absolute Overhead: +1.155 µs
 
 MIT License. Подробности в [LICENSE](LICENSE).
 
----
-
 ## 👤 Автор
 
 **Artem Alimpiev**
 
-- ORCID: `0009-0007-6740-7242`
-- DOI: `10.5281/zenodo.20057443`
-- DOI: `10.5281/zenodo.20659647`
+- ORCID: [0009-0007-6740-7242](https://orcid.org/0009-0007-6740-7242)
+- DOI: [10.5281/zenodo.20057443](https://doi.org/10.5281/zenodo.20057443)
+- DOI: [10.5281/zenodo.20659647](https://doi.org/10.5281/zenodo.20659647)
 - PyPI: [Django Nova](https://pypi.org/project/django-nova/)
