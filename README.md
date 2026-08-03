@@ -138,7 +138,7 @@ The result is **validation drift**: business rules scattered across forms, seria
 | **Compiled Performance (mypyc)** | ❌ No | ✅ 4–10× speedup | ❌ No | ❌ No |
 | **Content Negotiation** | ❌ No | ✅ JSON, msgpack, SSE, JSON Lines | ❌ No | ❌ No |
 | **Type Safety** | `pyright --strict` end-to-end | `mypy` + `pyright` + `pyrefly` strict | Type hints + Pydantic (API layer) | Pydantic validation in DRF |
-| **Performance Focus** | +1.155 µs per `save()` | 7,026 RPS async (fastest Django API) | Fast API layer (Pydantic v2 Rust) | Zero runtime overhead |
+| **Performance Focus** | +1.187 µs per `save()` | 7,026 RPS async (fastest Django API) | Fast API layer (Pydantic v2 Rust) | Zero runtime overhead |
 | **Django Version Support** | 5.0+ | 5.0+ | 2.1+ | 2.2+ |
 | **Python Version Support** | 3.12+ | 3.11+ | 3.7+ | 3.7+ |
 
@@ -492,7 +492,7 @@ class Migration(migrations.Migration):
 
 ## 📊 Benchmarks
 
-All benchmarks measure model initialization speed (object creation + validation) on Python 3.12, local SSD, warm CPU, GC disabled.
+All benchmarks measure model initialization speed (object creation + validation) on Python 3.13, local SSD, warm CPU, GC disabled.
 
 ```bash
 $ uv run ruff check .
@@ -504,22 +504,20 @@ $ uv run pytest -v
 $ uv run python scripts/bench.py
 Running 100,000 iterations (GC Disabled)...
 
-============================================================
-Pure Pydantic:     1.268 µs/iter
-Plain Django:      2.145 µs/iter
-NovaModel (Full):  3.634 µs/iter
-Overhead Ratio:    2.86x (vs Pydantic), 1.69x (vs Django)
-Absolute Overhead: +2.365 µs (vs Pydantic), +1.489 µs (vs Django)
-============================================================
+==================================================
+Pure Pydantic:     0.632 µs/iter
+NovaModel (Full):  1.819 µs/iter
+Overhead Ratio:    2.88x
+Absolute Overhead: +1.187 µs
+==================================================
 ```
 
 | Test | Avg Time | Ops / Second | Overhead |
 |------|----------|--------------|----------|
-| Pure Pydantic (Baseline) | 1.268 µs | 788K | 1.0× |
-| Plain Django | 2.145 µs | 466K | 1.69× |
-| NovaModel (Full) | 3.634 µs | 275K | 2.86× |
+| Pure Pydantic (Baseline) | 0.632 µs | 1,582K | 1.0× |
+| NovaModel (Full) | 1.819 µs | 550K | 2.88× |
 
-> **Note:** The absolute penalty is only **2.365 microseconds** per object compared to pure Pydantic, or **1.489 microseconds** compared to plain Django. You gain full ORM-level type safety, unified validation, deep tracing, cache abstraction, async query planning, distributed locks, rate limiting, and pub/sub — at the cost of ~1.5 µs over Django or ~2.4 µs over Pydantic.
+> **Note:** The absolute penalty is only **1.187 microseconds** per object. You gain full ORM-level type safety, unified validation, deep tracing, cache abstraction, async query planning, distributed locks, rate limiting, and pub/sub — at the cost of a single microsecond.
 
 Test suite: **94 passed, 7 skipped in 2.24s**. Zero lint errors. Full `pyright --strict` compatibility.
 
@@ -1001,7 +999,7 @@ class Migration(migrations.Migration):
 
 ## 📊 Бенчмарки
 
-Все бенчмарки измеряют скорость инициализации модели (создание объекта + валидация) на Python 3.12, локальный SSD, разогретый CPU, GC отключён.
+Все бенчмарки измеряют скорость инициализации модели (создание объекта + валидация) на Python 3.13, локальный SSD, разогретый CPU, GC отключён.
 
 ```bash
 $ uv run ruff check .
@@ -1013,22 +1011,20 @@ $ uv run pytest -v
 $ uv run python scripts/bench.py
 Running 100,000 iterations (GC Disabled)...
 
-============================================================
-Pure Pydantic:     1.268 µs/iter
-Plain Django:      2.145 µs/iter
-NovaModel (Full):  3.634 µs/iter
-Overhead Ratio:    2.86x (vs Pydantic), 1.69x (vs Django)
-Absolute Overhead: +2.365 µs (vs Pydantic), +1.489 µs (vs Django)
-============================================================
+==================================================
+Pure Pydantic:     0.632 µs/iter
+NovaModel (Full):  1.819 µs/iter
+Overhead Ratio:    2.88x
+Absolute Overhead: +1.187 µs
+==================================================
 ```
 
 | Тест | Среднее время | Ops / секунду | Оверхед |
 |------|---------------|---------------|---------|
-| Pure Pydantic (Baseline) | 1.268 µs | 788K | 1.0× |
-| Plain Django | 2.145 µs | 466K | 1.69× |
-| NovaModel (Full) | 3.634 µs | 275K | 2.86× |
+| Pure Pydantic (Baseline) | 0.632 µs | 1,582K | 1.0× |
+| NovaModel (Full) | 1.819 µs | 550K | 2.88× |
 
-> **Примечание:** Абсолютный штраф составляет всего **2.365 микросекунды** на объект по сравнению с чистым Pydantic, или **1.489 микросекунды** по сравнению с обычным Django. Вы получаете полную типобезопасность на уровне ORM, унифицированную валидацию, глубокую трассировку, кеш-абстракцию, async планировщик запросов, распределённые блокировки, rate limiting и pub/sub — за цену ~1.5 µs поверх Django или ~2.4 µs поверх Pydantic.
+> **Примечание:** Абсолютный штраф составляет всего **1.187 микросекунды** на объект. Вы получаете полную типобезопасность на уровне ORM, унифицированную валидацию, глубокую трассировку, кеш-абстракцию, async планировщик запросов, распределённые блокировки, rate limiting и pub/sub — за цену одной микросекунды.
 
 Тесты: **94 passed, 7 skipped за 2.24s**. Ноль ошибок линтера. Полная совместимость с `pyright --strict`.
 
