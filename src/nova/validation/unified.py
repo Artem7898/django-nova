@@ -1,69 +1,199 @@
-"""Unified validation pipeline."""
+"""
+Unified validation pipeline for Django Nova.
+
+Validation order:
+
+Pydantic schema
+    ↓
+Django field validation
+    ↓
+Model.clean()
+    ↓
+Model.validate_unique()
+    ↓
+Model.validate_constraints()
+
+The Pydantic schema remains the single source of truth for business
+validation. Django validation provides ORM and persistence-level
+correctness checks.
+
+Infrastructure errors are intentionally not converted into validation
+errors. A broken schema compiler, database connection, or infrastructure
+component must remain distinguishable from invalid user data.
+"""
 
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING
 
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import models
+from django.db.models.fields.reverse_related import ForeignObjectRel
 
 from nova.core.exceptions import NovaValidationError
 
 if TYPE_CHECKING:
-    from nova.typing.models import NovaModel
+    from nova.typing.models import NovaConfig, NovaModel
 
-logger = logging.getLogger(__name__)
+
+__all__ = [
+    "validate_model_instance",
+]
+
+
+def _get_model_config(instance: NovaModel) -> NovaConfig | None:
+    """
+    Return Nova configuration without coupling validation logic to a
+    protected implementation detail.
+
+    The runtime model contract intentionally exposes `_nova_config`,
+    while this helper keeps all access localized to this module.
+    """
+    return getattr(type(instance), "_nova_config", None)
+
+
+def _validate_pydantic(instance: NovaModel) -> None:
+    """
+    Validate the complete model state against its Pydantic schema.
+
+    Pydantic owns business validation. The complete model state is
+    validated regardless of `update_fields`, because cross-field
+    invariants must always see a consistent object state.
+    """
+    config = _get_model_config(instance)
+
+    if config is None:
+        return
+
+    if not config.strict_validation:
+        return
+
+    _ = instance.to_pydantic()
+
+
+def _validate_django_fields(instance: NovaModel) -> None:
+    """
+    Run Django field-level validation.
+
+    Reverse relations are explicitly excluded because ForeignObjectRel
+    objects are relation metadata, not concrete model fields and do not
+    implement the Field validation contract.
+    """
+    for field in instance._meta.get_fields():
+        if isinstance(field, ForeignObjectRel):
+            continue
+
+        value = getattr(instance, field.attname, None)
+
+        try:
+            field.clean(value, instance)
+        except DjangoValidationError as exc:
+            raise NovaValidationError(
+                "Django field validation failed.",
+                details=_django_validation_details(exc),
+            ) from exc
+
+
+def _django_validation_details(
+    exc: DjangoValidationError,
+) -> dict[str, str]:
+    """
+    Convert Django ValidationError into a stable Nova error payload.
+
+    NovaValidationError intentionally exposes string details so callers
+    receive a stable, framework-independent error representation.
+    """
+    if hasattr(exc, "message_dict"):
+        return {
+            field_name: "; ".join(str(message) for message in messages)
+            for field_name, messages in exc.message_dict.items()
+        }
+
+    if hasattr(exc, "messages"):
+        return {
+            "non_field_errors": "; ".join(
+                str(message) for message in exc.messages
+            )
+        }
+
+    return {
+        "non_field_errors": str(exc),
+    }
+
+
+def _validate_model_clean(instance: NovaModel) -> None:
+    """
+    Execute Django's model-level clean() hook.
+
+    This is intentionally executed after Pydantic validation. Pydantic
+    remains the business contract; Django clean() is an ORM-level
+    integration hook for persistence-specific validation.
+    """
+    try:
+        instance.clean()
+    except DjangoValidationError as exc:
+        raise NovaValidationError(
+            "Django model validation failed.",
+            details=_django_validation_details(exc),
+        ) from exc
+
+
+def _validate_unique(instance: NovaModel) -> None:
+    """
+    Validate Django uniqueness constraints.
+
+    This operation may access the database. It is therefore deliberately
+    executed only after Pydantic and local field/model validation succeed.
+    """
+    try:
+        instance.validate_unique()
+    except DjangoValidationError as exc:
+        raise NovaValidationError(
+            "Django uniqueness validation failed.",
+            details=_django_validation_details(exc),
+        ) from exc
+
+
+def _validate_constraints(instance: NovaModel) -> None:
+    """
+    Validate Django database constraints before persistence.
+
+    Constraint validation may perform database access depending on the
+    constraint definition. It therefore belongs at the end of the
+    pre-save validation pipeline.
+    """
+    try:
+        instance.validate_constraints()
+    except DjangoValidationError as exc:
+        raise NovaValidationError(
+            "Django constraint validation failed.",
+            details=_django_validation_details(exc),
+        ) from exc
 
 
 def validate_model_instance(instance: NovaModel) -> None:
-    """Execute unified validation pipeline."""
-    config = getattr(instance, '_nova_config', None)
-    strict_validation = getattr(config, 'strict_validation', True)
+    """
+    Execute Nova's complete ORM validation pipeline.
 
-    # Stage 1: Pydantic schema validation
-    pydantic_schema = getattr(config, 'pydantic_schema', None)
-    if pydantic_schema is not None:
-        try:
-            instance.to_pydantic()
-        except NovaValidationError as exc:
-            # CRITICAL: Catch ONLY NovaValidationError.
-            # If to_pydantic() raises RuntimeError/AttributeError (infrastructure bug),
-            # it MUST bubble up and crash the save(). Masking it is a data integrity risk.
-            if strict_validation:
-                raise
-            logger.warning("Pydantic validation failed (non-strict): %s", exc)
+    Pipeline:
+        1. Pydantic schema validation
+        2. Django field validation
+        3. Django model clean()
+        4. Django uniqueness validation
+        5. Django constraint validation
 
-    # Stage 2: Django field constraints
-    errors: dict[str, str] = {}
-    for field in instance._meta.get_fields():
-        if not isinstance(field, models.Field):
-            continue
-        if hasattr(field, "clean"):
-            try:
-                field.clean(getattr(instance, field.attname, None), instance)
-            except DjangoValidationError as e:
-                errors[field.name] = str(e)
+    The pipeline is intentionally fail-fast.
 
-    if errors and strict_validation:
-        raise NovaValidationError(f"Field validation failed: {errors}")
+    If Pydantic validation fails, no Django validation or database-backed
+    validation is executed.
 
-    # Stage 3: Business logic
-    try:
-        instance.clean()
-    except DjangoValidationError as e:
-        if strict_validation:
-            raise NovaValidationError.from_django(e) from e
+    If a Django validation stage fails, the error is normalized into
+    NovaValidationError.
 
-    # Stage 4: Database-level constraints (P0-3 completion)
-    try:
-        instance.validate_unique(exclude=None)
-    except DjangoValidationError as e:
-        if strict_validation:
-            raise NovaValidationError.from_django(e) from e
-
-    try:
-        instance.validate_constraints()
-    except DjangoValidationError as e:
-        if strict_validation:
-            raise NovaValidationError.from_django(e) from e
+    Unexpected infrastructure errors are allowed to propagate unchanged.
+    This distinction is critical for production diagnostics.
+    """
+    _validate_pydantic(instance)
+    _validate_django_fields(instance)
+    _validate_model_clean(instance)
+    _validate_unique(instance)
+    _validate_constraints(instance)

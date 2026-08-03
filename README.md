@@ -75,29 +75,29 @@ The result is **validation drift**: business rules scattered across forms, seria
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           Consumer Layers                                   │
-│  ┌──────────┐  ┌──────────────┐  ┌─────────────┐  ┌─────────────────────┐   │
-│  │  Forms   │  │ DRF Serial.  │  │ FastAPI     │  │ Management          │   │
-│  │          │  │              │  │ Router      │  │ Commands            │   │ 
-│  └────┬─────┘  └──────┬───────┘  └──────┬──────┘  └──────────┬──────────┘   │
-│       │               │                 │                    │              │
-│       └───────────────┴─────────────────┴────────────────────┘              │
-│                           │                                                 │
-│              ┌────────────▼────────────┐                                    │
-│              │   Pydantic Schema       │  ← Single Source of Truth          │
-│              │      (Business)         │                                    │
-│              └────────────┬────────────┘                                    │
-│                           │                                                 │
-│              ┌────────────▼────────────┐                                    │
-│              │      NovaModel          │  ← ORM Enforcement Layer           │
-│              │     (Interceptor)       │                                    │
-│              └────────────┬────────────┘                                    │
-│                           │                                                 │
-│       ┌───────────────────┼──────────────────┐                              │
-│       │                   │                  │                              │
-│  ┌────▼─────┐    ┌────────▼────────┐   ┌─────▼──────┐                       │
-│  │  Cache   │    │     Signals     │   │ Telemetry  │                       │
-│  │Invalid.  │    │ (post_save etc) │   │(OTel/Logs) │                       │
-│  └──────────┘    └─────────────────┘   └────────────┘                       │
+│  ┌──────────┐  ┌──────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │  Forms   │  │ DRF Serial.  │  │ FastAPI     │  │ Management          │  │
+│  │          │  │              │  │ Router      │  │ Commands            │  │
+│  └────┬─────┘  └──────┬───────┘  └──────┬──────┘  └──────────┬──────────┘  │
+│       │               │                 │                    │             │
+│       └───────────────┴─────────────────┴────────────────────┘             │
+│                           │                                                │
+│              ┌────────────▼────────────┐                                   │
+│              │   Pydantic Schema       │  ← Single Source of Truth         │
+│              │      (Business)         │                                   │
+│              └────────────┬────────────┘                                   │
+│                           │                                                │
+│              ┌────────────▼────────────┐                                   │
+│              │      NovaModel          │  ← ORM Enforcement Layer          │
+│              │     (Interceptor)       │                                   │
+│              └────────────┬────────────┘                                   │
+│                           │                                                │
+│       ┌───────────────────┼──────────────────┐                             │
+│       │                   │                  │                             │
+│  ┌────▼─────┐    ┌────────▼────────┐   ┌─────▼──────┐                      │
+│  │  Cache   │    │     Signals     │   │ Telemetry  │                      │
+│  │Invalid.  │    │ (post_save etc) │   │(OTel/Logs) │                      │
+│  └──────────┘    └─────────────────┘   └────────────┘                      │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -173,7 +173,7 @@ The result is **validation drift**: business rules scattered across forms, seria
 
 ## 📦 Installation
 
-Requires **Python 3.12+** and **Django 5.0+**.
+Requires **Python 3.12+** and **Django 5.0+** (tested with Django 5.0, 5.1, 5.2).
 
 Using [`uv`](https://docs.astral.sh/uv/) (recommended):
 
@@ -186,12 +186,26 @@ uv add django-nova[drf]
 
 # With Redis infrastructure & Distributed Locks
 uv add django-nova[redis]
+# or
+uv add django-nova[cache]
 
-# Full enterprise stack (tracing + structured logging)
+# With OpenTelemetry tracing
+uv add django-nova[tracing]
+
+# Full enterprise stack (tracing + observability)
 uv add django-nova[tracing,observability]
+
+# With FastAPI integration
+uv add django-nova[fastapi]
+
+# With async task queue
+uv add django-nova[tasks]
+
+# With async database support
+uv add django-nova[async]
 ```
 
-Add to `INSTALLED_APPS`:
+### Add to `INSTALLED_APPS`:
 
 ```python
 INSTALLED_APPS = [
@@ -478,40 +492,42 @@ class Migration(migrations.Migration):
 
 ## 📊 Benchmarks
 
-All benchmarks measure model initialization speed (object creation + validation) on Python 3.13, local SSD, warm CPU, GC disabled.
+All benchmarks measure model initialization speed (object creation + validation) on Python 3.12, local SSD, warm CPU, GC disabled.
 
 ```bash
 $ uv run ruff check .
 All checks passed!
 
 $ uv run pytest -v
-73 passed, 7 skipped in 1.65s
+94 passed, 7 skipped in 2.24s
 
 $ uv run python scripts/bench.py
 Running 100,000 iterations (GC Disabled)...
 
-==================================================
-Pure Pydantic:     0.663 µs/iter
-NovaModel (Full):  1.818 µs/iter
-Overhead Ratio:    2.74x
-Absolute Overhead: +1.155 µs
-==================================================
+============================================================
+Pure Pydantic:     1.268 µs/iter
+Plain Django:      2.145 µs/iter
+NovaModel (Full):  3.634 µs/iter
+Overhead Ratio:    2.86x (vs Pydantic), 1.69x (vs Django)
+Absolute Overhead: +2.365 µs (vs Pydantic), +1.489 µs (vs Django)
+============================================================
 ```
 
 | Test | Avg Time | Ops / Second | Overhead |
 |------|----------|--------------|----------|
-| Pure Pydantic (Baseline) | 0.663 µs | 1,508K | 1.0× |
-| NovaModel (Full) | 1.818 µs | 550K | 2.74× |
+| Pure Pydantic (Baseline) | 1.268 µs | 788K | 1.0× |
+| Plain Django | 2.145 µs | 466K | 1.69× |
+| NovaModel (Full) | 3.634 µs | 275K | 2.86× |
 
-> **Note:** The absolute penalty is only **1.155 microseconds** per object. You gain full ORM-level type safety, unified validation, deep tracing, cache abstraction, async query planning, distributed locks, rate limiting, and pub/sub — at the cost of a single microsecond.
+> **Note:** The absolute penalty is only **2.365 microseconds** per object compared to pure Pydantic, or **1.489 microseconds** compared to plain Django. You gain full ORM-level type safety, unified validation, deep tracing, cache abstraction, async query planning, distributed locks, rate limiting, and pub/sub — at the cost of ~1.5 µs over Django or ~2.4 µs over Pydantic.
 
-Test suite: **73 passed, 7 skipped in 1.65s**. Zero lint errors.
+Test suite: **94 passed, 7 skipped in 2.24s**. Zero lint errors. Full `pyright --strict` compatibility.
 
 ---
 
 ## 🗺️ Roadmap
 
-### ✅ What is Built 
+### ✅ What is Built
 
 | Category | Feature | Status | Notes |
 |----------|---------|--------|-------|
@@ -629,29 +645,29 @@ MIT License. See [LICENSE](LICENSE) for details.
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           Потребительские слои                              │
-│  ┌──────────┐  ┌──────────────┐  ┌─────────────┐  ┌────────────────────┐    │
-│  │  Forms   │  │ DRF Serial.  │  │ FastAPI     │  │ Management         │    │
-│  │          │  │              │  │ Router      │  │ Commands           │    │
-│  └────┬─────┘  └──────┬───────┘  └──────┬──────┘  └─────────┬──────────┘    │
-│       │               │                 │                   │               │
-│       └───────────────┴─────────────────┴───────────────────┘               │
-│                           │                                                 │
-│              ┌────────────▼────────────┐                                    │
-│              │   Pydantic Schema       │  ← Единый источник истины          │
-│              │      (Business)         │                                    │
-│              └────────────┬────────────┘                                    │
-│                           │                                                 │
-│              ┌────────────▼────────────┐                                    │
-│              │      NovaModel          │  ← Слой принудительного ORM        │
-│              │     (Interceptor)       │                                    │
-│              └────────────┬────────────┘                                    │
-│                           │                                                 │
-│       ┌───────────────────┼──────────────────┐                              │
-│       │                   │                  │                              │
-│  ┌────▼─────┐    ┌────────▼────────┐   ┌─────▼──────┐                       │
-│  │  Кеш     │    │     Сигналы     │   │ Телеметрия │                       │
-│  │Invalid.  │    │ (post_save etc) │   │(OTel/Logs) │                       │
-│  └──────────┘    └─────────────────┘   └────────────┘                       │
+│  ┌──────────┐  ┌──────────────┐  ┌─────────────┐  ┌────────────────────┐   │
+│  │  Forms   │  │ DRF Serial.  │  │ FastAPI     │  │ Management         │   │
+│  │          │  │              │  │ Router      │  │ Commands           │   │
+│  └────┬─────┘  └──────┬───────┘  └──────┬──────┘  └─────────┬──────────┘   │
+│       │               │                 │                   │              │
+│       └───────────────┴─────────────────┴───────────────────┘              │
+│                           │                                                │
+│              ┌────────────▼────────────┐                                   │
+│              │   Pydantic Schema       │  ← Единый источник истины         │
+│              │      (Business)         │                                   │
+│              └────────────┬────────────┘                                   │
+│                           │                                                │
+│              ┌────────────▼────────────┐                                   │
+│              │      NovaModel          │  ← Слой принудительного ORM       │
+│              │     (Interceptor)       │                                   │
+│              └────────────┬────────────┘                                   │
+│                           │                                                │
+│       ┌───────────────────┼──────────────────┐                             │
+│       │                   │                  │                             │
+│  ┌────▼─────┐    ┌────────▼────────┐   ┌─────▼──────┐                      │
+│  │  Кеш     │    │     Сигналы     │   │ Телеметрия │                      │
+│  │Invalid.  │    │ (post_save etc) │   │(OTel/Logs) │                      │
+│  └──────────┘    └─────────────────┘   └────────────┘                      │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -666,7 +682,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ## 📦 Установка
 
-Требуется **Python 3.12+** и **Django 5.0+**.
+Требуется **Python 3.12+** и **Django 5.0+** (протестировано с Django 5.0, 5.1, 5.2).
 
 Используя [`uv`](https://docs.astral.sh/uv/) (рекомендуется):
 
@@ -679,12 +695,26 @@ uv add django-nova[drf]
 
 # С Redis-инфраструктурой и распределёнными блокировками
 uv add django-nova[redis]
+# или
+uv add django-nova[cache]
 
-# Полный enterprise-стек (трассировка + структурированное логирование)
+# С OpenTelemetry-трассировкой
+uv add django-nova[tracing]
+
+# Полный enterprise-стек (трассировка + наблюдаемость)
 uv add django-nova[tracing,observability]
+
+# С интеграцией FastAPI
+uv add django-nova[fastapi]
+
+# С асинхронной очередью задач
+uv add django-nova[tasks]
+
+# С поддержкой асинхронной БД
+uv add django-nova[async]
 ```
 
-Добавьте в `INSTALLED_APPS`:
+### Добавьте в `INSTALLED_APPS`:
 
 ```python
 INSTALLED_APPS = [
@@ -971,40 +1001,42 @@ class Migration(migrations.Migration):
 
 ## 📊 Бенчмарки
 
-Все бенчмарки измеряют скорость инициализации модели (создание объекта + валидация) на Python 3.13, локальный SSD, разогретый CPU, GC отключён.
+Все бенчмарки измеряют скорость инициализации модели (создание объекта + валидация) на Python 3.12, локальный SSD, разогретый CPU, GC отключён.
 
 ```bash
 $ uv run ruff check .
 All checks passed!
 
 $ uv run pytest -v
-73 passed, 7 skipped in 1.65s
+94 passed, 7 skipped in 2.24s
 
 $ uv run python scripts/bench.py
 Running 100,000 iterations (GC Disabled)...
 
-==================================================
-Pure Pydantic:     0.663 µs/iter
-NovaModel (Full):  1.818 µs/iter
-Overhead Ratio:    2.74x
-Absolute Overhead: +1.155 µs
-==================================================
+============================================================
+Pure Pydantic:     1.268 µs/iter
+Plain Django:      2.145 µs/iter
+NovaModel (Full):  3.634 µs/iter
+Overhead Ratio:    2.86x (vs Pydantic), 1.69x (vs Django)
+Absolute Overhead: +2.365 µs (vs Pydantic), +1.489 µs (vs Django)
+============================================================
 ```
 
 | Тест | Среднее время | Ops / секунду | Оверхед |
 |------|---------------|---------------|---------|
-| Pure Pydantic (Baseline) | 0.663 µs | 1,508K | 1.0× |
-| NovaModel (Full) | 1.818 µs | 550K | 2.74× |
+| Pure Pydantic (Baseline) | 1.268 µs | 788K | 1.0× |
+| Plain Django | 2.145 µs | 466K | 1.69× |
+| NovaModel (Full) | 3.634 µs | 275K | 2.86× |
 
-> **Примечание:** Абсолютный штраф составляет всего **1.155 микросекунды** на объект. Вы получаете полную типобезопасность на уровне ORM, унифицированную валидацию, глубокую трассировку, кеш-абстракцию, async планировщик запросов, распределённые блокировки, rate limiting и pub/sub — за цену одной микросекунды.
+> **Примечание:** Абсолютный штраф составляет всего **2.365 микросекунды** на объект по сравнению с чистым Pydantic, или **1.489 микросекунды** по сравнению с обычным Django. Вы получаете полную типобезопасность на уровне ORM, унифицированную валидацию, глубокую трассировку, кеш-абстракцию, async планировщик запросов, распределённые блокировки, rate limiting и pub/sub — за цену ~1.5 µs поверх Django или ~2.4 µs поверх Pydantic.
 
-Тесты: **73 passed, 7 skipped за 1.65s**. Ноль ошибок линтера.
+Тесты: **94 passed, 7 skipped за 2.24s**. Ноль ошибок линтера. Полная совместимость с `pyright --strict`.
 
 ---
 
 ## 🗺️ Дорожная карта
 
-### ✅ Реализовано 
+### ✅ Реализовано
 
 | Категория | Фича | Статус | Примечания |
 |-----------|------|--------|------------|
