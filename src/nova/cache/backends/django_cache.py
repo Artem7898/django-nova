@@ -10,22 +10,28 @@ from typing import Any
 
 from django.core.cache import caches
 
-from nova.cache.backends.protocol import TTL, CacheBackend
+from .protocol import TTL, CacheBackend
 
 
 class DjangoCacheBackend(CacheBackend):
-    """Adapter around django.core.cache backend."""
+    """
+    Adapter around Django cache framework.
+
+    This backend adapts Django's cache API to the Nova CacheBackend contract.
+    """
 
     def __init__(self, alias: str = "default") -> None:
-        self._cache: Any = caches[alias]  # Явно Any, так как кэш Django не типизирован
+        self._cache: Any = caches[alias]
         self._alias = alias
 
-    def _get_timeout(self, ttl: TTL) -> int | None:
+    def _get_timeout(self, ttl: TTL) -> float | None:
         if ttl is None:
             return None
+
         if isinstance(ttl, timedelta):
-            return int(ttl.total_seconds())
-        return int(ttl)
+            return ttl.total_seconds()
+
+        return float(ttl)
 
     def get(self, key: str, default: Any | None = None) -> Any | None:
         return self._cache.get(key, default)
@@ -40,14 +46,20 @@ class DjangoCacheBackend(CacheBackend):
         self._cache.clear()
 
     def get_many(self, keys: list[str]) -> Mapping[str, Any]:
-        return self._cache.get_many(keys)
+        data = self._cache.get_many(keys)
+        return {key: data.get(key) for key in keys}
 
     def set_many(self, values: Mapping[str, Any], *, ttl: TTL = None) -> None:
         self._cache.set_many(values, timeout=self._get_timeout(ttl))
 
     def delete_many(self, keys: list[str]) -> int:
-        self._cache.delete_many(keys)
-        return 0
+        count = 0
+
+        for key in keys:
+            if self.delete(key):
+                count += 1
+
+        return count
 
     @property
     def backend_name(self) -> str:
@@ -69,4 +81,7 @@ class DjangoCacheBackend(CacheBackend):
         return -1
 
     def stats(self) -> dict[str, Any]:
-        return {"backend": self.backend_name, "alias": self._alias}
+        return {
+            "backend": self.backend_name,
+            "alias": self._alias,
+        }
