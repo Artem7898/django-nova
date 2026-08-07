@@ -154,3 +154,6 @@ exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",
 ]
+
+[tool.setuptools.package-data]
+nova = ["py.typed"]
