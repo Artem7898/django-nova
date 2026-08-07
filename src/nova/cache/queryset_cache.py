@@ -1,150 +1,417 @@
-"""Intelligent QuerySet caching with automatic invalidation and OTEL Instrumentation."""
+"""
+Signal-driven QuerySet cache.
+"""
 
 from __future__ import annotations
 
-import hashlib
-import json
-from collections.abc import Callable
-from functools import wraps
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
+import logging
+from dataclasses import dataclass, field
+from threading import RLock
+from typing import Any, cast
 
-from django.db.models import Model
+from django.db.models.query import QuerySet
 
-from nova.cache.backends.memory import MemoryCacheBackend
-from nova.cache.backends.protocol import CacheBackend
-from nova.core.exceptions import NovaCacheError
-from nova.core.observability import get_logger
-from nova.core.tracing import nova_span
+from ..core.tracing import nova_span
+from .backends.protocol import CacheBackend
 
-if TYPE_CHECKING:
-    from django.db.models import QuerySet
-
-P = ParamSpec("P")
-R = TypeVar("R")
-ModelT = TypeVar("ModelT", bound=Model)
-
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
-class QuerySetCache[ModelT: Model]:
-    """Type-safe cache for Django QuerySet results with full tracing lifecycle."""
+def _rlock_factory() -> RLock:
+    return RLock()
+
+
+def _model_keys_factory() -> dict[str, set[str]]:
+    return {}
+
+
+def _key_models_factory() -> dict[str, set[str]]:
+    return {}
+
+
+@dataclass
+class _QuerySetCacheState:
+    """
+    Shared internal state for QuerySetCache.
+
+    This allows QuerySetCache[Model]() to use the default process-wide
+    cache without forcing users to pass a backend manually.
+    """
+
+    backend: CacheBackend
+    ttl: int
+    lock: RLock = field(default_factory=_rlock_factory)
+    model_keys: dict[str, set[str]] = field(default_factory=_model_keys_factory)
+    key_models: dict[str, set[str]] = field(default_factory=_key_models_factory)
+
+
+class QuerySetCache[T]:
+    """
+    Signal-driven QuerySet cache with model-level invalidation.
+    """
 
     def __init__(
         self,
-        *,
         backend: CacheBackend | None = None,
-        ttl: int = 60,
-        key_prefix: str = "nova_qs",
+        *,
+        ttl: int = 300,
+        _state: _QuerySetCacheState | None = None,
     ) -> None:
-        self._backend = backend or MemoryCacheBackend()
-        self._ttl = ttl
-        self._key_prefix = key_prefix
-        self._model_keys: dict[str, set[str]] = {}
+        if _state is not None:
+            self._state = _state
+        elif backend is None:
+            self._state = _get_default_state()
+        else:
+            self._state = _QuerySetCacheState(
+                backend=backend,
+                ttl=ttl,
+            )
 
-    def _generate_key(self, queryset: QuerySet[ModelT]) -> tuple[str, str]:
-        try:
-            meta: Any = getattr(queryset.model, "_meta", None)
-            model_name = cast(str, getattr(meta, "model_name", "unknown_model"))
+    #
+    # Internal helpers
+    #
 
-            query_obj: Any = getattr(queryset, "query", None)
-            compiler = query_obj.get_compiler(using=queryset.db)
+    @staticmethod
+    def _short_model_name(model_name: str) -> str:
+        """
+        Return short lowercased model name.
 
-            sql, params = cast("tuple[str, Any]", compiler.as_sql())
-            safe_params = json.dumps(params, sort_keys=True, default=str)
-            raw_key = f"{self._key_prefix}:{model_name}:{sql}:{safe_params}"
-            return hashlib.sha256(raw_key.encode()).hexdigest(), model_name
-        except Exception as exc:
-            raise NovaCacheError(f"Failed to generate cache key: {exc}") from exc
+        Examples:
+        - "cacheditem" -> "cacheditem"
+        - "CachedItem" -> "cacheditem"
+        - "tests.CachedItem" -> "cacheditem"
+        - "tests.cacheditem" -> "cacheditem"
+        """
+        normalized = model_name.strip().lower()
+        if not normalized:
+            return ""
 
-    def get(self, queryset: QuerySet[ModelT]) -> list[ModelT] | None:
-        """Return cached result or None with trace spans."""
-        key, model_name = self._generate_key(queryset)
+        if "." in normalized:
+            return normalized.rpartition(".")[2]
 
-        with nova_span("nova.cache.get", model=model_name) as span:
-            result = cast("list[ModelT] | None", self._backend.get(key))
+        return normalized
 
-            if result is not None:
-                if span:
-                    span.set_attribute("cache.outcome", "hit")
-                with nova_span("nova.cache.hit", model=model_name):
-                    pass
-            else:
-                if span:
-                    span.set_attribute("cache.outcome", "miss")
-                with nova_span("nova.cache.miss", model=model_name):
-                    pass
+    @staticmethod
+    def _normalize_model_names(model_name: str) -> frozenset[str]:
+        """
+        Normalize invalidation target.
 
-            return result
+        Supports:
+        - "cacheditem"
+        - "CachedItem"
+        - "tests.CachedItem"
+        - "tests.cacheditem"
+        """
+        normalized = model_name.strip().lower()
+        if not normalized:
+            return frozenset()
 
-    def get_or_set(self, queryset: QuerySet[ModelT]) -> list[ModelT]:
-        """Return cached result or execute query, cache it, with tracing."""
-        key, model_name = self._generate_key(queryset)
+        names = {normalized}
 
-        with nova_span("nova.cache.lookup", model=model_name) as span:
-            cached = cast("list[ModelT] | None", self._backend.get(key))
+        if "." in normalized:
+            short_name = normalized.rpartition(".")[2]
+            if short_name:
+                names.add(short_name)
+
+        return frozenset(names)
+
+    def _model_identifiers(self, model: Any) -> tuple[str, str, frozenset[str]]:
+        """
+        Return:
+        - full model name: app_label.model_name
+        - short model name: model_name
+        - all names used for invalidation indexing
+        """
+        meta: Any = getattr(model, "_meta", None)
+        if meta is None:
+            raise ValueError(
+                "Cannot generate cache key for QuerySet without a model"
+            )
+
+        app_label = str(getattr(meta, "app_label", "") or "")
+        short_name = str(getattr(meta, "model_name", "") or "").lower()
+
+        if not short_name:
+            short_name = str(getattr(model, "__name__", "")).lower()
+
+        full_name = f"{app_label}.{short_name}" if app_label else short_name
+        names = {short_name, full_name}
+
+        return full_name, short_name, frozenset(names)
+
+    def _generate_key(
+        self,
+        queryset: QuerySet[T],
+    ) -> tuple[str, str, frozenset[str]]:
+        """
+        Return:
+        - cache key
+        - short model name for tracing
+        - model names for invalidation index
+        """
+        model: Any = getattr(queryset, "model", None)
+        if model is None:
+            raise ValueError(
+                "Cannot generate cache key for QuerySet without a model"
+            )
+
+        db = str(getattr(queryset, "db", "default") or "default")
+        full_name, short_name, names = self._model_identifiers(model)
+
+        query: Any = getattr(queryset, "query", None)
+        if query is None:
+            raise ValueError("QuerySet has no query attribute")
+
+        sql_with_params: Any = getattr(query, "sql_with_params", None)
+
+        sql: str
+        params: Any
+
+        if callable(sql_with_params):
+            sql, params = cast("tuple[str, Any]", sql_with_params())
+        else:
+            sql, params = str(query), ()
+
+        key = f"nova:qs:{db}:{full_name}:{sql}:{params!r}"
+
+        return key, short_name, names
+
+    def _register_key(self, key: str, names: frozenset[str]) -> None:
+        state = self._state
+
+        with state.lock:
+            for name in names:
+                state.model_keys.setdefault(name, set()).add(key)
+
+            state.key_models.setdefault(key, set()).update(names)
+
+    #
+    # Public API
+    #
+
+    def get(self, queryset: QuerySet[T]) -> list[T] | None:
+        """
+        Return cached result or None on miss.
+        """
+        state = self._state
+        key, short_name, _ = self._generate_key(queryset)
+
+        with nova_span("nova.cache.lookup", model=short_name) as span:
+            cached: Any = state.backend.get(key)
+
             if cached is not None:
                 if span:
                     span.set_attribute("cache.outcome", "hit")
-                return cached
+                return cast("list[T]", cached)
 
             if span:
                 span.set_attribute("cache.outcome", "miss")
 
-        with nova_span("nova.cache.store", model=model_name) as span:
-            result = list(queryset)
-            self._backend.set(key, result, self._ttl)
-            self._model_keys.setdefault(model_name, set()).add(key)
-            if span:
-                span.set_attribute("cache.ttl", self._ttl)
+            return None
 
-        return result
+    def get_or_set(self, queryset: QuerySet[T]) -> list[T]:
+        """
+        Return cached result or execute query, cache it, with tracing.
+        """
+        state = self._state
+        key, short_name, names = self._generate_key(queryset)
 
-    def invalidate_model(self, model_name: str) -> int:
-        """Invalidate cached queries with tracing."""
-        with nova_span("nova.cache.invalidate", model=model_name) as span:
-            keys_to_remove = self._model_keys.pop(model_name, set())
+        with nova_span("nova.cache.lookup", model=short_name) as span:
+            cached: Any = state.backend.get(key)
 
-            for key in keys_to_remove:
-                self._backend.delete(key)
-
-            if keys_to_remove:
-                logger.info("cache_invalidate", model=model_name, evicted_count=len(keys_to_remove))
+            if cached is not None:
                 if span:
-                    span.set_attribute("cache.evicted_count", len(keys_to_remove))
+                    span.set_attribute("cache.outcome", "hit")
+                return cast("list[T]", cached)
 
-            return len(keys_to_remove)
+            if span:
+                span.set_attribute("cache.outcome", "miss")
+
+        with nova_span("nova.cache.store", model=short_name) as span:
+            result: list[Any] = list(queryset)
+
+            state.backend.set(key, result, ttl=state.ttl)
+            self._register_key(key, names)
+
+            if span:
+                span.set_attribute("cache.rows", len(result))
+
+            return cast("list[T]", result)
+
+    def invalidate_model(self, model_name: str, db: str = "default") -> int:
+        """
+        Invalidate all cached QuerySets for a model.
+
+        Returns number of deleted cache entries.
+        """
+        short_name = self._short_model_name(model_name)
+
+        with nova_span("nova.cache.invalidate", model=short_name) as span:
+            names = self._normalize_model_names(model_name)
+            if not names:
+                if span:
+                    span.set_attribute("cache.invalidated", 0)
+                return 0
+
+            match_all_dbs = db == "*"
+            prefix = "" if match_all_dbs else f"nova:qs:{db}:"
+
+            state = self._state
+
+            with state.lock:
+                keys: set[str] = set()
+
+                for name in names:
+                    bucket = state.model_keys.get(name)
+                    if not bucket:
+                        continue
+
+                    matched = {
+                        key
+                        for key in bucket
+                        if match_all_dbs or key.startswith(prefix)
+                    }
+
+                    if not matched:
+                        continue
+
+                    keys.update(matched)
+                    bucket.difference_update(matched)
+
+                    if not bucket:
+                        del state.model_keys[name]
+
+                if not keys:
+                    if span:
+                        span.set_attribute("cache.invalidated", 0)
+                    return 0
+
+                for key in keys:
+                    related_names = state.key_models.pop(key, set())
+
+                    for related_name in related_names:
+                        related_bucket = state.model_keys.get(related_name)
+
+                        if related_bucket is not None:
+                            related_bucket.discard(key)
+
+                            if not related_bucket:
+                                del state.model_keys[related_name]
+
+            deleted = 0
+
+            for key in keys:
+                try:
+                    if state.backend.delete(key):
+                        deleted += 1
+                except Exception:
+                    logger.warning(
+                        "Failed to delete cache key %s during model invalidation",
+                        key,
+                        exc_info=True,
+                    )
+
+            if deleted:
+                logger.debug(
+                    "Invalidated %d cache entries for %s",
+                    deleted,
+                    model_name,
+                )
+
+            if span:
+                span.set_attribute("cache.invalidated", deleted)
+
+            return deleted
+
+    def invalidate(self, model_name: str, db: str = "default") -> int:
+        """
+        Backward-compatible alias.
+        """
+        return self.invalidate_model(model_name, db)
 
     def clear(self) -> None:
-        self._backend.clear()
-        self._model_keys.clear()
-        logger.info("queryset_cache_cleared")
+        """
+        Clear the whole cache.
+        """
+        state = self._state
+
+        with state.lock:
+            try:
+                state.backend.clear()
+            except Exception:
+                logger.warning(
+                    "Failed to clear cache backend",
+                    exc_info=True,
+                )
+
+            state.model_keys.clear()
+            state.key_models.clear()
 
     @property
     def stats(self) -> dict[str, Any]:
-        # Cast removed: Protocol.stats() already returns dict[str, Any]
-        backend_stats = self._backend.stats()
-        backend_stats["tracked_models"] = len(self._model_keys)
-        return backend_stats
+        return self.get_stats()
+
+    def get_stats(self) -> dict[str, Any]:
+        """
+        Aggregate stats from the underlying backend.
+        """
+        state = self._state
+        stats_func: Any = getattr(state.backend, "stats", None)
+
+        if callable(stats_func):
+            return cast("dict[str, Any]", stats_func())
+
+        backend_name = getattr(state.backend, "backend_name", "unknown")
+
+        return {"backend": backend_name}
 
 
+#
+# Default cache state
+#
+
+_default_state: _QuerySetCacheState | None = None
 _default_cache: QuerySetCache[Any] | None = None
 
+
+def _get_default_state() -> _QuerySetCacheState:
+    """
+    Return shared default cache state.
+
+    Lazily creates a memory-backed cache so importing this module
+    never requires external services.
+    """
+    global _default_state
+
+    if _default_state is None:
+        from .backends.memory import MemoryCacheBackend
+
+        _default_state = _QuerySetCacheState(
+            backend=MemoryCacheBackend(),
+            ttl=300,
+        )
+
+    return _default_state
+
+
 def get_default_cache() -> QuerySetCache[Any]:
+    """
+    Return the process-wide default QuerySetCache.
+    """
     global _default_cache
+
     if _default_cache is None:
-        _default_cache = QuerySetCache(backend=MemoryCacheBackend(), ttl=120)
+        _default_cache = QuerySetCache(_state=_get_default_state())
+
     return _default_cache
 
-def cached_queryset(
-    cache: QuerySetCache[Any] | None = None,
-) -> Callable[[Callable[P, R]], Callable[P, R]]:
-    actual_cache = cache or get_default_cache()
-    def decorator(func: Callable[P, R]) -> Callable[P, R]:
-        @wraps(func)
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            result = func(*args, **kwargs)
-            if hasattr(result, "model") and hasattr(result, "query"):
-                return cast(R, actual_cache.get_or_set(cast("QuerySet[Any]", result)))
-            return result
-        return wrapper
-    return decorator
+
+def reset_default_cache() -> None:
+    """
+    Reset the default cache. Useful for tests.
+    """
+    global _default_cache
+    global _default_state
+
+    _default_cache = None
+    _default_state = None

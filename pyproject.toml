@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "django-nova"
-version = "0.5.1"
+version = "0.5.2"
 description = "Next-generation Django toolkit: typed ORM, unified validation, async-first workflows, and smart caching"
 readme = "README.md"
 license = { text = "MIT" }
@@ -154,3 +154,6 @@ exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",
 ]
+
+[tool.setuptools.package-data]
+nova = ["py.typed"]
