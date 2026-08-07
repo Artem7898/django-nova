@@ -499,7 +499,7 @@ $ uv run ruff check .
 All checks passed!
 
 $ uv run pytest -v
-94 passed, 7 skipped in 2.24s
+ 123 passed, 9 skipped in 2.16s
 
 $ uv run python scripts/bench.py
 Running 100,000 iterations (GC Disabled)...
@@ -519,7 +519,7 @@ Absolute Overhead: +1.187 µs
 
 > **Note:** The absolute penalty is only **1.187 microseconds** per object. You gain full ORM-level type safety, unified validation, deep tracing, cache abstraction, async query planning, distributed locks, rate limiting, and pub/sub — at the cost of a single microsecond.
 
-Test suite: **94 passed, 7 skipped in 2.24s**. Zero lint errors. Full `pyright --strict` compatibility.
+Test suite: **123 passed, 9 skipped in 2.16s**. Zero lint errors. Full `pyright --strict` compatibility.
 
 ---
 
@@ -1006,7 +1006,7 @@ $ uv run ruff check .
 All checks passed!
 
 $ uv run pytest -v
-94 passed, 7 skipped in 2.24s
+123 passed, 9 skipped in 2.16s
 
 $ uv run python scripts/bench.py
 Running 100,000 iterations (GC Disabled)...
@@ -1026,7 +1026,7 @@ Absolute Overhead: +1.187 µs
 
 > **Примечание:** Абсолютный штраф составляет всего **1.187 микросекунды** на объект. Вы получаете полную типобезопасность на уровне ORM, унифицированную валидацию, глубокую трассировку, кеш-абстракцию, async планировщик запросов, распределённые блокировки, rate limiting и pub/sub — за цену одной микросекунды.
 
-Тесты: **94 passed, 7 skipped за 2.24s**. Ноль ошибок линтера. Полная совместимость с `pyright --strict`.
+Тесты: ** 123 passed, 9 skipped in 2.16s**. Ноль ошибок линтера. Полная совместимость с `pyright --strict`.
 
 ---
 
