@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class _TaskPayload:
     """Internal structure to pass task metadata through the queue."""
+
     task_id: str
     func: TaskFunc
     args: tuple[Any, ...]
@@ -53,7 +54,9 @@ class AsyncioBackend:
 
             task_name = getattr(payload.func, "__name__", "unknown")
 
-            with nova_span("nova.task.execute", task_id=payload.task_id, task_name=task_name) as span:
+            with nova_span(
+                "nova.task.execute", task_id=payload.task_id, task_name=task_name
+            ) as span:
                 start_exec = time.perf_counter()
                 try:
                     res = await payload.func(*payload.args, **payload.kwargs)
@@ -73,7 +76,12 @@ class AsyncioBackend:
                             span.set_attribute("task.status", "RETRYING")
                             span.set_attribute("task.attempt", payload.attempts)
 
-                        logger.warning("Task %s failed, retrying %d/%d", payload.task_id, payload.attempts, payload.max_retries)
+                        logger.warning(
+                            "Task %s failed, retrying %d/%d",
+                            payload.task_id,
+                            payload.attempts,
+                            payload.max_retries,
+                        )
 
                         await asyncio.sleep(payload.retry_delay)
                         self._queue.put_nowait(payload)
@@ -84,7 +92,11 @@ class AsyncioBackend:
                         if span:
                             span.set_attribute("task.status", "FAILED")
                             span.set_attribute("task.attempts", payload.attempts + 1)
-                        logger.exception("Task %s failed permanently after %d attempts", payload.task_id, payload.max_retries + 1)
+                        logger.exception(
+                            "Task %s failed permanently after %d attempts",
+                            payload.task_id,
+                            payload.max_retries + 1,
+                        )
                 finally:
                     exec_time = (time.perf_counter() - start_exec) * 1000
                     if span:
@@ -112,7 +124,7 @@ class AsyncioBackend:
         delay: float = 0.0,
         max_retries: int = 0,
         retry_delay: float = 1.0,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> str:
         task_id = uuid.uuid4().hex
 
@@ -128,7 +140,7 @@ class AsyncioBackend:
                 kwargs=kwargs,
                 delay=delay,
                 max_retries=max_retries,
-                retry_delay=retry_delay
+                retry_delay=retry_delay,
             )
 
             self._queue.put_nowait(payload)

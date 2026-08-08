@@ -31,7 +31,7 @@ class NovaTaskEngine:
         delay: float = 0.0,
         max_retries: int = 0,
         retry_delay: float = 1.0,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> str:
         return self._backend.submit(
             func, *args, delay=delay, max_retries=max_retries, retry_delay=retry_delay, **kwargs
@@ -42,6 +42,7 @@ class NovaTaskEngine:
 
 
 _engine: NovaTaskEngine | None = None
+
 
 def get_engine() -> NovaTaskEngine:
     global _engine

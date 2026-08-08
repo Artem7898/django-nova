@@ -72,4 +72,5 @@ class NovaRateLimitError(NovaError):
 
 class NovaWarning(Warning):
     """Warning for non-fatal Nova issues."""
+
     pass

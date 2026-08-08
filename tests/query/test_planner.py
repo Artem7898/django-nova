@@ -38,10 +38,7 @@ class TestPlannerAnalysis:
 
     def test_respects_exclude_from_pydantic(self) -> None:
         """Planner must completely ignore fields listed in NovaConfig.exclude_from_pydantic."""
-        hints = analyze_schema_for_relations(
-            ArticleWithRelationsSchema,
-            exclude=("author",)
-        )
+        hints = analyze_schema_for_relations(ArticleWithRelationsSchema, exclude=("author",))
 
         assert "author" not in hints["select"]
         # Tags should still be detected

@@ -11,20 +11,26 @@ __all__ = [
     "RedisCacheBackend",
 ]
 
+
 def __getattr__(name: str) -> Any:
     if name == "CacheBackend":
         from nova.cache.backends.protocol import CacheBackend
+
         return CacheBackend
     if name == "MemoryCacheBackend":
         from nova.cache.backends.memory import MemoryCacheBackend
+
         return MemoryCacheBackend
     if name == "NullCacheBackend":
         from nova.cache.backends.null import NullCacheBackend
+
         return NullCacheBackend
     if name == "RedisCacheBackend":
         from nova.cache.backends.redis import RedisCacheBackend
+
         return RedisCacheBackend
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 if TYPE_CHECKING:
     from nova.cache.backends.memory import MemoryCacheBackend

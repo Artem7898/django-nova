@@ -21,7 +21,7 @@ class TaskBackend(Protocol):
         delay: float = 0.0,
         max_retries: int = 0,
         retry_delay: float = 1.0,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> str:
         """Submit a task and return its ID."""
         ...

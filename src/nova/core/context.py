@@ -77,6 +77,7 @@ def _sync_structlog_context(ctx: dict[str, Any]) -> None:
     """Pushes current context dict into structlog's internal contextvars."""
     try:
         import structlog
+
         structlog.contextvars.clear_contextvars()
         if ctx:
             structlog.contextvars.bind_contextvars(**ctx)

@@ -61,11 +61,7 @@ class MemoryCacheBackend(CacheBackend):
     def _purge_expired(self) -> None:
         now = self._now()
 
-        expired_keys = [
-            key
-            for key, entry in self._data.items()
-            if self._is_expired(entry, now)
-        ]
+        expired_keys = [key for key, entry in self._data.items() if self._is_expired(entry, now)]
 
         for key in expired_keys:
             del self._data[key]

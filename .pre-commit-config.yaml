@@ -1,0 +1,32 @@
+repos:
+  - repo: local
+    hooks:
+      - id: check-status
+        name: Check Honest Status
+        entry: python scripts/generate_status.py --check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      - id: check-readme-badge
+        name: Check README Coverage Badge
+        entry: python scripts/update_badge.py --check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      - id: pyright-project
+        name: Pyright (via uv)
+        entry: uv run pyright
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
+    hooks:
+      - id: ruff
+      - id: ruff-format

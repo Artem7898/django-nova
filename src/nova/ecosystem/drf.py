@@ -1,8 +1,44 @@
-"""Django Rest Framework Auto-Serializer integration."""
+"""
+Django REST Framework integration for Django Nova.
+
+Architecture
+------------
+
+                    Pydantic Schema
+                           │
+                           ▼
+                  ┌─────────────────┐
+                  │   DRF Adapter   │
+                  └─────────────────┘
+                           │
+                           ▼
+                    DRF Serializer
+                           │
+                           ▼
+                       NovaModel
+
+The Pydantic schema is the canonical data contract.
+
+DRF is a transport projection only. It must never introduce independent
+business validation rules.
+
+Validation ownership:
+
+    Pydantic
+        │
+        ├── business/data contract
+        │
+        └── projected into DRF
+
+    NovaModel.save()
+        │
+        └── authoritative ORM validation boundary
+"""
+
 from __future__ import annotations
 
 import collections.abc
-from typing import TYPE_CHECKING, Any, get_args, get_origin
+from typing import TYPE_CHECKING, Any, cast, get_args, get_origin
 
 from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
@@ -10,122 +46,264 @@ from pydantic import ValidationError as PydanticValidationError
 if TYPE_CHECKING:
     from nova.typing.models import NovaModel
 
-# --- Canonical Pyright-Safe Import Pattern ---
+
+# ---------------------------------------------------------------------------
+# Optional dependency boundary
+# ---------------------------------------------------------------------------
+#
+# DRF is deliberately optional.
+#
+# The dependency is imported dynamically so that Nova core remains usable
+# without Django REST Framework installed.
+#
+# Any is confined to this integration boundary and never becomes part of
+# Nova's domain/core API.
+# ---------------------------------------------------------------------------
+
 try:
     import rest_framework as _drf_module
-    _drf_available = True
 except ImportError:
-    _drf_module = None  # type: ignore[assignment, misc]
-    _drf_available = False
+    _drf_module: Any = None
 
-# Assigning the MODULE to Any prevents Unknown cascades on missing package
-drf: Any = _drf_module
-# --------------------------------------------------------
 
-def _resolve_drf_fields(model_cls: type[NovaModel], schema: type[BaseModel]) -> dict[str, str]:
-    """Maps Pydantic schema fields to valid DRF/Django field names."""
-    field_mapping: dict[str, str] = {}
+DRF_AVAILABLE: bool = _drf_module is not None
 
-    for field_name, field_info in schema.model_fields.items():
-        annotation = field_info.annotation
-        origin = get_origin(annotation)
 
-        is_nested = False
-        if isinstance(annotation, type) and issubclass(annotation, BaseModel):
-            is_nested = True
-        elif origin in (list, collections.abc.Container, collections.abc.Iterable):
-            args = get_args(annotation)
-            if args and isinstance(args[0], type) and issubclass(args[0], BaseModel):
-                is_nested = True
+# ---------------------------------------------------------------------------
+# Schema resolution
+# ---------------------------------------------------------------------------
 
-        if is_nested:
-            try:
-                django_field = model_cls._meta.get_field(field_name)
-                target_field = getattr(django_field, 'attname', field_name)
-                field_mapping[target_field] = field_name
-            except Exception:
-                field_mapping[field_name] = field_name
+
+def _get_schema(model_cls: type[NovaModel]) -> type[BaseModel]:
+    """
+    Resolve the canonical Pydantic schema from NovaConfig.
+
+    No schema is inferred from DRF.
+
+    No validation rules are created here.
+    """
+    config = getattr(model_cls, "_nova_config", None)
+
+    if config is None:
+        raise ValueError(f"Model {model_cls.__name__} requires _nova_config.")
+
+    schema = getattr(config, "pydantic_schema", None)
+
+    if schema is None:
+        raise ValueError(f"Model {model_cls.__name__} requires pydantic_schema in _nova_config.")
+
+    return cast(type[BaseModel], schema)
+
+
+# ---------------------------------------------------------------------------
+# Schema metadata
+# ---------------------------------------------------------------------------
+
+
+def _is_nested_schema(annotation: Any) -> bool:
+    """
+    Determine whether an annotation contains another Pydantic model.
+
+    This is metadata inspection only.
+
+    It does not introduce validation semantics.
+    """
+    if isinstance(annotation, type):
+        try:
+            if issubclass(annotation, BaseModel):
+                return True
+        except TypeError:
+            return False
+
+    origin = get_origin(annotation)
+
+    if origin in (
+        list,
+        tuple,
+        set,
+        collections.abc.Sequence,
+        collections.abc.Iterable,
+        collections.abc.Container,
+    ):
+        args = get_args(annotation)
+
+        if not args:
+            return False
+
+        return _is_nested_schema(args[0])
+
+    return False
+
+
+def _resolve_serializer_fields(
+    model_cls: type[NovaModel],
+    schema: type[BaseModel],
+) -> list[str]:
+    """
+    Resolve DRF serializer fields from the Pydantic schema.
+
+    Pydantic is authoritative.
+
+    Django metadata is consulted only to prevent exposing fields that do not
+    exist on the persistence model.
+    """
+    model_fields = {
+        field.name for field in model_cls._meta.get_fields() if hasattr(field, "attname")
+    }
+
+    fields: list[str] = [
+        field_name for field_name in schema.model_fields if field_name in model_fields
+    ]
+
+    # Preserve normal ModelSerializer instance semantics by including the
+    # primary key when Django has one but the Pydantic contract does not.
+    primary_key = model_cls._meta.pk
+
+    if primary_key.name not in fields:
+        fields.insert(0, primary_key.name)
+
+    return fields
+
+
+# ---------------------------------------------------------------------------
+# Validation bridge
+# ---------------------------------------------------------------------------
+
+
+def _build_validation_payload(
+    serializer: Any,
+    attrs: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Build the complete Pydantic validation payload.
+
+    For creates:
+        payload = incoming attributes
+
+    For updates:
+        payload = existing canonical state + incoming attributes
+
+    The second form is essential because cross-field Pydantic validators
+    must see the complete object rather than only changed fields.
+    """
+    instance = getattr(serializer, "instance", None)
+
+    if instance is None:
+        return dict(attrs)
+
+    try:
+        current_schema = instance.to_pydantic()
+        payload = current_schema.model_dump()
+    except Exception:
+        # This is not a fallback validation implementation.
+        #
+        # We only need a representation of the current state so that the
+        # canonical Pydantic schema can perform the actual validation.
+        payload = instance.to_dict()
+
+    payload.update(attrs)
+
+    return payload
+
+
+def _translate_pydantic_errors(
+    exc: PydanticValidationError,
+) -> dict[str, list[str]]:
+    """
+    Convert Pydantic errors into DRF's error representation.
+
+    The semantic error remains a Pydantic error.
+
+    This function only performs transport translation.
+    """
+    errors: dict[str, list[str]] = {}
+
+    for error in exc.errors():
+        location = error.get("loc", ())
+
+        if not location:
+            field_name = "non_field_errors"
         else:
-            field_mapping[field_name] = field_name
+            first = location[0]
+            field_name = "non_field_errors" if first == "__root__" else str(first)
 
-    pk_field_name = model_cls._meta.pk.name
-    if pk_field_name not in field_mapping:
-        field_mapping[pk_field_name] = pk_field_name
+        message = str(error.get("msg", "Validation error"))
 
-    return field_mapping
+        errors.setdefault(field_name, []).append(message)
+
+    return errors
 
 
-def to_drf_serializer(model_cls: type[NovaModel]) -> Any:
-    """Generates a DRF ModelSerializer bound to the Pydantic schema."""
-    if not _drf_available:
-        raise ImportError("djangorestframework must be installed to use to_drf_serializer")
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
 
-    config = getattr(model_cls, '_nova_config', None)
-    if not config:
-        raise ValueError(f"Model {model_cls.__name__} requires _nova_config")
 
-    pydantic_schema = getattr(config, 'pydantic_schema', None)
-    if not pydantic_schema:
-        raise ValueError(f"Model {model_cls.__name__} requires pydantic_schema in _nova_config")
+def to_drf_serializer(model_cls: type[NovaModel]) -> type[Any]:
+    """
+    Compile a NovaModel into a DRF ModelSerializer.
 
-    drf_to_pydantic_map = _resolve_drf_fields(model_cls, pydantic_schema)
-    drf_fields = list(drf_to_pydantic_map.keys())
+    The generated serializer is a projection of the canonical Pydantic
+    contract.
 
-    def pydantic_validate(self: Any, attrs: dict[str, Any]) -> dict[str, Any]:
-        """Intercepts DRF pipeline and validates via Pydantic."""
-        base_payload: dict[str, Any] = {}
-        if getattr(self, 'partial', False) and self.instance is not None:
-            for db_field in drf_fields:
-                if hasattr(self.instance, db_field):
-                    base_payload[db_field] = getattr(self.instance, db_field)
+    It does not become another source of truth.
+    """
+    if not DRF_AVAILABLE or _drf_module is None:
+        raise ImportError("djangorestframework must be installed to use to_drf_serializer().")
 
-        base_payload.update(attrs)
+    schema = _get_schema(model_cls)
+    serializer_fields = _resolve_serializer_fields(model_cls, schema)
 
-        pydantic_payload: dict[str, Any] = {}
-        for db_field, value in base_payload.items():
-            pydantic_field = drf_to_pydantic_map.get(db_field, db_field)
+    serializers_module: Any = _drf_module.serializers
 
-            pydantic_field_info = pydantic_schema.model_fields.get(pydantic_field)
-            if pydantic_field_info:
-                ann = pydantic_field_info.annotation
-                is_nested_pydantic = isinstance(ann, type) and issubclass(ann, BaseModel)
+    def validate(
+        self: Any,
+        attrs: dict[str, Any],
+    ) -> dict[str, Any]:
+        """
+        Validate transport data through the canonical Pydantic schema.
 
-                if is_nested_pydantic and isinstance(value, (int, str)):
-                    continue
+        This validation is intentionally performed at the transport
+        boundary as an early feedback mechanism.
 
-            pydantic_payload[pydantic_field] = value
+        NovaModel.save() remains the authoritative ORM validation boundary.
+        """
+        payload = _build_validation_payload(self, attrs)
 
         try:
-            pydantic_schema.model_validate(pydantic_payload, from_attributes=True)
+            schema.model_validate(
+                payload,
+                from_attributes=True,
+            )
         except PydanticValidationError as exc:
-            drf_errors: dict[str, list[str]] = {}
-            pydantic_to_drf_map = {v: k for k, v in drf_to_pydantic_map.items()}
-
-            # Pydantic is a hard dependency, so exc.errors() has strict typing!
-            for err in exc.errors():
-                loc = err.get("loc", ("non_field_errors",))
-                pydantic_field_name = str(loc[0]) if loc and loc[0] != "__root__" else "non_field_errors"
-                api_field_name = pydantic_to_drf_map.get(pydantic_field_name, pydantic_field_name)
-                msg = err.get("msg", "Validation error")
-                drf_errors.setdefault(api_field_name, []).append(msg)
-
-            raise drf.serializers.ValidationError(drf_errors) from exc
-        except Exception as exc:
-            raise drf.serializers.ValidationError({"non_field_errors": [str(exc)]}) from exc
+            raise serializers_module.ValidationError(_translate_pydantic_errors(exc)) from exc
 
         return attrs
 
     serializer_name = f"{model_cls.__name__}Serializer"
-    meta_attrs = {"model": model_cls, "fields": drf_fields}
 
-    return type(
-        serializer_name,
-        (drf.serializers.ModelSerializer,),
+    meta_class = type(
+        "Meta",
+        (),
         {
-            "Meta": type("Meta", (), meta_attrs),
-            "validate": pydantic_validate,
+            "model": model_cls,
+            "fields": serializer_fields,
         },
     )
 
+    serializer_class = type(
+        serializer_name,
+        (serializers_module.ModelSerializer,),
+        {
+            "Meta": meta_class,
+            "validate": validate,
+        },
+    )
 
-DRF_AVAILABLE = _drf_available
+    return cast(type[Any], serializer_class)
+
+
+__all__ = [
+    "DRF_AVAILABLE",
+    "to_drf_serializer",
+]

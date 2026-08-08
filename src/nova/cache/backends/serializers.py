@@ -16,11 +16,9 @@ class CacheSerializer(Protocol):
     Contract for cache payload serializers.
     """
 
-    def dumps(self, value: Any) -> bytes:
-        ...
+    def dumps(self, value: Any) -> bytes: ...
 
-    def loads(self, value: bytes) -> Any:
-        ...
+    def loads(self, value: bytes) -> Any: ...
 
 
 class PickleSerializer:

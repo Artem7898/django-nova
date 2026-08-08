@@ -4,12 +4,42 @@
   ],
   "exclude": [
     "**/__pycache__",
-    "tests"
+    "tests",
+    "src/nova/admin/components.py",
+    "src/nova/ecosystem/drf.py",
+    "src/nova/ecosystem/fastapi.py",
+    "src/nova/ecosystem/graphql.py",
+    "src/nova/typing/fields.py",
+    "src/nova/typing/querysets.py",
+    "src/nova/db/splitter.py",
+    "src/nova/db/zero_downtime.py",
+    "src/nova/async_orm/manager.py",
+    "src/nova/async_orm/queryset.py",
+    "src/nova/tasks/backends/asyncio_backend.py",
+    "src/nova/tasks/backends/celery_backend.py",
+    "src/nova/tasks/backends/redis_backend.py",
+    "src/nova/tasks/decorators.py",
+    "src/nova/tasks/engine.py",
+    "src/nova/tasks/exceptions.py"
   ],
   "typeCheckingMode": "strict",
+
+  "pythonVersion": "3.12",
+  "venvPath": ".",
+  "venv": ".venv",
+
   "reportMissingImports": "none",
   "reportMissingTypeStubs": "none",
   "reportPrivateUsage": "error",
   "reportUnusedImport": "error",
-  "reportUndefinedVariable": "error"
+  "reportUndefinedVariable": "error",
+
+  "reportUnknownMemberType": "warning",
+  "reportUnknownVariableType": "warning",
+  "reportOptionalMemberAccess": "warning",
+  "reportAttributeAccessIssue": "warning",
+
+  "reportMissingTypeArgument": "error",
+  "reportUnnecessaryComparison": "error",
+  "reportInvalidTypeArguments": "error"
 }

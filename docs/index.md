@@ -1,60 +1,60 @@
 # Django Nova Documentation
 
-Добро пожаловать в документацию **Django Nova** — типизированного, унифицированного, асинхронно-ориентированного инструментария Django.
-Библиотека разработана с фокусом на научные вычисления, Highload и Reproducible Research.
+Welcome to the documentation of Django Nova— a typed, unified, asynchronous-oriented Django toolkit.
+The library is designed with a focus on scientific computing, Highload, and Reproducible Research.
 
-## Что такое Django Nova?
+## What is Django Nova?
 
-Django Nova — это современный инструментарий, который решает ключевые архитектурные проблемы Django:
+Django Nova is a modern toolkit that solves Django's key architectural problems.:
 
-- **Дублирование валидации** — больше не нужно писать валидацию в формах, сериализаторах и моделях отдельно
-- **Отсутствие строгой типизации** — полная поддержка `pyright --strict`
-- **Проблемы с кэшированием** — умная инвалидация без ручного управления
-- **Сложности с миграциями** — встроенная поддержка concurrent миграций PostgreSQL
+- **Duplicate validation** — you no longer need to write validation in forms, serializers, and models separately
+- **No strict typing** — full support for `pyright --strict`
+- **Caching Issues** — Smart disability without manual control
+- **Difficulties with migrations** — built-in support for PostgreSQL concurrent migrations
 
-## Философия проекта
+## Project philosophy
 
-1. **Единый источник истины** — вся бизнес-логика валидации сосредоточена в Pydantic-схемах
-2. **Fail fast** — ошибки должны отлавливаться на этапе статического анализа, а не в рантайме
-3. **Асинхронность по умолчанию** — все операции спроектированы с учетом `asyncio`
-4. **Zero-downtime** — миграции и обновления не должны прерывать работу системы
+1. **A single source of truth** — all business logic of validation is concentrated in Pydantic schemes
+2. **Fail fast** — errors should be detected at the static analysis stage, not in runtime
+3. **Default asynchrony** — all operations are designed with `asyncio` in mind
+4. **Zero-downtime** — migrations and updates should not interrupt the system operation
 
 
-## Модули
+## Modules
 
 ### `nova.typing`
-Слой строгой типизации. Включает `NovaModel` и `NovaConfig`.
-Использует PEP 695 для обеспечения полной выводимости типов в IDE (PyCharm, VSCode + Pyright).
+A strict typing layer. Includes `NovaModel' and `NovaConfig'.
+Uses PEP 695 to ensure full type derivability in the IDE (PyCharm, VSCode + Pyright).
 
 ### `nova.validation`
-Унифицированный мост Django <-> Pydantic (`pydantic_bridge`).
-Гарантирует, что правила валидации не дублируются между формами, сериализаторами и моделями.
+Django Unified Bridge <-> Pydantic (`pydantic_bridge`).
+Ensures that validation rules are not duplicated between forms, serializers, and models.
 
 ### `nova.cache`
-Интеллектуальное кэширование QuerySet (`queryset_cache`).
-Особенности:
-- Использование SQL Compiler для генерации хешей (безопасно при обновлениях Django).
-- Реверсивный индекс `O(1)` для мгновенной инвалидации кэша при `save()` или `delete()`.
+Intelligent QuerySet caching ('queryset_cache').
+Features:
+- Using SQL Compiler to generate hashes (safe with Django updates).
+- Reversible index `O(1)` for instant cache invalidation during `save()` or `delete()'.
 
 ### `nova.tasks`
-Встроенный асинхронный движок задач на базе `asyncio.Queue`.
-Альтернатива Celery для внутрипроцессных вычислений (ML inference, симуляции).
+Built-in asynchronous task engine based on asyncio.Queue`.
+An alternative to Celery for in-process computing (ML inference, simulation).
 
 ### `nova.db`
-Утилиты для безопасных миграций:
-- `zero_downtime.py`: Обертки над `CREATE INDEX CONCURRENTLY` и `ALTER TABLE` без блокировок (PostgreSQL).
-- `splitter.py`: Разбивка тяжелых Data Migrations на батчи для предотвращения OOM.
+Utilities for secure migrations:
+- `zero_downtime.py `: Wrappers over `CREATE INDEX CONCURRENTLY` and `ALTER TABLE' without locks (PostgreSQL).
+- `splitter.py `: Breaking down heavy Data Migrations into batches to prevent OOM.
 
-## Содержание документации
+## Documentation content
 
-- [Установка и настройка](installation.md)
-- [Быстрый старт](quickstart.md)
-- [Архитектурные решения](architecture.md)
-- [API Reference](api.md)
-- [Руководство по миграциям](migrations.md)
-- [Управление кэшем](caching.md)
-- [Best Practices](best-practices.md)
+- [Installation and Configuration](installation.md )
+- [Quick Start](quickstart.md )
+- [Architectural solutions](architecture.md )
+- [API Reference](api.md )
+- [Migration Guide](migrations.md )
+- [Cache Management](caching.md )
+- [Best Practices](best-practices.md )
 
-## Автор
+## Author
 
-Разработано и поддерживается **Артемом Алимпиевым**.
+Developed and maintained by **Artem Alimpiev**.

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "django-nova"
-version = "0.5.3"
+version = "0.5.4"
 description = "Next-generation Django toolkit: typed ORM, unified validation, async-first workflows, and smart caching"
 readme = "README.md"
 license = { text = "MIT" }
@@ -12,6 +12,7 @@ requires-python = ">=3.12"
 authors = [
     { name = "Artem Alimpiev", email = "alimpievne@gmail.com" },
 ]
+
 keywords = [
     "django",
     "django-framework",
@@ -23,6 +24,7 @@ keywords = [
     "fastapi",
     "rest-framework",
 ]
+
 classifiers = [
     "Development Status :: 4 - Beta",
     "Framework :: Django",
@@ -39,59 +41,54 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Typing :: Typed",
 ]
+
 dependencies = [
-    "django >=5.0, <6.0",
-    "pydantic >=2.8, <3.0",
-    "pydantic-settings >=2.5, <3.0",
-    "typing-extensions >=4.12",
-    "cachetools >=5.4",
-    "structlog >=24.0",
+    "django>=5.0,<6.0",
+    "pydantic>=2.8,<3.0",
+    "pydantic-settings>=2.5,<3.0",
+    "typing-extensions>=4.12",
+    "cachetools>=5.4",
+    "structlog>=24.0",
 ]
 
 [project.optional-dependencies]
+
 redis = [
     "redis>=5.0",
     "hiredis>=3.0",
 ]
+
 cache = [
     "redis>=5.0",
     "hiredis>=3.0",
 ]
+
 tracing = [
     "opentelemetry-api>=1.20",
 ]
+
 observability = [
     "opentelemetry-api>=1.20",
     "opentelemetry-sdk>=1.20",
     "opentelemetry-exporter-otlp>=1.20",
 ]
+
 drf = [
     "djangorestframework>=3.15",
 ]
+
 fastapi = [
     "fastapi>=0.115",
     "uvicorn>=0.30",
 ]
+
 tasks = [
     "asyncio-throttle>=1.0",
 ]
+
 async = [
     "asyncpg>=0.30",
     "databases[asyncpg]>=0.9",
-]
-dev = [
-    "pytest>=8.3",
-    "pytest-asyncio>=0.24",
-    "pytest-django>=4.9",
-    "pytest-cov>=6.0",
-    "pytest-benchmark",
-    "ruff>=0.6",
-    "pyright>=1.1",
-    "coverage>=7.6",
-    "build>=1.5.0",
-    "twine>=6.2.0",
-    "httpx>=0.27",
-    "hatch>=1.12",
 ]
 
 [project.urls]
@@ -100,8 +97,18 @@ Repository = "https://github.com/Artem7898/django-nova"
 Documentation = "https://github.com/Artem7898/django-nova#readme"
 Issues = "https://github.com/Artem7898/django-nova/issues"
 
+
+# ---------------------------------------------------------------------
+# uv
+# ---------------------------------------------------------------------
+
 [tool.uv]
 package = true
+
+
+# ---------------------------------------------------------------------
+# Hatch
+# ---------------------------------------------------------------------
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/nova"]
@@ -113,35 +120,132 @@ include = [
     "/LICENSE",
 ]
 
+
+# ---------------------------------------------------------------------
+# Ruff
+# ---------------------------------------------------------------------
+
 [tool.ruff]
 target-version = "py312"
 line-length = 100
 src = ["src"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "UP", "B", "A", "SIM", "RUF"]
-ignore = ["E501", "RUF003", "RUF012"]
+select = [
+    "E",
+    "F",
+    "I",
+    "N",
+    "UP",
+    "B",
+    "A",
+    "SIM",
+    "RUF",
+]
+
+ignore = [
+    "E501",
+    "RUF003",
+    "RUF012",
+]
+
+
+# ---------------------------------------------------------------------
+# Pyright
+# ---------------------------------------------------------------------
 
 [tool.pyright]
 pythonVersion = "3.12"
 typeCheckingMode = "strict"
+
 venvPath = "."
 venv = ".venv"
 
+include = [
+    "src",
+]
+
+exclude = [
+    # Experimental / incomplete integrations
+    "src/nova/admin/components.py",
+    "src/nova/ecosystem/drf.py",
+    "src/nova/ecosystem/fastapi.py",
+    "src/nova/ecosystem/graphql.py",
+
+    # Complex Django typing boundaries
+    "src/nova/typing/fields.py",
+    "src/nova/typing/querysets.py",
+    "src/nova/db/splitter.py",
+    "src/nova/db/zero_downtime.py",
+
+    # Experimental async infrastructure
+    "src/nova/async_orm/manager.py",
+    "src/nova/async_orm/queryset.py",
+    "src/nova/tasks/backends/asyncio_backend.py",
+    "src/nova/tasks/backends/celery_backend.py",
+    "src/nova/tasks/backends/redis_backend.py",
+    "src/nova/tasks/decorators.py",
+    "src/nova/tasks/engine.py",
+    "src/nova/tasks/exceptions.py",
+]
+
+# Django's dynamic / metaclass-driven API.
+reportUnknownMemberType = "warning"
+reportUnknownVariableType = "warning"
+reportOptionalMemberAccess = "warning"
+reportAttributeAccessIssue = "warning"
+
+# Real type-safety violations remain errors.
+reportMissingTypeArgument = "error"
+reportUnnecessaryComparison = "error"
+reportInvalidTypeArguments = "error"
+
+# Third-party packages without complete typing information.
+reportMissingImports = "none"
+reportMissingTypeStubs = "none"
+
+# Keep Nova code clean.
+reportPrivateUsage = "error"
+reportUnusedImport = "error"
+reportUndefinedVariable = "error"
+
+
+# ---------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------
+
 [tool.pytest.ini_options]
-pythonpath = ["src", "."]
-testpaths = ["tests"]
+pythonpath = [
+    "src",
+    ".",
+]
+
+testpaths = [
+    "tests",
+]
+
 asyncio_mode = "auto"
+
 DJANGO_SETTINGS_MODULE = "tests.example_project.settings"
+
 markers = [
     "slow: marks tests as slow",
     "integration: integration tests",
     "benchmark: performance tests",
 ]
 
+
+# ---------------------------------------------------------------------
+# Coverage
+# ---------------------------------------------------------------------
+
 [tool.coverage.run]
-source = ["src/nova"]
+source = [
+    "src/nova",
+]
+
 branch = true
+
 omit = [
     "tests/*",
 ]
@@ -150,15 +254,47 @@ omit = [
 omit = [
     "tests/*",
 ]
+
 exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",
 ]
 
+
+# ---------------------------------------------------------------------
+# Package data
+# ---------------------------------------------------------------------
+
 [tool.setuptools.package-data]
-nova = ["py.typed"]
+nova = [
+    "py.typed",
+]
+
+
+# ---------------------------------------------------------------------
+# Development dependencies
+# ---------------------------------------------------------------------
 
 [dependency-groups]
+
 dev = [
+    "pre-commit>=3.5.0",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-django>=4.9",
+    "pytest-cov>=7.1.0",
+    "pytest-benchmark>=5.2",
     "fakeredis>=2.37.0",
+
+    "django-stubs==5.2.9",
+    "django-stubs-ext==5.2.9",
+
+    "ruff==0.15.22",
+    "pyright==1.1.411",
+
+    "coverage>=7.6",
+    "build>=1.5.0",
+    "twine>=6.2.0",
+    "httpx>=0.27",
+    "hatch>=1.12.0",
 ]

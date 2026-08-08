@@ -11,4 +11,6 @@ class CeleryBackend:
     """Placeholder for Celery-based task queue."""
 
     def __init__(self, app_name: str = "nova", **kwargs: Any) -> None:
-        raise TaskBackendError("Celery backend is not yet implemented. Please use 'asyncio' backend.")
+        raise TaskBackendError(
+            "Celery backend is not yet implemented. Please use 'asyncio' backend."
+        )

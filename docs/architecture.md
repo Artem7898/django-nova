@@ -2,9 +2,9 @@
 ### `docs/architecture.md`
 
 ```markdown
-# Архитектура Django Nova
+# Django Nova Architecture
 
-## Общая схема
+## The general scheme
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
@@ -15,7 +15,7 @@
                         ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                   Validation Layer (Pydantic)               │
-│         Единый источник истины для всех операций            │
+│         A single source of truth for all operations         │
 └───────────────────────┬─────────────────────────────────────┘
                         │
                         ▼

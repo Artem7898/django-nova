@@ -1,0 +1,41 @@
+site_name: Django Nova
+site_url: https://artem7898.github.io/django-nova
+repo_url: https://github.com/Artem7898/django-nova
+
+theme:
+  name: material
+  features:
+    - navigation.expand
+    - navigation.indexes
+    - content.code.copy
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_if_no_docstring: true
+            show_signature_annotations: true
+            separate_signature: true
+
+nav:
+  - Home: index.md
+  - Status: status.md
+  - API Reference:
+      - Core: api/core.md
+      - Validation: api/validation.md
+      - Cache: api/cache.md
+      - Query: api/query.md
+      - Ecosystem: api/ecosystem.md
+      - DB: api/db.md
+      - Redis: api/redis.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Artem7898/django-nova

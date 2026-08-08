@@ -1,4 +1,5 @@
 """Django System Checks for Nova Infrastructure."""
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -11,8 +12,7 @@ from django.core.checks import Warning as DjangoWarning
 
 @register("nova")
 def check_nova_infrastructure(
-    app_configs: Sequence[AppConfig] | None = None,
-    **kwargs: Any
+    app_configs: Sequence[AppConfig] | None = None, **kwargs: Any
 ) -> list[CheckMessage]:
     from django.apps import apps
 
@@ -31,7 +31,7 @@ def check_nova_infrastructure(
     # CHECK W001
     for model in models:
         if issubclass(model, NovaModel) and not model._meta.abstract:
-            config = getattr(model, '_nova_config', None)
+            config = getattr(model, "_nova_config", None)
             if config and config.cache_enabled and not config.pydantic_schema:
                 issues.append(
                     DjangoWarning(
@@ -45,6 +45,7 @@ def check_nova_infrastructure(
     if nova_settings.cache_backend == "redis":
         try:
             from nova.redis.health import check_redis_health
+
             report = check_redis_health()
 
             if not report.is_healthy:
