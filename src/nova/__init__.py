@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-__version__ = "0.5.2"
+__version__ = "0.5.3"
 
 __all__ = [
     "CacheBackend",

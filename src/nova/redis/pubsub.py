@@ -1,5 +1,6 @@
 """
 Async Pub/Sub facade for real-time inter-process communication.
+
 Useful for invalidating caches across multiple Gunicorn/Uvicorn workers.
 """
 
@@ -18,27 +19,43 @@ class AsyncNovaPubSub:
     Wrapper around redis.asyncio.PubSub for typed event streaming.
     """
 
-    def __init__(self, channel_name: str) -> None:
+    def __init__(
+        self,
+        channel_name: str,
+        *,
+        client: Any | None = None,
+    ) -> None:
         self.channel_name = f"nova:pubsub:{channel_name}"
+        self._client = client
+
+    async def _get_client(self) -> Any:
+        if self._client is not None:
+            return self._client
+
+        from nova.redis.client import get_async_redis_client
+
+        return get_async_redis_client()
 
     async def publish(self, data: dict[str, Any]) -> None:
-        """Publish an event to the channel."""
-        from nova.redis.client import get_async_redis_client
-        client = get_async_redis_client()
-        await client.publish(self.channel_name, json.dumps(data))
+        """
+        Publish an event to the channel.
+        """
+        client = await self._get_client()
+
+        await client.publish(
+            self.channel_name,
+            json.dumps(data),
+        )
 
     async def listen(self) -> AsyncIterator[dict[str, Any]]:
         """
         Async generator that yields messages as they arrive.
-        Usage:
-            async for event in pubsub.listen():
-                handle(event)
         """
-        from nova.redis.client import get_async_redis_client
-        client = get_async_redis_client()
+        client = await self._get_client()
         pubsub = client.pubsub()
 
         await pubsub.subscribe(self.channel_name)
+
         try:
             async for message in pubsub.listen():
                 if message["type"] == "message":
