@@ -1,12 +1,15 @@
 """
 Memcached cache backend.
 
-Requires pymemcache.
+Requires pymemcache for production usage.
+Supports dependency injection for contract testing.
 """
 
 from __future__ import annotations
 
 import importlib
+import math
+import time
 from collections.abc import Callable, Mapping
 from datetime import timedelta
 from typing import Any, Protocol, cast
@@ -25,13 +28,13 @@ class _MemcachedClient(Protocol):
     def get(self, key: str) -> bytes | None:
         ...
 
-    def set(self, key: str, value: bytes, expire: int = 0) -> bool:
+    def set(self, key: str, value: bytes, expire: int = 0) -> Any:
         ...
 
-    def delete(self, key: str) -> bool:
+    def delete(self, key: str) -> Any:
         ...
 
-    def flush_all(self) -> bool:
+    def flush_all(self) -> Any:
         ...
 
 
@@ -46,56 +49,124 @@ except ImportError:
     _pymemcache_base = None
 
 if _pymemcache_base is not None:
-    _client_cls: Any = getattr(_pymemcache_base, "Client", None)
+    _client_cls: object = getattr(_pymemcache_base, "Client", None)
 
     if _client_cls is not None:
         PyMemcacheClient = cast(_MemcachedClientFactory, _client_cls)
         _memcached_available = True
 
 
+_MISSING: object = object()
+
+
 class MemcachedCacheBackend(CacheBackend):
-    """Memcached cache backend."""
+    """
+    Memcached cache backend.
+
+    Supports dependency injection:
+
+        MemcachedCacheBackend(client=fake_client)
+
+    Sub-second TTL is enforced at application level because memcached
+    expire granularity is one second.
+    """
 
     _serializer: CacheSerializer
 
-    def __init__(self, server: str = "127.0.0.1:11211") -> None:
-        if not _memcached_available or PyMemcacheClient is None:
-            raise ImportError(
-                "pymemcache is required for MemcachedCacheBackend"
-            )
+    def __init__(
+        self,
+        server: str = "127.0.0.1:11211",
+        *,
+        client: _MemcachedClient | None = None,
+    ) -> None:
+        if client is None:
+            if not _memcached_available or PyMemcacheClient is None:
+                raise ImportError(
+                    "pymemcache is required for MemcachedCacheBackend"
+                )
 
-        self._client: _MemcachedClient = PyMemcacheClient((server,))
+            client = PyMemcacheClient((server,))
+
+        self._client: _MemcachedClient = client
         self._serializer = PickleSerializer()
 
-    def _get_expire(self, ttl: TTL) -> int:
+    #
+    # Internal helpers
+    #
+
+    def _ttl_seconds(self, ttl: TTL) -> float | None:
         if ttl is None:
-            return 0
-
-        if isinstance(ttl, timedelta):
-            return int(ttl.total_seconds())
-
-        return int(ttl)
-
-    def _serialize(self, value: Any) -> bytes:
-        return self._serializer.dumps(value)
-
-    def _deserialize(self, raw: bytes | None) -> Any:
-        if raw is None:
             return None
 
-        return self._serializer.loads(raw)
+        if isinstance(ttl, timedelta):
+            return ttl.total_seconds()
+
+        return float(ttl)
+
+    def _memcached_expire(self, ttl: TTL) -> int:
+        seconds = self._ttl_seconds(ttl)
+
+        if seconds is None:
+            return 0
+
+        if seconds <= 0:
+            return 0
+
+        return max(1, math.ceil(seconds))
+
+    def _pack(self, value: Any, ttl: TTL) -> bytes:
+        seconds = self._ttl_seconds(ttl)
+
+        expires_at: float | None = (
+            None if seconds is None else time.monotonic() + seconds
+        )
+
+        return self._serializer.dumps((expires_at, value))
+
+    def _unpack(self, raw: bytes | None) -> Any:
+        if raw is None:
+            return _MISSING
+
+        loaded: object = self._serializer.loads(raw)
+
+        if not isinstance(loaded, tuple):
+            return _MISSING
+
+        envelope = cast("tuple[object, ...]", loaded)
+
+        if len(envelope) != 2:
+            return _MISSING
+
+        expires_at: object = envelope[0]
+        value: object = envelope[1]
+
+        if expires_at is not None:
+            if not isinstance(expires_at, (int, float)):
+                return _MISSING
+
+            if time.monotonic() >= float(expires_at):
+                return _MISSING
+
+        return value
+
+    #
+    # Core operations
+    #
 
     def get(self, key: str, default: Any | None = None) -> Any | None:
         raw = self._client.get(key)
+        value = self._unpack(raw)
 
-        if raw is None:
+        if value is _MISSING:
             return default
 
-        return self._deserialize(raw)
+        return value
 
     def set(self, key: str, value: Any, *, ttl: TTL = None) -> None:
-        val = self._serialize(value)
-        self._client.set(key, val, expire=self._get_expire(ttl))
+        payload = self._pack(value, ttl)
+        expire = self._memcached_expire(ttl)
+
+        self._client.set(key, payload, expire=expire)
 
     def delete(self, key: str) -> bool:
         return bool(self._client.delete(key))
@@ -103,24 +174,29 @@ class MemcachedCacheBackend(CacheBackend):
     def clear(self) -> None:
         self._client.flush_all()
 
+    #
+    # Bulk operations
+    #
+
     def get_many(self, keys: list[str]) -> Mapping[str, Any]:
-        return {k: self.get(k) for k in keys}
+        return {key: self.get(key) for key in keys}
 
     def set_many(self, values: Mapping[str, Any], *, ttl: TTL = None) -> None:
-        expire = self._get_expire(ttl)
-
-        for k, v in values.items():
-            val = self._serialize(v)
-            self._client.set(k, val, expire=expire)
+        for key, value in values.items():
+            self.set(key, value, ttl=ttl)
 
     def delete_many(self, keys: list[str]) -> int:
         count = 0
 
-        for k in keys:
-            if self.delete(k):
+        for key in keys:
+            if self.delete(key):
                 count += 1
 
         return count
+
+    #
+    # Introspection
+    #
 
     @property
     def backend_name(self) -> str:
@@ -145,6 +221,6 @@ class MemcachedCacheBackend(CacheBackend):
         return {
             "backend": self.backend_name,
             "currsize": self.size(),
-            "maxsize": -1,
+            "maxsize": None,
             "ttl": None,
         }

@@ -1,5 +1,6 @@
 """
 Distributed Rate Limiter using Redis Sliding Window algorithm.
+
 Uses atomic Lua scripts to prevent race conditions under high concurrency.
 """
 
@@ -7,10 +8,10 @@ from __future__ import annotations
 
 import time
 import uuid
+from typing import Any
 
 from nova.core.exceptions import NovaRateLimitError
 
-# Lua script executed atomically inside Redis
 _SLIDING_WINDOW_LUA = """
 local key = KEYS[1]
 local window = tonumber(ARGV[1])
@@ -38,67 +39,90 @@ end
 
 
 async def async_check_rate_limit(
-        key: str,
-        limit: int,
-        window_secs: int,
+    key: str,
+    limit: int,
+    window_secs: int,
+    *,
+    client: Any | None = None,
 ) -> bool:
     """
     Async rate limit check using the unified async Redis client.
+
     Returns True if allowed, raises NovaRateLimitError if rejected.
     """
-    from nova.redis.client import get_async_redis_client
+    active_client: Any
 
-    client = get_async_redis_client()
+    if client is None:
+        from nova.redis.client import get_async_redis_client
+
+        active_client = get_async_redis_client()
+    else:
+        active_client = client
+
     full_key = f"nova:rl:{key}"
     now = time.time()
     request_id = str(uuid.uuid4())
 
-    # eval returns an integer (1 or 0)
-    allowed = await client.eval(
+    allowed = await active_client.eval(
         _SLIDING_WINDOW_LUA,
-        1,  # Number of keys
-        full_key,  # KEY[1]
-        window_secs,  # ARGV[1]
-        limit,  # ARGV[2]
-        now,  # ARGV[3]
-        request_id  # ARGV[4]
+        1,
+        full_key,
+        window_secs,
+        limit,
+        now,
+        request_id,
     )
 
     if not allowed:
         raise NovaRateLimitError(
             f"Rate limit exceeded for '{key}'",
             limit=limit,
-            window_secs=window_secs
+            window_secs=window_secs,
         )
 
     return True
 
 
 def check_rate_limit(
-        key: str,
-        limit: int,
-        window_secs: int,
+    key: str,
+    limit: int,
+    window_secs: int,
+    *,
+    client: Any | None = None,
 ) -> bool:
     """
     Sync rate limit check using the unified sync Redis client.
+
     Useful in WSGI middleware or synchronous tasks.
     """
-    from nova.redis.client import get_redis_client
+    active_client: Any
 
-    client = get_redis_client()
+    if client is None:
+        from nova.redis.client import get_redis_client
+
+        active_client = get_redis_client()
+    else:
+        active_client = client
+
     full_key = f"nova:rl:{key}"
     now = time.time()
     request_id = str(uuid.uuid4())
 
-    allowed = client.eval(
-        _SLIDING_WINDOW_LUA, 1, full_key, window_secs, limit, now, request_id
+    allowed = active_client.eval(
+        _SLIDING_WINDOW_LUA,
+        1,
+        full_key,
+        window_secs,
+        limit,
+        now,
+        request_id,
     )
 
     if not allowed:
         raise NovaRateLimitError(
             f"Rate limit exceeded for '{key}'",
             limit=limit,
-            window_secs=window_secs
+            window_secs=window_secs,
         )
 
     return True
