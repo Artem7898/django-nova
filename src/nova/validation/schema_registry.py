@@ -10,6 +10,7 @@ class SchemaRegistry:
     Strictly typed registry for generated Pydantic schemas.
     Key is strictly the Django Model class.
     """
+
     _schemas: dict[type[Any], type[BaseModel]] = {}
 
     @classmethod

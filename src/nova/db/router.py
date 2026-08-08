@@ -39,6 +39,7 @@ class _ReplicaLagTracker:
     Prevents Redis network overhead on every database query by using local caching
     and Double-Checked Locking pattern.
     """
+
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._lag_ms: float = 0.0
@@ -63,6 +64,7 @@ class _ReplicaLagTracker:
         """Fetches lag from Redis. Fails safely to infinity (forces Master read)."""
         try:
             from nova.redis.client import get_redis_client
+
             client = get_redis_client()
             # We expect an external monitor (for example, pg_stat_replication) to write a number here
             lag_val = client.get("nova:replica_lag")
@@ -70,7 +72,7 @@ class _ReplicaLagTracker:
         except Exception:
             # FAIL-SAFE: If Redis is unreachable, we assume replica is unhealthy
             # to prevent serving stale data. Route all traffic to Master.
-            self._lag_ms = float('inf')
+            self._lag_ms = float("inf")
 
     def is_healthy(self) -> bool:
         """Check if current lag is within acceptable bounds."""
@@ -88,6 +90,7 @@ def report_replica_lag(lag_ms: float) -> None:
     """
     try:
         from nova.redis.client import get_redis_client
+
         client = get_redis_client()
         # Set with TTL slightly higher than check interval to auto-cleanup if monitor dies
         ttl = max(2, int(nova_settings.replica_lag_check_interval_ms / 1000) + 1)
@@ -112,7 +115,6 @@ class NovaDatabaseRouter:
             return nova_settings.replica_db_alias
         return None
 
-
     def db_for_write(self, model: Any, **hints: Any) -> str | None:
         """
         Routes writes to Master.
@@ -121,10 +123,8 @@ class NovaDatabaseRouter:
         replica_state.clear_replica_state()
         return None
 
-
     def allow_relation(self, obj: Any, model1: Any, model2: Any) -> bool | None:
         return None
-
 
     def allow_migrate(self, db: str, app_label: str, model_name: str | None = None) -> bool | None:
         return None

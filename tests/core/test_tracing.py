@@ -47,6 +47,7 @@ class TestTracingSafeImport:
             patch("nova.core.tracing.trace", None),
             patch("nova.core.tracing.OTEL_AVAILABLE", False),
         ):
+
             @trace_model("save")
             def my_func():
                 return "original"
@@ -72,8 +73,10 @@ class TestNovaSpanLifecycle:
         mock_span, mock_tracer = self._setup_mock_span()
 
         #  WITH (SIM117)
-        with patch("nova.core.tracing.trace.get_tracer", return_value=mock_tracer), \
-                nova_span("success.op") as span:
+        with (
+            patch("nova.core.tracing.trace.get_tracer", return_value=mock_tracer),
+            nova_span("success.op") as span,
+        ):
             assert span is not None
 
         mock_span.set_status.assert_called_once()
@@ -87,9 +90,11 @@ class TestNovaSpanLifecycle:
         test_error = ValueError("DB Constraint failed")
 
         #  WITH (SIM117)
-        with patch("nova.core.tracing.trace.get_tracer", return_value=mock_tracer), \
-                pytest.raises(ValueError, match="DB Constraint failed"), \
-                nova_span("fail.op") as span:
+        with (
+            patch("nova.core.tracing.trace.get_tracer", return_value=mock_tracer),
+            pytest.raises(ValueError, match="DB Constraint failed"),
+            nova_span("fail.op") as span,
+        ):
             assert span is not None
             raise test_error
 
@@ -115,6 +120,7 @@ class TestTracingDecorators:
         _, mock_tracer = self._setup_mock_span()  #  (RUF059)
 
         with patch("nova.core.tracing.trace.get_tracer", return_value=mock_tracer):
+
             @trace_model(operation="save")
             def save_article():
                 return "saved"
@@ -129,6 +135,7 @@ class TestTracingDecorators:
         _, mock_tracer = self._setup_mock_span()  #  (RUF059)
 
         with patch("nova.core.tracing.trace.get_tracer", return_value=mock_tracer):
+
             @trace_cache(operation="invalidate")
             def clear_cache():
                 pass
@@ -141,6 +148,7 @@ class TestTracingDecorators:
         _, mock_tracer = self._setup_mock_span()  #  (RUF059)
 
         with patch("nova.core.tracing.trace.get_tracer", return_value=mock_tracer):
+
             @trace_validation(schema_name="ArticleSchema")
             def validate():
                 return True
@@ -153,6 +161,7 @@ class TestTracingDecorators:
         mock_span, mock_tracer = self._setup_mock_span()
 
         with patch("nova.core.tracing.trace.get_tracer", return_value=mock_tracer):
+
             @trace_task(operation="heavy_job")
             def run_task():
                 raise RuntimeError("Task crashed")

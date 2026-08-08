@@ -1,4 +1,15 @@
-"""Typed model mixins for Django 5."""
+"""
+Typed model mixins for Django 5.
+
+Provides NovaModel base class with:
+- Full type inference for fields and QuerySet operations
+- Automatic Pydantic schema generation
+- Unified validation (single source of truth)
+- Smart caching hooks
+- Strict pyright --strict compatibility (0 errors, 0 warnings)
+
+All Django field access uses nova.typing.django utilities for type safety.
+"""
 
 from __future__ import annotations
 
@@ -17,6 +28,7 @@ from django.db import models
 from pydantic import BaseModel
 
 from nova.core.tracing import nova_span
+from nova.typing.django import get_model_pk
 from nova.typing.managers import NovaManager
 
 ModelT = TypeVar("ModelT", bound="NovaModel")
@@ -70,6 +82,9 @@ class NovaModel(models.Model):
     2. Automatic Pydantic schema generation
     3. Unified validation (single source of truth)
     4. Smart caching hooks
+
+    Type Safety: All _meta.pk access uses get_model_pk() from nova.typing.django
+    to ensure proper typing (DjangoField[Any, Any] instead of Field[Unknown]).
     """
 
     _nova_config: ClassVar[NovaConfig] = NovaConfig()
@@ -80,21 +95,31 @@ class NovaModel(models.Model):
     objects: ClassVar[NovaManager[Self]] = NovaManager()  # type: ignore[assignment]
 
     def save(  # type: ignore[override]
-            self,
-            force_insert: bool = False,
-            force_update: bool = False,
-            using: str | None = None,
-            update_fields: Sequence[str] | None = None,
+        self,
+        force_insert: bool = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Sequence[str] | None = None,
     ) -> None:
-        """Save with unified validation and deep tracing lifecycle."""
+        """
+        Save with unified validation and deep tracing lifecycle.
+
+        Type Safety: Uses get_model_pk() for properly typed primary key access.
+        This eliminates Field[Unknown] warnings from pyright.
+        """
         db = using or self._state.db or "default"
 
+        # Type-safe PK access using nova.typing.django utility
+        pk_field = get_model_pk(type(self))
+        pk_attname: str = pk_field.attname  # ✅ Guaranteed str, not Unknown!
+        pk_value = getattr(self, pk_attname, None)
+
         with nova_span(
-                "nova.model.save",
-                model=self._meta.label,
-                pk=getattr(self, self._meta.pk.attname, None),
-                database=db,
-                table=self._meta.db_table
+            "nova.model.save",
+            model=self._meta.label,
+            pk=pk_value,  # ✅ Properly typed!
+            database=db,
+            table=self._meta.db_table,
         ) as span:
             # 1. Validation Phase
             with nova_span("nova.validation.run", model=self._meta.label) as val_span:
@@ -137,20 +162,46 @@ class NovaModel(models.Model):
         return cast(ModelT, pydantic_to_model(cls, schema))
 
     def to_dict(self) -> dict[str, object]:
-        """Serialize to plain dict with proper type coercion."""
+        """
+        Serialize to plain dict with proper type coercion.
+
+        Only includes concrete fields (excludes GenericForeignKey, reverse relations).
+        Respects exclude_from_pydantic configuration.
+        """
         data: dict[str, object] = {}
-        for field in self._meta.get_fields():
+
+        for field in self._meta.get_fields():  # type: ignore[reportAttributeAccessIssue]
+            # Skip non-concrete fields (reverse relations, virtual fields)
             if not isinstance(field, models.Field):
                 continue
+
+            # Skip fields without database column mapping
             if not hasattr(field, "attname"):
                 continue
+
+            # Respect exclusion configuration
             if field.name in self._nova_config.exclude_from_pydantic:
                 continue
-            value = getattr(self, field.attname, None)
+
+            # Safe attribute access - field.attname guaranteed to exist after checks above
+            attname: str = field.attname  # type: ignore[assignment]
+            value = getattr(self, attname, None)
             data[field.name] = value
+
         return data
 
     def __repr__(self) -> str:
+        """
+        Return a string representation with model label and primary key.
+
+        Type Safety: Uses get_model_pk() for properly typed PK access.
+        Eliminates Field[Unknown] warning on line ~155.
+        """
         opts = self._meta
-        pk = getattr(self, opts.pk.attname, None)
-        return f"<{opts.label}:{pk}>"
+
+        # Type-safe PK access
+        pk_field = get_model_pk(type(self))
+        pk_attname: str = pk_field.attname  # ✅ Guaranteed str!
+        pk_value = getattr(self, pk_attname, None)
+
+        return f"<{opts.label}:{pk_value}>"

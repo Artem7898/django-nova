@@ -1,10 +1,19 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
+from dataclasses import dataclass
 
 import pytest
 
 from nova.cache.backends.protocol import CacheBackend
+
+
+@dataclass(frozen=True)
+class CacheBackendExpectation:
+    target: str
+    factory: Callable[[], CacheBackend]
+    supports_ttl: bool
 
 
 class CacheBackendContract:
@@ -15,11 +24,28 @@ class CacheBackendContract:
     All test_* methods contain the ACTUAL assertions. Subclasses should NOT override them.
     """
 
+    def __init__(self, expectation: CacheBackendExpectation | None = None):
+        self._expectation = expectation
+
     def create_backend(self) -> CacheBackend:
         """
         Return a fresh, isolated backend instance for the test.
         """
+        if self._expectation is not None:
+            # If we use the new style via expectation, we create a backend from the factory
+            return self._expectation.factory()
+
         raise NotImplementedError("Subclasses must provide a backend instance")
+
+    def run_all(self) -> None:
+        """
+        Runs all test_* methods for the passed expectation.
+        """
+        for name in dir(self):
+            if name.startswith("test_"):
+                method = getattr(self, name)
+                if callable(method):
+                    method()
 
     #
     # Core CRUD behavior

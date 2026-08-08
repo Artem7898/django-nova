@@ -47,8 +47,9 @@ class TestObservabilitySetup:
         assert parsed_log["cache_key"] == "abc123"
         assert "timestamp" in parsed_log
 
-
-    def test_correlation_id_flows_automatically_to_logs(self, caplog: pytest.LogCaptureFixture) -> None:
+    def test_correlation_id_flows_automatically_to_logs(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """
         CONTEXT INTEGRATION TEST:
         Binding to nova.context must automatically inject fields into structlog JSON.

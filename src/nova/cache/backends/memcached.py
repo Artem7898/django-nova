@@ -25,17 +25,13 @@ class _MemcachedClient(Protocol):
     Django Nova only depends on the operations it actually uses.
     """
 
-    def get(self, key: str) -> bytes | None:
-        ...
+    def get(self, key: str) -> bytes | None: ...
 
-    def set(self, key: str, value: bytes, expire: int = 0) -> Any:
-        ...
+    def set(self, key: str, value: bytes, expire: int = 0) -> Any: ...
 
-    def delete(self, key: str) -> Any:
-        ...
+    def delete(self, key: str) -> Any: ...
 
-    def flush_all(self) -> Any:
-        ...
+    def flush_all(self) -> Any: ...
 
 
 _MemcachedClientFactory = Callable[..., _MemcachedClient]
@@ -81,9 +77,7 @@ class MemcachedCacheBackend(CacheBackend):
     ) -> None:
         if client is None:
             if not _memcached_available or PyMemcacheClient is None:
-                raise ImportError(
-                    "pymemcache is required for MemcachedCacheBackend"
-                )
+                raise ImportError("pymemcache is required for MemcachedCacheBackend")
 
             client = PyMemcacheClient((server,))
 
@@ -117,9 +111,7 @@ class MemcachedCacheBackend(CacheBackend):
     def _pack(self, value: Any, ttl: TTL) -> bytes:
         seconds = self._ttl_seconds(ttl)
 
-        expires_at: float | None = (
-            None if seconds is None else time.monotonic() + seconds
-        )
+        expires_at: float | None = None if seconds is None else time.monotonic() + seconds
 
         return self._serializer.dumps((expires_at, value))
 
@@ -141,7 +133,7 @@ class MemcachedCacheBackend(CacheBackend):
         value: object = envelope[1]
 
         if expires_at is not None:
-            if not isinstance(expires_at, (int, float)):
+            if not isinstance(expires_at, int | float):
                 return _MISSING
 
             if time.monotonic() >= float(expires_at):
