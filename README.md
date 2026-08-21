@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/django-nova-logo.png" width="280" alt="Django Nova Logo">
+<img src="assets/django-nova-logo.png" width="250" alt="Django Nova Logo">
 
 
 # Django Nova
