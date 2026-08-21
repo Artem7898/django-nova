@@ -1,0 +1,55 @@
+name: Docs & Status
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: |
+          pip install uv
+          uv sync --all-extras
+          uv pip install mkdocs-material mkdocstrings[python]
+
+      - name: Run tests with coverage
+        run: uv run pytest --cov=src/nova --cov-report=xml --cov-report=term
+
+      - name: Generate honest status
+        run: uv run python scripts/generate_status.py --write
+
+      - name: Update README badge
+        run: uv run python scripts/update_badge.py --write
+
+      # Если решите включить автокоммит, используйте PAT только здесь:
+      # - name: Commit updated status (if changed)
+      #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      #   run: |
+      #     git config user.name "github-actions[bot]"
+      #     git config user.email "github-actions[bot]@users.noreply.github.com"
+      #     git add STATUS.md README.md
+      #     git diff --cached --quiet || git commit -m "docs: auto-update status & coverage [skip ci]"
+      #     git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }} main
+
+      - name: Build MkDocs
+        run: uv run mkdocs build
+
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site

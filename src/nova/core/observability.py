@@ -6,6 +6,7 @@ from typing import Any
 # --- Safe Import Block (Architecture Freeze compliant) ---
 try:
     import structlog
+
     _structlog_available = True
 except ImportError:
     # Pyright stub to prevent cascade `None` type failures

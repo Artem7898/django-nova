@@ -1,4 +1,3 @@
-
 """
 Validation correctness suite for the Nova ORM validation contract.
 
@@ -342,12 +341,8 @@ class TestValidationOrdering:
             end_date=date(2024, 1, 1),
         )
 
-        with patch(
-            "nova.validation.unified.validate_model_instance"
-        ) as validate:
-            validate.side_effect = NovaValidationError(
-                "Forced Pydantic failure"
-            )
+        with patch("nova.validation.unified.validate_model_instance") as validate:
+            validate.side_effect = NovaValidationError("Forced Pydantic failure")
 
             with pytest.raises(
                 NovaValidationError,
@@ -364,13 +359,16 @@ class TestValidationOrdering:
         """
         obj = UniqueModel(code="SAFE-CODE")
 
-        with patch.object(
-            obj,
-            "to_pydantic",
-            side_effect=RuntimeError("simulated infrastructure failure"),
-        ), pytest.raises(
-            RuntimeError,
-            match="simulated infrastructure failure",
+        with (
+            patch.object(
+                obj,
+                "to_pydantic",
+                side_effect=RuntimeError("simulated infrastructure failure"),
+            ),
+            pytest.raises(
+                RuntimeError,
+                match="simulated infrastructure failure",
+            ),
         ):
             obj.save()
 
@@ -405,9 +403,7 @@ class TestStrictValidationCompatibility:
         with patch.object(
             obj,
             "to_pydantic",
-            side_effect=AssertionError(
-                "Pydantic validation must not run in compatibility mode"
-            ),
+            side_effect=AssertionError("Pydantic validation must not run in compatibility mode"),
         ):
             obj.save()
 
@@ -448,9 +444,7 @@ class TestORMWritePaths:
 
         StrictFalseModel.objects.bulk_create(objects)
 
-        assert StrictFalseModel.objects.filter(
-            value__in=[10, 20]
-        ).count() == 2
+        assert StrictFalseModel.objects.filter(value__in=[10, 20]).count() == 2
 
     def test_bulk_update_bypasses_model_save(self) -> None:
         objects = [
@@ -467,10 +461,9 @@ class TestORMWritePaths:
         )
 
         values = set(
-            StrictFalseModel.objects.filter(
-                pk__in=[obj.pk for obj in objects]
-            ).values_list("value", flat=True)
+            StrictFalseModel.objects.filter(pk__in=[obj.pk for obj in objects]).values_list(
+                "value", flat=True
+            )
         )
 
         assert values == {-10, -20}
-

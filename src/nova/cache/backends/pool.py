@@ -29,9 +29,7 @@ def get_redis_pool(url: str) -> Any:
         raise ValueError("Redis URL must not be empty")
 
     if not REDIS_AVAILABLE or _redis_module is None:
-        raise ImportError(
-            'No Redis dependencies were found. Run: pip install "django-nova[cache]"'
-        )
+        raise ImportError('No Redis dependencies were found. Run: pip install "django-nova[cache]"')
 
     return _redis_module.ConnectionPool.from_url(
         url,

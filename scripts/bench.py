@@ -3,16 +3,17 @@ Stable baseline benchmark script.
 Disables GC to show real algorithmic performance without Python's pauses.
 Run: uv run python scripts/bench.py
 """
+
 import gc
 import os
 import sys
 import timeit
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.join(current_dir, '..')
+project_root = os.path.join(current_dir, "..")
 
-sys.path.insert(0, os.path.join(project_root, 'src'))
-sys.path.insert(0, os.path.join(project_root, 'tests'))
+sys.path.insert(0, os.path.join(project_root, "src"))
+sys.path.insert(0, os.path.join(project_root, "tests"))
 
 
 import django  # noqa: E402
@@ -47,6 +48,7 @@ class BenchSchema(BaseModel):
             raise ValueError("h-index cannot be negative")
         return v
 
+
 class BenchNovaModel(NovaModel):
     name = models.CharField(max_length=300)
     h_index = models.IntegerField(default=0)
@@ -66,16 +68,12 @@ print(f"Running {ITERATIONS:,} iterations (GC Disabled)...\n")
 
 
 pydantic_time = timeit.timeit(
-    "BenchSchema(name='Artem', h_index=42)",
-    globals=globals(),
-    number=ITERATIONS
+    "BenchSchema(name='Artem', h_index=42)", globals=globals(), number=ITERATIONS
 )
 
 
 nova_time = timeit.timeit(
-    "BenchNovaModel(name='Artem', h_index=42)",
-    globals=globals(),
-    number=ITERATIONS
+    "BenchNovaModel(name='Artem', h_index=42)", globals=globals(), number=ITERATIONS
 )
 
 

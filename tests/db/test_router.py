@@ -58,10 +58,10 @@ class TestNovaDatabaseRouter:
         router = NovaDatabaseRouter()
         replica_state.set_read_from_replica()
 
-
-        with patch("nova.db.router.nova_settings.replica_db_alias", "replica_db_mock"), \
-             patch("nova.db.router._lag_tracker") as mock_lag_tracker:
-
+        with (
+            patch("nova.db.router.nova_settings.replica_db_alias", "replica_db_mock"),
+            patch("nova.db.router._lag_tracker") as mock_lag_tracker,
+        ):
             # We simulate that the replica is healthy (lag is within the normal range)
             mock_lag_tracker.is_healthy.return_value = True
 

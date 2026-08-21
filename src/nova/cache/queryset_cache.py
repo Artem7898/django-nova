@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from threading import RLock
 from typing import Any, cast
 
+from django.db import models as django_models
 from django.db.models.query import QuerySet
 
 from ..core.tracing import nova_span
@@ -45,7 +46,7 @@ class _QuerySetCacheState:
     key_models: dict[str, set[str]] = field(default_factory=_key_models_factory)
 
 
-class QuerySetCache[T]:
+class QuerySetCache[T: django_models.Model]:
     """
     Signal-driven QuerySet cache with model-level invalidation.
     """
@@ -124,9 +125,7 @@ class QuerySetCache[T]:
         """
         meta: Any = getattr(model, "_meta", None)
         if meta is None:
-            raise ValueError(
-                "Cannot generate cache key for QuerySet without a model"
-            )
+            raise ValueError("Cannot generate cache key for QuerySet without a model")
 
         app_label = str(getattr(meta, "app_label", "") or "")
         short_name = str(getattr(meta, "model_name", "") or "").lower()
@@ -151,9 +150,7 @@ class QuerySetCache[T]:
         """
         model: Any = getattr(queryset, "model", None)
         if model is None:
-            raise ValueError(
-                "Cannot generate cache key for QuerySet without a model"
-            )
+            raise ValueError("Cannot generate cache key for QuerySet without a model")
 
         db = str(getattr(queryset, "db", "default") or "default")
         full_name, short_name, names = self._model_identifiers(model)
@@ -266,11 +263,7 @@ class QuerySetCache[T]:
                     if not bucket:
                         continue
 
-                    matched = {
-                        key
-                        for key in bucket
-                        if match_all_dbs or key.startswith(prefix)
-                    }
+                    matched = {key for key in bucket if match_all_dbs or key.startswith(prefix)}
 
                     if not matched:
                         continue

@@ -21,6 +21,7 @@ RedisError: type[Exception]
 try:
     from redis.exceptions import RedisError as _RedisError  # pyright: ignore[reportMissingImports]
 except ImportError:
+
     class _FallbackRedisError(Exception):
         pass
 
@@ -139,9 +140,7 @@ class RedisCacheBackend(CacheBackend):
     def clear(self) -> None:
         try:
             if not self._key_prefix:
-                raise NovaCacheError(
-                    "Cannot clear Redis safely without a key_prefix."
-                )
+                raise NovaCacheError("Cannot clear Redis safely without a key_prefix.")
 
             pattern = f"{self._key_prefix}:*"
             cursor = 0
@@ -256,9 +255,7 @@ class RedisCacheBackend(CacheBackend):
             info = self._client.info(section="memory")
 
             used_mem = (
-                info.get("used_memory_human", "Unknown")
-                if hasattr(info, "get")
-                else "Unknown"
+                info.get("used_memory_human", "Unknown") if hasattr(info, "get") else "Unknown"
             )
 
             return {

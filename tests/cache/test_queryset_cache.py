@@ -62,7 +62,6 @@ class TestQuerySetCache:
         cache: QuerySetCache[CachedItem] = QuerySetCache(backend=MemoryCacheBackend(maxsize=100))
         stats = cache.stats
 
-
         assert stats["maxsize"] == 100
         assert stats["ttl"] == 60
         assert stats["currsize"] == 0

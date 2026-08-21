@@ -21,6 +21,7 @@ RedisError: type[Exception]
 try:
     from redis.exceptions import RedisError as _RedisError  # pyright: ignore[reportMissingImports]
 except ImportError:
+
     class _FallbackRedisError(Exception):
         pass
 
@@ -100,9 +101,7 @@ class AsyncRedisCacheBackend(AsyncCacheBackend):
         return self._serializer.loads(raw)
 
     def _handle_redis_error(self, exc: Exception) -> None:
-        raise NovaCacheError(
-            f"Async Redis backend operation failed: {exc}"
-        ) from exc
+        raise NovaCacheError(f"Async Redis backend operation failed: {exc}") from exc
 
     #
     # Core operations
@@ -147,9 +146,7 @@ class AsyncRedisCacheBackend(AsyncCacheBackend):
     async def clear(self) -> None:
         try:
             if not self._key_prefix:
-                raise NovaCacheError(
-                    "Cannot clear Redis safely without a key_prefix."
-                )
+                raise NovaCacheError("Cannot clear Redis safely without a key_prefix.")
 
             pattern = f"{self._key_prefix}:*"
             cursor = 0

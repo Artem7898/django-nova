@@ -11,4 +11,6 @@ class RedisBackend:
     """Placeholder for Redis-based task queue."""
 
     def __init__(self, url: str = "redis://localhost:6379/0", **kwargs: Any) -> None:
-        raise TaskBackendError("Redis backend is not yet implemented. Please use 'asyncio' backend.")
+        raise TaskBackendError(
+            "Redis backend is not yet implemented. Please use 'asyncio' backend."
+        )

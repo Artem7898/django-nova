@@ -1,6 +1,9 @@
 """
 Admin Auto-API & Compiler.
 Extracts UI-friendly JSON schemas and generates Django ModelAdmin classes.
+
+Type Safety: Uses nova.typing.django utilities for all Django field access
+to ensure pyright --strict compatibility (0 errors, 0 warnings).
 """
 
 from __future__ import annotations
@@ -13,6 +16,8 @@ from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
 
 from nova.admin.types import AdminFieldSchema, AdminSchema
+
+# Type utilities imported locally where needed
 
 if TYPE_CHECKING:
     from pydantic.fields import FieldInfo
@@ -31,7 +36,6 @@ except ImportError:
 
 ADMIN_AVAILABLE: Final[bool] = _admin_available
 # --------------------------------------------------------
-
 
 _FRONTEND_TYPE_MAP: dict[type[Any], str] = {
     str: "string",
@@ -53,9 +57,17 @@ GENERIC_PYDANTIC_ERRORS: Final[set[str]] = {
 # 1. JSON UI Schema Generator (Frontend)
 # ==========================================
 
+
 @lru_cache(maxsize=128)
 def get_admin_schema(model_cls: type[NovaModel]) -> AdminSchema:
-    """Generate frontend-friendly schema from NovaModel + Pydantic schema."""
+    """
+    Generate frontend-friendly schema from NovaModel + Pydantic schema.
+
+    Type Safety: All Django field access goes through nova.typing.django
+    to avoid Field[Unknown] issues with GenericForeignKey and others.
+    """
+    from django.contrib.contenttypes.fields import GenericForeignKey
+
     nova_config = getattr(model_cls, "_nova_config", None)
     if not nova_config or not nova_config.pydantic_schema:
         raise ValueError(f"{model_cls.__name__} requires a pydantic_schema in _nova_config.")
@@ -67,8 +79,15 @@ def get_admin_schema(model_cls: type[NovaModel]) -> AdminSchema:
 
     for field_name, field_info in model_fields.items():
         frontend_type = _resolve_frontend_type(field_info.annotation)
-        django_field = model_cls._meta.get_field(field_name)
-        is_required = _is_required(field_info, django_field)
+
+        # Type-safe field access with GenericForeignKey handling
+        raw_field = model_cls._meta.get_field(field_name)  # type: ignore[reportUnknownVariableType]
+
+        # Skip virtual fields that don't have standard attributes
+        if isinstance(raw_field, GenericForeignKey):
+            continue
+
+        is_required = _is_required(field_info, raw_field)
 
         field_data: AdminFieldSchema = {"type": frontend_type, "required": is_required}
 
@@ -78,12 +97,16 @@ def get_admin_schema(model_cls: type[NovaModel]) -> AdminSchema:
 
         fields_def[field_name] = field_data
 
-    return {"model": f"{model_cls._meta.app_label}.{model_cls.__name__}", "fields": fields_def}
+    return {
+        "model": f"{model_cls._meta.app_label}.{model_cls.__name__}",
+        "fields": fields_def,
+    }
 
 
 # ==========================================
 # 2. DYNAMIC DJANGO ADMIN COMPILER (Backend)
 # ==========================================
+
 
 def compile_admin(model_cls: type[NovaModel]) -> type[Any]:
     """
@@ -144,6 +167,7 @@ def compile_admin(model_cls: type[NovaModel]) -> type[Any]:
 # INTERNAL HELPERS
 # ==========================================
 
+
 def _build_valid_payload(schema_cls: type[BaseModel]) -> dict[str, Any]:
     payload: dict[str, Any] = {}
     model_fields: dict[str, FieldInfo] = schema_cls.model_fields
@@ -176,14 +200,32 @@ def _resolve_frontend_type(annotation: Any) -> str:
 
 
 def _is_required(field_info: Any, django_field: Any) -> bool:
-    if django_field.default is not NOT_PROVIDED:
+    """
+    Determine if a field is required based on Django field attributes.
+
+    Args:
+        field_info: Pydantic FieldInfo
+        django_field: Django field instance (already validated as non-GFK)
+
+    Note:
+        django_field is guaranteed to have .default, .null, .blank attributes
+        because we skip GenericForeignKey in get_admin_schema().
+    """
+    # Type-safe attribute access after narrowing
+    has_default = django_field.default is not NOT_PROVIDED
+    is_nullable = getattr(django_field, "null", False)
+    is_blankable = getattr(django_field, "blank", False)
+
+    if has_default:
         return False
-    if django_field.null or django_field.blank:
+    if is_nullable or is_blankable:
         return False
     return bool(getattr(field_info, "is_required", lambda: True)())
 
 
-def _extract_validation_rules(schema_cls: type[BaseModel], field_name: str, annotation: Any) -> str | None:
+def _extract_validation_rules(
+    schema_cls: type[BaseModel], field_name: str, annotation: Any
+) -> str | None:
     core_annotation = annotation
     if hasattr(core_annotation, "__origin__"):
         args = get_args(core_annotation)

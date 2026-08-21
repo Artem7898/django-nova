@@ -37,7 +37,7 @@ def find_deep_relations(
     schema: type[BaseModel],
     path_prefix: str = "",
     visited: set[type[BaseModel]] | None = None,
-    exclude: set[str] | None = None
+    exclude: set[str] | None = None,
 ) -> dict[str, list[str]]:
     """Recursively analyzes the Pydantic schema to find nested relationships."""
     current_visited: set[type[BaseModel]] = visited if visited is not None else set()
@@ -82,7 +82,7 @@ def find_deep_relations(
                 schema=resolved_type,
                 path_prefix=full_field_path,
                 visited=current_visited,
-                exclude=current_exclude
+                exclude=current_exclude,
             )
 
             selects.extend(nested_hints["select"])

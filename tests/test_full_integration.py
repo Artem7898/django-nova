@@ -58,8 +58,6 @@ async def test_task_engine():
     await engine.stop()
 
 
-
-
 @pytest.mark.asyncio
 async def test_task_delayed_execution():
     """we verify that the task has delay=0.2 is not executed immediately."""
@@ -74,6 +72,7 @@ async def test_task_delayed_execution():
         return "done"
 
     import time
+
     start = time.time()
     task_id = engine.submit(track_time_task, delay=0.2)
 

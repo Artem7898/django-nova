@@ -1,15 +1,15 @@
-# Установка и настройка
+# Installation and configuration
 
-## Системные требования
+## System requirements
 
-- **Python**: 3.11 или выше
+- **Python**: 3.11 or higher
 - **Django**: 5.0+
-- **База данных**: PostgreSQL 14+
-- **Опционально**: Redis (для кэширования)
+- ** Database**: PostgreSQL 14+
+- **Optional**: Redis (for caching)
 
-## Установка
+## Installation
 
-### Базовая установка
+### Basic installation
 
 ```bash
 pip install django-nova

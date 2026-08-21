@@ -27,7 +27,6 @@ class TypedQuerySet[ModelT: "NovaModel"](DjangoQuerySet):  # type: ignore[type-a
     def __iter__(self) -> Generator[ModelT, None, None]:
         return cast(Generator[ModelT, None, None], super().__iter__())
 
-
     def __getitem__(self, k: int | slice) -> ModelT | TypedQuerySet[ModelT]:  # type: ignore[override] - Django QuerySet metaclass conflicts with PEP 695 Generics
         return cast(ModelT | TypedQuerySet[ModelT], super().__getitem__(k))
 
