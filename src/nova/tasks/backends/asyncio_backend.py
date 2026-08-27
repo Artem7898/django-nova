@@ -35,10 +35,14 @@ class AsyncioBackend:
     """Executes tasks using a local asyncio queue, supporting retries and delays."""
 
     def __init__(self, max_concurrent: int = 4) -> None:
-        self._queue: asyncio.Queue[_TaskPayload] = asyncio.Queue()
-        self._results: dict[str, TaskResult] = {}
+        if max_concurrent <= 0:
+            raise ValueError("max_concurrent must be greater than 0")
+
+        self._queue = asyncio.Queue()
+        self._results = {}
         self._max_concurrent = max_concurrent
-        self._workers: list[asyncio.Task[None]] = []
+        self._workers = []
+        self._started = False
 
     async def _worker(self) -> None:
         while True:
@@ -108,14 +112,25 @@ class AsyncioBackend:
                     self._queue.task_done()
 
     async def start(self) -> None:
-        for _ in range(self._max_concurrent):
-            self._workers.append(asyncio.create_task(self._worker()))
-        logger.info("Asyncio Backend started with %d workers", self._max_concurrent)
+        if self._started:
+            return
+
+        self._workers = [asyncio.create_task(self._worker()) for _ in range(self._max_concurrent)]
+        self._started = True
 
     async def stop(self) -> None:
+        if not self._workers:
+            return
+
         await self._queue.join()
-        for w in self._workers:
-            w.cancel()
+
+        workers = self._workers
+        self._workers = []
+
+        for worker in workers:
+            worker.cancel()
+
+        await asyncio.gather(*workers, return_exceptions=True)
 
     def submit(
         self,

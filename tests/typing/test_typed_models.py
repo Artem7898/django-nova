@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 from django.db import models
 from pydantic import ValidationError as PydanticValidationError
-from tests.models import Article, StrictArticle
 
 from nova.core.exceptions import NovaValidationError
 from nova.typing.models import NovaConfig, NovaModel
@@ -14,6 +13,7 @@ from nova.validation.pydantic_bridge import (
     model_to_pydantic,
     pydantic_to_model,
 )
+from tests.models import Article, StrictArticle
 
 
 class TestTypedModel:

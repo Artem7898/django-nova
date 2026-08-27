@@ -90,6 +90,9 @@ async = [
     "asyncpg>=0.30",
     "databases[asyncpg]>=0.9",
 ]
+graphql = [
+    "strawberry-graphql>=0.324.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/Artem7898/django-nova"
@@ -285,16 +288,14 @@ dev = [
     "pytest-cov>=7.1.0",
     "pytest-benchmark>=5.2",
     "fakeredis>=2.37.0",
-
     "django-stubs==5.2.9",
     "django-stubs-ext==5.2.9",
-
     "ruff==0.15.22",
     "pyright==1.1.411",
-
     "coverage>=7.6",
     "build>=1.5.0",
     "twine>=6.2.0",
     "httpx>=0.27",
     "hatch>=1.12.0",
+    "pyperf>=2.10.0",
 ]

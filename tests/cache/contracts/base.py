@@ -3,14 +3,26 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-
-import pytest
+from datetime import date, timedelta
+from decimal import Decimal
 
 from nova.cache.backends.protocol import CacheBackend
 
+_MISSING = object()
 
-@dataclass(frozen=True)
+TTL_SECONDS = 0.05
+TTL_SLEEP = 0.08
+
+
+@dataclass(frozen=True, slots=True)
 class CacheBackendExpectation:
+    """
+    Metadata describing a cache backend under contract test.
+
+    ``factory`` must return a fresh backend instance so every contract
+    scenario runs against isolated state.
+    """
+
     target: str
     factory: Callable[[], CacheBackend]
     supports_ttl: bool
@@ -18,181 +30,287 @@ class CacheBackendExpectation:
 
 class CacheBackendContract:
     """
-    Behavior contract implemented by every cache backend.
+    Canonical behavioral contract for synchronous Nova cache backends.
 
-    Subclasses must implement `create_backend()` to provide a fresh instance.
-    All test_* methods contain the ACTUAL assertions. Subclasses should NOT override them.
+    Every backend must expose the same observable semantics. Backend-specific
+    implementations are allowed internally, but callers must not have to
+    know which backend is underneath.
+
+    Subclasses should provide an expectation/factory only. They should not
+    override the contract checks.
     """
 
-    def __init__(self, expectation: CacheBackendExpectation | None = None):
-        self._expectation = expectation
+    def __init__(self, expectation: CacheBackendExpectation) -> None:
+        self.expectation = expectation
 
-    def create_backend(self) -> CacheBackend:
+    @property
+    def target(self) -> str:
+        """Return the backend identifier used in diagnostics."""
+        return self.expectation.target
+
+    def _new(self) -> CacheBackend:
+        """Create a fresh isolated backend instance."""
+        return self.expectation.factory()
+
+    # ------------------------------------------------------------------
+    # Core CRUD semantics
+    # ------------------------------------------------------------------
+
+    def check_set_get_roundtrip(self) -> None:
+        """A stored value must be returned unchanged."""
+        backend = self._new()
+
+        payload = {"a": 1}
+
+        backend.set("key", payload)
+
+        assert backend.get("key") == payload, self.target
+
+    def check_missing_key_returns_default(self) -> None:
         """
-        Return a fresh, isolated backend instance for the test.
+        Missing keys must return None or the explicitly supplied default.
+
+        A unique sentinel verifies that the backend does not accidentally
+        collapse a caller-provided default into None.
         """
-        if self._expectation is not None:
-            # If we use the new style via expectation, we create a backend from the factory
-            return self._expectation.factory()
+        backend = self._new()
 
-        raise NotImplementedError("Subclasses must provide a backend instance")
+        assert backend.get("missing") is None
+        assert backend.get("missing", "default") == "default"
+        assert backend.get("missing", _MISSING) is _MISSING
 
-    def run_all(self) -> None:
+    def check_overwrite_last_write_wins(self) -> None:
+        """The latest write must replace the previous value."""
+        backend = self._new()
+
+        backend.set("key", 1)
+        backend.set("key", 2)
+
+        assert backend.get("key") == 2
+
+    def check_delete_semantics(self) -> None:
         """
-        Runs all test_* methods for the passed expectation.
+        Deleting an existing key returns True.
+
+        Deleting a missing key returns False.
         """
-        for name in dir(self):
-            if name.startswith("test_"):
-                method = getattr(self, name)
-                if callable(method):
-                    method()
+        backend = self._new()
 
-    #
-    # Core CRUD behavior
-    #
+        backend.set("key", 1)
 
-    def test_set_then_get(self) -> None:
-        b = self.create_backend()
-        b.set("key1", "value1")
-        assert b.get("key1") == "value1"
+        assert backend.delete("key") is True
+        assert backend.get("key", _MISSING) is _MISSING
+        assert backend.delete("key") is False
 
-    def test_missing_returns_default(self) -> None:
-        b = self.create_backend()
-        assert b.get("non_existent") is None
-        assert b.get("non_existent", default="default_val") == "default_val"
+    def check_clear(self) -> None:
+        """clear() must remove all stored keys."""
+        backend = self._new()
 
-    def test_overwrite(self) -> None:
-        b = self.create_backend()
-        b.set("key", "val1")
-        b.set("key", "val2")
-        assert b.get("key") == "val2"
+        backend.set("key-a", 1)
+        backend.set("key-b", 2)
 
-    def test_delete_existing_key(self) -> None:
-        b = self.create_backend()
-        b.set("key", "val")
-        result = b.delete("key")
+        backend.clear()
 
-        assert result is True  # Strict Protocol requirement
-        assert b.get("key") is None
+        assert backend.get("key-a", _MISSING) is _MISSING
+        assert backend.get("key-b", _MISSING) is _MISSING
+        assert backend.size() == 0
 
-    def test_delete_missing_key(self) -> None:
-        b = self.create_backend()
-        result = b.delete("non_existent")
+    # ------------------------------------------------------------------
+    # Bulk operations
+    # ------------------------------------------------------------------
 
-        assert result is False  # Strict Protocol requirement
+    def check_bulk_consistency(self) -> None:
+        """
+        Bulk operations must have semantics equivalent to their scalar
+        counterparts.
+        """
+        backend = self._new()
 
-    def test_clear(self) -> None:
-        b = self.create_backend()
-        b.set("k1", "v1")
-        b.set("k2", "v2")
+        backend.set_many(
+            {
+                "key-a": 1,
+                "key-b": 2,
+            },
+        )
 
-        b.clear()
+        result = backend.get_many(
+            [
+                "key-a",
+                "key-b",
+                "missing",
+            ],
+        )
 
-        assert b.get("k1") is None
-        assert b.get("k2") is None
+        assert result["key-a"] == 1
+        assert result["key-b"] == 2
+        assert result["missing"] is None
 
-    #
-    # TTL behavior
-    #
+        deleted = backend.delete_many(
+            [
+                "key-a",
+                "missing",
+            ],
+        )
 
-    def test_ttl_expiration(self) -> None:
-        b = self.create_backend()
+        assert deleted == 1
+        assert backend.get("key-a", _MISSING) is _MISSING
 
-        if not b.supports_ttl:
-            pytest.skip("Backend does not support per-key or global TTL")
+    # ------------------------------------------------------------------
+    # Size / metadata
+    # ------------------------------------------------------------------
 
-        b.set("ttl_key", "val", ttl=0.1)  # 100ms
-        assert b.get("ttl_key") == "val"
+    def check_size_consistency(self) -> None:
+        """size() must accurately describe the current backend state."""
+        backend = self._new()
 
-        time.sleep(0.15)  # Wait for expiration
+        assert backend.size() == 0
 
-        assert b.get("ttl_key") is None
+        backend.set("key-a", 1)
+        backend.set("key-b", 2)
 
-    #
-    # Edge cases and Serializers
-    #
+        assert backend.size() == 2
 
-    def test_store_none(self) -> None:
-        """Ensure backend doesn't confuse None value with cache miss."""
-        b = self.create_backend()
-        b.set("none_key", None)
+    def check_backend_metadata(self) -> None:
+        """Backend metadata must satisfy the declared protocol."""
+        backend = self._new()
 
-        # Must explicitly return None, not the default
-        assert b.get("none_key", default="MISS") is None
-        assert b.get("real_miss", default="MISS") == "MISS"
+        assert isinstance(backend.backend_name, str)
+        assert backend.backend_name
 
-    def test_roundtrip_dict(self) -> None:
-        b = self.create_backend()
-        data = {"a": 1, "b": [1, 2, 3]}
-        b.set("dict_key", data)
-        assert b.get("dict_key") == data
+        size = backend.size()
 
-    def test_roundtrip_list(self) -> None:
-        b = self.create_backend()
-        data = [1, "two", 3.0]
-        b.set("list_key", data)
-        assert b.get("list_key") == data
-
-    def test_roundtrip_nested(self) -> None:
-        b = self.create_backend()
-        data = {"user": {"id": 1, "tags": ["admin", "staff"]}}
-        b.set("nested_key", data)
-        assert b.get("nested_key") == data
-
-    #
-    # Bulk Operations
-    #
-
-    def test_get_many(self) -> None:
-        b = self.create_backend()
-        b.set("k1", "v1")
-        b.set("k2", "v2")
-
-        result = b.get_many(["k1", "k2", "k_missing"])
-        assert result["k1"] == "v1"
-        assert result["k2"] == "v2"
-        assert result["k_missing"] is None
-
-    def test_set_many(self) -> None:
-        b = self.create_backend()
-        b.set_many({"mk1": "mv1", "mk2": "mv2"})
-
-        assert b.get("mk1") == "mv1"
-        assert b.get("mk2") == "mv2"
-
-    def test_delete_many(self) -> None:
-        b = self.create_backend()
-        b.set("dk1", "v1")
-        b.set("dk2", "v2")
-
-        deleted_count = b.delete_many(["dk1", "dk2", "dk_missing"])
-
-        # Must return at least the number of existing keys deleted
-        assert deleted_count >= 2
-        assert b.get("dk1") is None
-
-    #
-    # Backend Metadata (Introspection)
-    #
-
-    def test_backend_name(self) -> None:
-        b = self.create_backend()
-        name = b.backend_name
-        assert isinstance(name, str)
-        assert len(name) > 0
-
-    def test_size(self) -> None:
-        b = self.create_backend()
-        size = b.size()
-
-        # Protocol defines -1 as "unknown size"
+        # -1 is the protocol's sentinel for unknown size.
         assert isinstance(size, int)
         assert size >= -1
 
-    def test_support_flags(self) -> None:
-        b = self.create_backend()
+    def check_capabilities_declared(self) -> None:
+        """Capability flags must be real booleans and TTL must match config."""
+        backend = self._new()
 
-        # These must be boolean, not None or 0/1
-        assert isinstance(b.supports_ttl, bool)
-        assert isinstance(b.supports_atomic_increment, bool)
-        assert isinstance(b.supports_pattern_delete, bool)
+        assert isinstance(backend.supports_ttl, bool)
+        assert isinstance(backend.supports_atomic_increment, bool)
+        assert isinstance(backend.supports_pattern_delete, bool)
+
+        assert backend.supports_ttl is self.expectation.supports_ttl
+
+    # ------------------------------------------------------------------
+    # Serialization / value semantics
+    # ------------------------------------------------------------------
+
+    def check_value_identity(self) -> None:
+        """
+        Backend serialization must preserve supported Python values.
+
+        The exact representation must round-trip back to the original
+        Python object.
+        """
+        backend = self._new()
+
+        payload = {
+            "decimal": Decimal("1.50"),
+            "date": date(2026, 1, 1),
+            "list": [1, "two", 3.0],
+            "nested": {
+                "enabled": True,
+            },
+        }
+
+        backend.set("key", payload)
+
+        assert backend.get("key") == payload
+
+    def check_none_value_semantics(self) -> None:
+        """
+        Storing None must not behave differently from other values.
+
+        The backend protocol currently uses None as the default cache miss
+        result, so callers must use an explicit sentinel when distinguishing
+        a stored None from a missing key.
+        """
+        backend = self._new()
+
+        backend.set("none", None)
+
+        assert backend.get("none") is None
+        assert backend.get("none", _MISSING) is None
+        assert backend.get("missing", _MISSING) is _MISSING
+
+    # ------------------------------------------------------------------
+    # TTL
+    # ------------------------------------------------------------------
+
+    def check_ttl_semantics(self) -> None:
+        """
+        TTL behavior is conditioned on the backend's declared capability.
+        """
+        backend = self._new()
+
+        if self.expectation.supports_ttl:
+            backend.set(
+                "short-lived",
+                1,
+                ttl=TTL_SECONDS,
+            )
+
+            assert backend.get("short-lived") == 1
+
+            time.sleep(TTL_SLEEP)
+
+            assert (
+                backend.get(
+                    "short-lived",
+                    _MISSING,
+                )
+                is _MISSING
+            )
+
+            assert backend.delete("short-lived") is False
+
+            backend.set(
+                "long-lived",
+                1,
+                ttl=timedelta(hours=1),
+            )
+
+            assert backend.get("long-lived") == 1
+
+            return
+
+        # Backends without TTL support must not pretend that TTL was applied.
+        backend.set(
+            "persistent",
+            1,
+            ttl=TTL_SECONDS,
+        )
+
+        time.sleep(TTL_SLEEP)
+
+        assert backend.get("persistent") == 1
+
+    # ------------------------------------------------------------------
+    # Contract execution
+    # ------------------------------------------------------------------
+
+    def run_all(self) -> None:
+        """
+        Execute the complete synchronous cache backend contract.
+
+        The execution order is explicit by design. Contract tests should not
+        depend on reflection, method naming conventions, or test discovery.
+        """
+        self.check_set_get_roundtrip()
+        self.check_missing_key_returns_default()
+        self.check_overwrite_last_write_wins()
+        self.check_delete_semantics()
+        self.check_clear()
+
+        self.check_bulk_consistency()
+
+        self.check_size_consistency()
+        self.check_backend_metadata()
+        self.check_capabilities_declared()
+
+        self.check_value_identity()
+        self.check_none_value_semantics()
+
+        self.check_ttl_semantics()
