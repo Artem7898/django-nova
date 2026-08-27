@@ -7,6 +7,8 @@
 
 A typed, unified, async-first toolkit for Django 5+.
 
+ [Django Nova site](https://artem7898.github.io/django-nova-site/)
+
 ---
 
 # Django Nova Documentation
@@ -60,6 +62,7 @@ Utilities for secure migrations:
 - Full Documentation: docs/index.md
 - Auto-generated Status Report: STATUS.md
 - Changelog & Release Notes: CHANGELOG.md 
+
 ---
 ### 🚀 Quick Start (5 minutes)
 1. Create a typed model
@@ -159,6 +162,8 @@ See [STATUS.md](./STATUS.md) for the honest, auto-generated breakdown.
 - DOI: [10.5281/zenodo.20057443](https://doi.org/10.5281/zenodo.20057443)
 - DOI: [10.5281/zenodo.20659647](https://doi.org/10.5281/zenodo.20659647)
 - PyPI: [Django Nova](https://pypi.org/project/django-nova/)
+- NOVA: [Django Nova site](https://artem7898.github.io/django-nova-site/)
+
 
 ---
 ## 📄 License

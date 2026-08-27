@@ -1,0 +1,38 @@
+........................................................................ [ 17%]
+........................................................................ [ 35%]
+........................................................................ [ 53%]
+........................................................................ [ 71%]
+........................................................................ [ 89%]
+...........................................                              [100%]
+============================= slowest 30 durations =============================
+0.50s call     tests/test_full_integration.py::test_task_retry_mechanism
+0.40s call     tests/test_full_integration.py::test_task_delayed_execution
+0.35s setup    tests/cache/contracts/test_validation_contract.py::TestValidationContract::test_save_enforces_schema
+0.20s call     tests/test_full_integration.py::test_task_permanent_failure
+0.16s call     tests/tasks/backends/test_asyncio_backend.py::test_asyncio_backend_respects_concurrency_limit
+0.15s call     tests/cache/contracts/test_async_redis.py::TestAsyncRedisCacheBackendContract::test_ttl_expiration
+0.10s call     tests/core/test_tracing_tasks.py::test_task_submit_and_execute_tracing
+0.10s call     tests/tasks/backends/test_asyncio_backend.py::test_asyncio_backend_retry_does_not_reapply_initial_delay
+0.10s call     tests/test_full_integration.py::test_task_engine
+0.09s call     tests/ecosystem/test_drf_integration.py::TestDRFAutoSerializer::test_generates_valid_serializer_class
+0.08s call     tests/cache/test_backend_contracts.py::TestCacheBackendTTLContract::test_numeric_ttl_behavior[django]
+0.08s call     tests/cache/test_backend_contracts.py::TestCacheBackendTTLContract::test_numeric_ttl_behavior[memory]
+0.08s call     tests/cache/test_backend_contracts.py::TestCacheBackendTTLContract::test_numeric_ttl_behavior[null]
+0.05s call     tests/tasks/test_backend_contracts.py::TestAsyncioBackendContract::test_delay_is_applied_before_execution
+0.05s call     tests/tasks/backends/test_asyncio_backend.py::TestAsyncioBackendContract::test_delay_is_applied_before_execution
+0.04s call     tests/tasks/backends/test_init.py::test_package_import_is_lazy
+0.03s call     tests/tasks/backends/test_asyncio_backend.py::test_asyncio_backend_stop_waits_for_queued_work
+0.02s teardown tests/ecosystem/test_fastapi_bridge.py::TestFastAPIBridge::test_post_rejects_invalid_pydantic_data
+0.02s call     tests/tasks/test_backend_contracts.py::TestAsyncioBackendContract::test_retry_exhaustion_produces_failed_result
+0.02s call     tests/tasks/backends/test_asyncio_backend.py::TestAsyncioBackendContract::test_retry_exhaustion_produces_failed_result
+0.02s call     tests/tasks/test_backend_contracts.py::TestAsyncioBackendContract::test_retry_eventually_succeeds
+0.02s call     tests/tasks/backends/test_asyncio_backend.py::TestAsyncioBackendContract::test_retry_eventually_succeeds
+0.02s call     tests/tasks/backends/test_asyncio_backend.py::test_asyncio_backend_executes_multiple_tasks_without_result_cross_talk
+0.02s teardown tests/query/test_async_planner.py::test_alist_materializes
+0.02s teardown tests/query/test_async_validation.py::test_asave_rejects_invalid_title
+0.02s teardown tests/query/test_async_validation.py::test_aauto_is_async_iterable
+0.02s teardown tests/query/test_async_validation.py::test_async_manager_acreate
+0.02s teardown tests/query/test_async_validation.py::test_asave_accepts_valid
+0.02s teardown tests/typing/test_queryset_write_paths.py::TestQuerySetWritePaths::test_bulk_update_bypasses_save_validation
+0.02s teardown tests/query/test_async_planner.py::test_aauto_idempotent
+403 passed in 5.32s

@@ -13,7 +13,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.join(current_dir, "..")
 
 sys.path.insert(0, os.path.join(project_root, "src"))
-sys.path.insert(0, os.path.join(project_root, "tests"))
+# sys.path.insert(0, os.path.join(project_root, "tests"))
 
 
 import django  # noqa: E402
