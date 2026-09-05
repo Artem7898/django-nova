@@ -2,21 +2,15 @@
 
 from __future__ import annotations
 
-import os
-import sys
+from typing import Any
 
+import django
 import pyperf
+from django.conf import settings
+from django.db import models
+from pydantic import BaseModel, field_validator
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(os.path.join(current_dir, ".."))
-src_dir = os.path.join(project_root, "src")
-
-if src_dir not in sys.path:
-    sys.path.insert(0, src_dir)
-
-# Django must be imported after the local src/ path is configured.
-import django  # noqa: E402
-from django.conf import settings  # noqa: E402
+from nova.typing.models import NovaConfig, NovaModel
 
 if not settings.configured:
     settings.configure(
@@ -36,15 +30,9 @@ if not settings.configured:
 
 django.setup()
 
-# These imports intentionally happen after django.setup().
-from django.db import models  # noqa: E402
-from pydantic import BaseModel, field_validator  # noqa: E402
-
-from nova.typing.models import NovaConfig, NovaModel  # noqa: E402
-
 
 class BenchSchema(BaseModel):
-    """Pydantic schema used by the benchmark."""
+    """Pydantic schema used for benchmark measurements."""
 
     name: str
     h_index: int = 0
@@ -59,12 +47,12 @@ class BenchSchema(BaseModel):
 
 
 class BenchNovaModel(NovaModel):
-    """Django Nova model used by the benchmark."""
+    """Django Nova model used for benchmark measurements."""
 
-    name = models.CharField(max_length=300)
-    h_index = models.IntegerField(default=0)
+    name: models.CharField[Any, Any] = models.CharField(max_length=300)
+    h_index: models.IntegerField[Any, Any] = models.IntegerField(default=0)
 
-    class Meta:
+    class Meta(NovaModel.Meta):
         app_label = "nova"
         managed = False
 
@@ -75,10 +63,10 @@ class BenchNovaModel(NovaModel):
 
 
 class PlainDjangoModel(models.Model):
-    """Plain Django model used as the baseline."""
+    """Plain Django model used as a baseline."""
 
-    name = models.CharField(max_length=300)
-    h_index = models.IntegerField(default=0)
+    name: models.CharField[Any, Any] = models.CharField(max_length=300)
+    h_index: models.IntegerField[Any, Any] = models.IntegerField(default=0)
 
     class Meta:
         app_label = "nova"
@@ -86,7 +74,7 @@ class PlainDjangoModel(models.Model):
 
 
 def bench_pydantic() -> BenchSchema:
-    """Benchmark Pydantic model construction."""
+    """Benchmark plain Pydantic model construction."""
     return BenchSchema(name="Artem", h_index=42)
 
 
@@ -100,20 +88,30 @@ def bench_nova() -> BenchNovaModel:
     return BenchNovaModel(name="Artem", h_index=42)
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Run all model-construction benchmarks."""
     runner = pyperf.Runner()
 
-    runner.bench_func(
+    # pyperf's installed type information does not fully describe
+    # Runner.bench_func. Keep this third-party boundary local instead
+    # of weakening Pyright for the project.
+    bench_func = runner.bench_func
+
+    bench_func(
         "pydantic_model_initialization",
         bench_pydantic,
     )
 
-    runner.bench_func(
+    bench_func(
         "plain_django_model_initialization",
         bench_django,
     )
 
-    runner.bench_func(
+    bench_func(
         "nova_model_initialization",
         bench_nova,
     )
+
+
+if __name__ == "__main__":
+    main()

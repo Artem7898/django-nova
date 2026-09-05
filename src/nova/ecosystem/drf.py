@@ -50,23 +50,31 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 # Optional dependency boundary
 # ---------------------------------------------------------------------------
-#
-# DRF is deliberately optional.
-#
-# The dependency is imported dynamically so that Nova core remains usable
-# without Django REST Framework installed.
-#
-# Any is confined to this integration boundary and never becomes part of
-# Nova's domain/core API.
-# ---------------------------------------------------------------------------
 
 try:
-    import rest_framework as _drf_module
+    from rest_framework import serializers as _drf_serializers
 except ImportError:
-    _drf_module: Any = None
+    _drf_serializers: Any = None
 
 
-DRF_AVAILABLE: bool = _drf_module is not None
+DRF_AVAILABLE: bool = _drf_serializers is not None
+
+
+def _require_drf() -> Any:
+    """
+    Return DRF serializers or raise a clear optional-dependency error.
+
+    DRF remains optional for Nova core. The import happens only at the
+    integration boundary.
+    """
+    if not DRF_AVAILABLE or _drf_serializers is None:
+        raise ImportError(
+            "Django REST Framework is required for DRF integration. "
+            "Install the 'drf' extra, for example: "
+            "uv add django-nova[drf]"
+        )
+
+    return _drf_serializers
 
 
 # ---------------------------------------------------------------------------
@@ -79,7 +87,6 @@ def _get_schema(model_cls: type[NovaModel]) -> type[BaseModel]:
     Resolve the canonical Pydantic schema from NovaConfig.
 
     No schema is inferred from DRF.
-
     No validation rules are created here.
     """
     config = getattr(model_cls, "_nova_config", None)
@@ -104,9 +111,8 @@ def _is_nested_schema(annotation: Any) -> bool:
     """
     Determine whether an annotation contains another Pydantic model.
 
-    This is metadata inspection only.
-
-    It does not introduce validation semantics.
+    This function performs metadata inspection only. It does not introduce
+    validation semantics.
     """
     if isinstance(annotation, type):
         try:
@@ -140,26 +146,22 @@ def _resolve_serializer_fields(
     schema: type[BaseModel],
 ) -> list[str]:
     """
-    Resolve DRF serializer fields from the Pydantic schema.
+    Resolve serializer fields from the canonical Pydantic schema.
 
     Pydantic is authoritative.
 
-    Django metadata is consulted only to prevent exposing fields that do not
-    exist on the persistence model.
+    Django metadata is consulted only to ensure that projected fields
+    actually exist on the persistence model.
     """
     model_fields = {
         field.name for field in model_cls._meta.get_fields() if hasattr(field, "attname")
     }
 
-    fields: list[str] = [
-        field_name for field_name in schema.model_fields if field_name in model_fields
-    ]
+    fields = [field_name for field_name in schema.model_fields if field_name in model_fields]
 
-    # Preserve normal ModelSerializer instance semantics by including the
-    # primary key when Django has one but the Pydantic contract does not.
     primary_key = model_cls._meta.pk
 
-    if primary_key.name not in fields:
+    if primary_key is not None and primary_key.name not in fields:
         fields.insert(0, primary_key.name)
 
     return fields
@@ -183,8 +185,7 @@ def _build_validation_payload(
     For updates:
         payload = existing canonical state + incoming attributes
 
-    The second form is essential because cross-field Pydantic validators
-    must see the complete object rather than only changed fields.
+    This ensures that cross-field validators receive the complete object.
     """
     instance = getattr(serializer, "instance", None)
 
@@ -197,8 +198,8 @@ def _build_validation_payload(
     except Exception:
         # This is not a fallback validation implementation.
         #
-        # We only need a representation of the current state so that the
-        # canonical Pydantic schema can perform the actual validation.
+        # It only reconstructs the current state. The canonical Pydantic
+        # schema remains responsible for actual validation.
         payload = instance.to_dict()
 
     payload.update(attrs)
@@ -210,11 +211,10 @@ def _translate_pydantic_errors(
     exc: PydanticValidationError,
 ) -> dict[str, list[str]]:
     """
-    Convert Pydantic errors into DRF's error representation.
+    Convert Pydantic errors into DRF's transport-level representation.
 
-    The semantic error remains a Pydantic error.
-
-    This function only performs transport translation.
+    The semantic error remains a Pydantic error; this function only adapts
+    it to DRF's error structure.
     """
     errors: dict[str, list[str]] = {}
 
@@ -228,7 +228,6 @@ def _translate_pydantic_errors(
             field_name = "non_field_errors" if first == "__root__" else str(first)
 
         message = str(error.get("msg", "Validation error"))
-
         errors.setdefault(field_name, []).append(message)
 
     return errors
@@ -246,15 +245,12 @@ def to_drf_serializer(model_cls: type[NovaModel]) -> type[Any]:
     The generated serializer is a projection of the canonical Pydantic
     contract.
 
-    It does not become another source of truth.
+    DRF does not become another source of truth.
+    NovaModel.save() remains the authoritative ORM validation boundary.
     """
-    if not DRF_AVAILABLE or _drf_module is None:
-        raise ImportError("djangorestframework must be installed to use to_drf_serializer().")
-
+    serializers_module = _require_drf()
     schema = _get_schema(model_cls)
     serializer_fields = _resolve_serializer_fields(model_cls, schema)
-
-    serializers_module: Any = _drf_module.serializers
 
     def validate(
         self: Any,
@@ -263,10 +259,8 @@ def to_drf_serializer(model_cls: type[NovaModel]) -> type[Any]:
         """
         Validate transport data through the canonical Pydantic schema.
 
-        This validation is intentionally performed at the transport
-        boundary as an early feedback mechanism.
-
-        NovaModel.save() remains the authoritative ORM validation boundary.
+        This provides early API feedback. Persistence remains governed by
+        NovaModel.save().
         """
         payload = _build_validation_payload(self, attrs)
 
