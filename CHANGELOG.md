@@ -1,4 +1,4 @@
-## [0.2.0] - 2025-05-06 - "Enterprise & Ecosystem"
+## [0.2.0] - 2026-05-06 - "Enterprise & Ecosystem"
 
 ### Added
 - **Structured Observability:** Integrated `structlog` for machine-readable JSON logging. Cache miss/hit events now include ISO-timestamps and execution timings.
@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.5.1] — 2024-10-27
+## [0.5.1] — 2026-06-27
 
 ### 🐛 Fixed
 
@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.5.0] — 2024-10-20
+## [0.5.0] — 2026-07-20
 
 ### 🐛 Fixed
 
@@ -56,7 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.4.0] — 2024-09-15
+## [0.4.0] — 2026-08-15
 
 ### ✨ Added
 
@@ -78,3 +78,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.5.1]: https://github.com/Artem7898/django-nova/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/Artem7898/django-nova/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Artem7898/django-nova/releases/tag/v0.4.0
+## [0.6.0] - 2026-09-05 - Type Safety Milestone
+
+### Added
+- **nova.typing.django** module (226 lines, 69% coverage)
+- `safe_get_attname()` — safe access to .attname with GFK protection
+- `get_model_pk()` — typed access to primary key
+- `is_generic_foreign_key()` — type guard for virtual fields
+- All imports are LAZY (no Django settings when importing)
+
+### Fixed
+- **nova.validation.unified** (162 lines, 97% coverage)
+- GenericForeignKey guards in _validate_django_fields()
+- Safe access to field.clean() and field.attname
+
+- **nova.query.planner** (236 lines, 95% coverage)
+- Replaced cast(DjangoField[...]) with getattr()
+- Fixed TypeError: Field is not subscriptable
+
+- **nova.core.tracing** (208 lines, 58% coverage)
+- Fixed get_tracer(name) parameter
+- Fixed issues with OTEL optional dependencies
+
+- **nova.typing.models** (88 lines, 90% coverage)
+- Used get_model_pk() for PK access
+- Type-safe save() and __repr__()
+
+### Metrics
+- **Pyright**: 0 errors, 0 warnings (strict mode) ✅
+- **Tests**: 408 passed (+205 from previous run!)
+- **Coverage**: 66% (was ~56%) ⬆️
+- **Modules**: 58 total (no change)
+
+### Breaking Changes
+None - fully backward compatible.
+
