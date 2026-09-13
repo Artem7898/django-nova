@@ -6,7 +6,8 @@ Recursively traverses Pydantic schemas to find nested database relationships.
 from __future__ import annotations
 
 import collections.abc
-from typing import Any, get_args, get_origin
+import types
+from typing import Any, Union, get_args, get_origin
 
 from pydantic import BaseModel
 
@@ -19,11 +20,10 @@ def _unwrap_core_type(annotation: Any) -> type[Any] | None:
     origin = get_origin(annotation)
     args = get_args(annotation)
 
-    if origin is not None and (str(origin) in ("typing.Union", "types.UnionType")):
+    if origin in (Union, types.UnionType):
         for arg in args:
             if arg is not type(None):
                 unwrapped = _unwrap_core_type(arg)
-                # issubclass is required here because unwrapped is type[Any]
                 if unwrapped and issubclass(unwrapped, BaseModel):
                     return unwrapped
 

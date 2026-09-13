@@ -29,17 +29,18 @@ def get_new_readme_content() -> str | None:
     else:
         color = "red"
 
-    # ИСПРАВЛЕНО: Добавлено .svg в конец URL
     badge_url = f"https://img.shields.io/badge/coverage-{percent}%-{color}.svg"
 
     content = README.read_text(encoding="utf-8")
 
-    # Regex теперь корректно найдет старый URL (даже если там не было .svg)
-    new_content = re.sub(
+    new_content, replacements = re.subn(
         r"!\[Coverage\]\(https://img\.shields\.io/badge/coverage-[^)]*\)",
         f"![Coverage]({badge_url})",
         content,
     )
+
+    if replacements != 1:
+        raise ValueError(f"Expected exactly one Coverage badge in README.md; found {replacements}.")
 
     return new_content if new_content != content else None
 

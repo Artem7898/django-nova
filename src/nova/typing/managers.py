@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from django.db import models
 
@@ -23,9 +23,13 @@ class NovaManager(models.Manager[ModelT]):
     _queryset_class = TypedQuerySet
 
     def get_queryset(self) -> TypedQuerySet[ModelT]:
+        hints = cast(
+            dict[str, Any],
+            getattr(self, "_hints", {}),
+        )
+
         return TypedQuerySet(
             model=self.model,
-            query=self.model._base_manager.all().query,
             using=self._db,
-            hints=getattr(self, "_hints", {}),
+            hints=hints,
         )

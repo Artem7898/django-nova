@@ -1,4 +1,4 @@
-"""pyperf benchmark for Pydantic and Django Nova model construction."""
+"""pyperf benchmarks for model construction."""
 
 from __future__ import annotations
 
@@ -7,10 +7,6 @@ from typing import Any
 import django
 import pyperf
 from django.conf import settings
-from django.db import models
-from pydantic import BaseModel, field_validator
-
-from nova.typing.models import NovaConfig, NovaModel
 
 if not settings.configured:
     settings.configure(
@@ -23,12 +19,18 @@ if not settings.configured:
             "default": {
                 "ENGINE": "django.db.backends.sqlite3",
                 "NAME": ":memory:",
-            }
+            },
         },
         DEFAULT_AUTO_FIELD="django.db.models.BigAutoField",
     )
 
 django.setup()
+
+# Django model classes require initialized settings and app registry.
+from django.db import models  # noqa: E402
+from pydantic import BaseModel, field_validator  # noqa: E402
+
+from nova.typing.models import NovaConfig, NovaModel  # noqa: E402
 
 
 class BenchSchema(BaseModel):

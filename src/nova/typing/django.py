@@ -218,4 +218,4 @@ def is_concrete_field(
     if not isinstance(obj, Field):
         return False
 
-    return not (obj.auto_created or obj.many_to_many)
+    return bool(obj.concrete) and not obj.many_to_many

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 from nova.async_orm.queryset import AsyncTypedQuerySet
 from nova.core.exceptions import NovaValidationError
@@ -43,10 +44,27 @@ async def test_asave_accepts_valid(contract: AsyncORMContract) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.django_db(transaction=True)
-async def test_asave_rejects_invalid_title() -> None:
-    instance = AsyncArticle(title="", author_id=1)
-    with pytest.raises(NovaValidationError):
+async def test_asave_rejects_invalid_title(
+    contract: AsyncORMContract,
+) -> None:
+    expectation = contract.expectation
+
+    if expectation.setup is not None:
+        await expectation.setup()
+
+    instance = expectation.model(**expectation.valid_payload)
+
+    # Establish that this instance and its relation are valid.
+    await instance.asave()
+
+    instance.title = ""
+
+    with pytest.raises(NovaValidationError) as exc_info:
         await instance.asave()
+
+    cause = exc_info.value.__cause__
+    assert isinstance(cause, DjangoValidationError)
+    assert cause.code == "blank"
 
 
 @pytest.mark.asyncio

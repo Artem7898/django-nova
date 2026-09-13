@@ -1,8 +1,3 @@
-"""Architectural contracts for P0-3.5 / P0-4.
-
-Contracts ONLY. This module must never import itself or test helpers.
-"""
-
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence

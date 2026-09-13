@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 from django.core.exceptions import ValidationError as DjangoValidationError
 
 from nova.core.exceptions import NovaValidationError
-from nova.typing.django import is_concrete_field
+from nova.typing.django import get_model_pk, is_concrete_field
 
 if TYPE_CHECKING:
     from nova.typing.models import NovaConfig, NovaModel
@@ -55,6 +55,7 @@ def _validate_django_fields(
     excluded by is_concrete_field().
     """
     for model_field in instance._meta.get_fields():
+        pk_field = get_model_pk(type(instance))
         if not is_concrete_field(model_field):
             continue
 
@@ -64,13 +65,18 @@ def _validate_django_fields(
             None,
         )
 
+        if model_field.auto_created and model_field is pk_field and value is None:
+            continue
+
         try:
-            model_field.clean(value, instance)
+            cleaned_value = model_field.clean(value, instance)
         except DjangoValidationError as exc:
             raise NovaValidationError(
                 "Django field validation failed.",
                 details=_django_validation_details(exc),
             ) from exc
+
+        setattr(instance, model_field.attname, cleaned_value)
 
 
 def _django_validation_details(
