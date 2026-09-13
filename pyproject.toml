@@ -176,7 +176,6 @@ exclude = [
     "src/nova/ecosystem/graphql.py",
 
     # Complex Django typing boundaries
-    "src/nova/typing/fields.py",
     "src/nova/typing/querysets.py",
     "src/nova/db/splitter.py",
     "src/nova/db/zero_downtime.py",
@@ -298,4 +297,5 @@ dev = [
     "httpx>=0.27",
     "hatch>=1.12.0",
     "pyperf>=2.10.0",
+    "psycopg[binary]>=3.1.8,<4",
 ]
