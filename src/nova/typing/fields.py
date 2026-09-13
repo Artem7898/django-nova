@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from django.db import models
+from django.db.models.expressions import Col
 
 
 class TypedField[T](models.Field):
@@ -58,11 +59,30 @@ class TypedField[T](models.Field):
             "unique_for_year",
         ):
             kwargs[option] = getattr(self, option)
-        # Use an independent inner field so clone() does not share mutable state.
-        return name, path, [self._inner_field.clone()], kwargs
+        # Keep the inner field consistent when removing an existing DB default.
+        inner = self._inner_field.clone()
+        inner.db_default = self.db_default
+
+        # Django expects an absent DB default to be omitted from migration kwargs.
+        if self.db_default is models.NOT_PROVIDED:
+            kwargs.pop("db_default", None)
+
+        return name, path, [inner], kwargs
 
     def to_python(self, value: Any) -> Any:
         return self._inner_field.to_python(value)
+
+    def get_col(
+        self,
+        alias: str,
+        output_field: models.Field[Any, Any] | None = None,
+    ) -> Col:
+        # Keep the bound wrapper as the SQL column target, but expose the
+        # concrete inner field to backend and field-level read converters.
+        # Decimal converters need its precision/context; JSON needs from_db_value.
+        if output_field is None or output_field is self:
+            output_field = self._inner_field
+        return Col(alias, self, output_field)
 
     def clean(self, value: Any, model_instance: models.Model | None) -> Any:
         return self._inner_field.clean(value, model_instance)

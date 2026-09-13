@@ -2,30 +2,79 @@ name: Run Tests
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
+
+permissions:
+  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       matrix:
         python-version: ["3.12"]
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
-      with:
-        version: "latest"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
 
-    - name: Set up Python ${{ matrix.python-version }}
-      run: uv python install ${{ matrix.python-version }}
+      - name: Set up Python
+        run: uv python install "$UV_PYTHON"
 
-    - name: Install dependencies
-      run: uv sync --all-extras
+      - name: Install dependencies
+        run: uv sync --locked --all-extras --dev
 
-    - name: Run tests
-      run: uv run pytest -v
+      - name: Run tests
+        run: uv run --locked pytest -v
+
+  postgres:
+    name: PostgreSQL ORM and migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      UV_PYTHON: "3.12"
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: nova_test
+          POSTGRES_USER: nova
+          POSTGRES_PASSWORD: nova_local_test_only
+        ports:
+          - "55432:5432"
+        options: >-
+          --health-cmd "pg_isready -U nova -d nova_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install "$UV_PYTHON"
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras --dev
+
+      - name: Run PostgreSQL ORM and migration tests
+        run: >-
+          uv run --locked pytest -q
+          --ds=tests.example_project.settings_postgres
+          tests/typing/test_typed_field_migrations.py
+          tests/typing/test_typed_field_orm.py
