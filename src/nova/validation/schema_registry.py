@@ -1,17 +1,30 @@
+"""Registry for compiled Nova Pydantic schemas."""
+
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from pydantic import BaseModel
 
 
+@dataclass(frozen=True, slots=True)
+class SchemaKey:
+    """Unique identity of a compiled Nova schema."""
+
+    model_cls: type[Any]
+    include_relations: bool
+
+
 class SchemaRegistry:
-    """
-    Strictly typed registry for generated Pydantic schemas.
-    Key is strictly the Django Model class.
+    """Process-local registry of compiled Pydantic schema variants.
+
+    A schema is identified by both its Django model class and its relation
+    projection. This prevents a scalar schema from being accidentally reused
+    as a relation-enabled schema.
     """
 
-    _schemas: dict[type[Any], type[BaseModel]] = {}
+    _schemas: dict[SchemaKey, type[BaseModel]] = {}
 
     @classmethod
     def register(
@@ -19,9 +32,20 @@ class SchemaRegistry:
         model_cls: type[Any],
         schema: type[BaseModel],
         *,
-        include_relations: bool = False,  # Kept for API compatibility
+        include_relations: bool = False,
     ) -> None:
-        cls._schemas[model_cls] = schema
+        """Register a compiled schema variant.
+
+        Args:
+            model_cls: Django model class.
+            schema: Compiled Pydantic schema.
+            include_relations: Whether relation fields are included.
+        """
+        key = SchemaKey(
+            model_cls=model_cls,
+            include_relations=include_relations,
+        )
+        cls._schemas[key] = schema
 
     @classmethod
     def get(
@@ -30,8 +54,14 @@ class SchemaRegistry:
         *,
         include_relations: bool = False,
     ) -> type[BaseModel] | None:
-        return cls._schemas.get(model_cls)
+        """Return a compiled schema variant if available."""
+        key = SchemaKey(
+            model_cls=model_cls,
+            include_relations=include_relations,
+        )
+        return cls._schemas.get(key)
 
     @classmethod
     def clear(cls) -> None:
+        """Clear all registered schema variants."""
         cls._schemas.clear()

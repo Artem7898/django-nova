@@ -1,204 +1,456 @@
 <div align="center">
-
-<img src="assets/django-nova-logo.png" width="250" alt="Django Nova Logo">
-
+  <img src="assets/django-nova-logo.png" width="220" alt="Django Nova logo">
+</div>
 
 # Django Nova
 
-A typed, unified, async-first toolkit for Django 5+.
+**Typed Django models. Shared Pydantic schemas. Explicit validation boundaries.**
 
- [Django Nova site](https://artem7898.github.io/django-nova-site/)
+Django Nova is a typed, async-oriented toolkit for Django 5. It connects Django
+models with Pydantic schemas, schema-driven query planning, caching, background
+tasks, and optional OpenTelemetry tracing.
 
----
+[PyPI](https://pypi.org/project/django-nova/) ·
+[Documentation](docs/index.md) ·
+[Project site](https://artem7898.github.io/django-nova-site/) ·
+[Coverage report](STATUS.md) ·
+[Roadmap](ROADMAP.md)
 
-# Django Nova Documentation
+[![Coverage](https://img.shields.io/badge/coverage-81%-green.svg)](STATUS.md)
 
-Welcome to the documentation of Django Nova— a typed, unified, asynchronous-oriented Django toolkit.
-The library is designed with a focus on scientific computing, Highload, and Reproducible Research.
+> **Development status: Beta.** This README describes the current development
+> workflow and the reviewed source implementation. Recent source changes may not
+> yet be included in the published PyPI package. Check the
+> [changelog](CHANGELOG.md) and the version you install before adopting an API.
 
-## What is Django Nova?
+## Philosophy
 
-Django Nova is a modern toolkit that solves Django's key architectural problems.:
+Nova keeps Django's ORM and database semantics while making the boundaries around
+validation, serialization, and typing explicit.
 
-- **Duplicate validation** — you no longer need to write validation in forms, serializers, and models separately
-- **No strict typing** — full support for `pyright --strict`
-- **Caching Issues** — Smart disability without manual control
-- **Difficulties with migrations** — built-in support for PostgreSQL concurrent migrations
+- **Shared schemas:** use Pydantic to express data contracts and reusable rules.
+  Django fields, `Model.clean()`, uniqueness checks, and database constraints retain
+  their own responsibilities.
+- **Typed boundaries:** contain dynamic Django metadata behind focused helpers.
+  Static analysis complements runtime validation; it cannot replace it.
+- **Schema-selected serialization:** serialize the fields required by the selected
+  schema rather than exposing every model attribute.
+- **Explicit async behavior:** support asynchronous workflows without implying that
+  every operation or relation lookup is non-blocking.
+- **Reproducible evidence:** report tests, coverage, and benchmarks as measurements,
+  not as automatic proof of production readiness.
 
-## Project philosophy
+## Requirements
 
-1. **A single source of truth** — all business logic of validation is concentrated in Pydantic schemes
-2. **Fail fast** — errors should be detected at the static analysis stage, not in runtime
-3. **Default asynchrony** — all operations are designed with `asyncio` in mind
-4. **Zero-downtime** — migrations and updates should not interrupt the system operation
+The current [package manifest](pyproject.toml) declares:
 
+| Dependency | Requirement |
+|---|---|
+| Python | 3.12 or newer |
+| Django | `>=5.0,<6.0` |
+| Pydantic | `>=2.8,<3.0` |
 
-## Modules
+These are dependency bounds, not a claim that every version combination has been
+tested. Django 6 is outside the declared range.
 
-### `nova.typing`
-A strict typing layer. Includes `NovaModel' and `NovaConfig'.
-Uses PEP 695 to ensure full type derivability in the IDE (PyCharm, VSCode + Pyright).
+## Installation
 
-### `nova.validation`
-Django Unified Bridge <-> Pydantic (`pydantic_bridge`).
-Ensures that validation rules are not duplicated between forms, serializers, and models.
-
-### `nova.cache`
-Intelligent QuerySet caching ('queryset_cache').
-Features:
-- Using SQL Compiler to generate hashes (safe with Django updates).
-- Reversible index `O(1)` for instant cache invalidation during `save()` or `delete()'.
-
-### `nova.tasks`
-Built-in asynchronous task engine based on asyncio.Queue`.
-An alternative to Celery for in-process computing (ML inference, simulation).
-
-### `nova.db`
-Utilities for secure migrations:
-- `zero_downtime.py `: Wrappers over `CREATE INDEX CONCURRENTLY` and `ALTER TABLE' without locks (PostgreSQL).
-- `splitter.py `: Breaking down heavy Data Migrations into batches to prevent OOM.
----
-### 📚 More Information
-- Full Documentation: docs/index.md
-- Auto-generated Status Report: STATUS.md
-- Changelog & Release Notes: CHANGELOG.md 
-
----
-### 🚀 Quick Start (5 minutes)
-1. Create a typed model
-```bash
-## src/app/models.pyfrom django.db import modelsfrom nova.typing import NovaModel, NovaConfigfrom pydantic import BaseModelclass ArticleSchema(BaseModel):    title: str    content: str    views: int = 0class Article(NovaModel):    _nova_config = NovaConfig(        pydantic_schema=ArticleSchema,        strict_validation=True,        cache_enabled=True,    )    title: models.CharField(max_length=200)    content: models.TextField()
-```
-
-2. Use it with automatic validation
-
+For an existing project managed with uv:
 
 ```bash
-# Views or services
-article = Article(title="Hello Nova", content="Typed Django!")
-article.save()  # ✅ Validates against Pydantic schema automatically
-```
-3.  Enjoy type safety 🎉
-
-```bash
-# Pyright --strict compatible! ✅
-article.title = 123  # Type error! Expected str
-```
-
-## 📦 Installation
-
-Requires **Python 3.12+** and **Django 5.0+** (tested with Django 5.0, 5.1, 5.2).
-
-Using [`uv`](https://docs.astral.sh/uv/) (recommended):
-
-```bash
-# Core library
 uv add django-nova
-
-# With Django REST Framework support
-uv add django-nova[drf]
-
-# With Redis infrastructure & Distributed Locks
-uv add django-nova[redis]
-# or
-uv add django-nova[cache]
-
-# With OpenTelemetry tracing
-uv add django-nova[tracing]
-
-# Full enterprise stack (tracing + observability)
-uv add django-nova[tracing,observability]
-
-# With FastAPI integration
-uv add django-nova[fastapi]
-
-# With async task queue
-uv add django-nova[tasks]
-
-# With async database support
-uv add django-nova[async]
 ```
 
-### Add to `INSTALLED_APPS`:
+Or with pip inside an activated virtual environment:
+
+```bash
+python -m pip install django-nova
+```
+
+Optional integrations are installed explicitly:
+
+```bash
+uv add 'django-nova[redis]'
+uv add 'django-nova[drf]'
+uv add 'django-nova[fastapi]'
+uv add 'django-nova[graphql]'
+uv add 'django-nova[tracing]'
+uv add 'django-nova[observability]'
+```
+
+Choose the extras your application needs. `tracing` supplies the OpenTelemetry
+API; `observability` additionally supplies SDK/exporter dependencies. Installing
+those dependencies does not configure a telemetry exporter. The manifest also
+provides `cache`, `tasks`, and `async` extras; installing an extra alone does not
+activate an integration or turn synchronous ORM calls into async operations.
+
+Add Nova and your application to Django settings:
 
 ```python
+# config/settings.py — extend your existing INSTALLED_APPS.
 INSTALLED_APPS = [
-    # ...
+    "django.contrib.contenttypes",
     "nova",
+    "articles",
 ]
 ```
- ## ⚡ Performance
 
-Nova adds **zero overhead** compared to pure Django:
+Keep the other Django applications required by your project. Import model classes
+only after Django settings and the app registry are initialized.
 
-| Benchmark              | Time         | Overhead          |
-|------------------------|-------------:|-------------------|
-| Pure Pydantic          | 1.353 µs/iter | baseline          |
-| Pure Django Model      | 3.593 µs/iter | 2.65x vs Pydantic |
-| **Nova Model**         | **3.557 µs/iter** | **0.99x vs Django** ✅ |
+## Quick start
 
-**Key insights:**
+The examples below assume an existing Django project with an `articles` app.
+Create it if needed:
 
-- ✅ Nova is **faster than pure Django** (within measurement noise)
-- ✅ Django adds 2.65x overhead vs Pydantic (ORM vs dataclass)
-- ✅ Nova adds **zero additional overhead** on top of Django
+```bash
+uv run python manage.py startapp articles
+```
 
-> **Note:** Nova → Pydantic conversion costs 7.824 µs/iter, but this is only incurred when serializing to API responses or performing cross-layer validation.
+### 1. Define a schema and a model
 
-### Benchmark Details
+```python
+# articles/models.py
+from django.db import models
+from pydantic import BaseModel, Field
+
+from nova import NovaConfig, NovaModel
+
+
+class ArticleSchema(BaseModel):
+    title: str = Field(min_length=5, max_length=200)
+    body: str
+    views: int = Field(default=0, ge=0)
+
+
+class Article(NovaModel):
+    title = models.CharField(max_length=200)
+    body = models.TextField()
+    views = models.IntegerField(default=0)
+
+    _nova_config = NovaConfig(
+        pydantic_schema=ArticleSchema,
+        strict_validation=True,
+        cache_enabled=False,
+    )
+```
+
+Django field declarations use assignment (`=`). Pydantic defines the application
+contract; Django fields define persistence and field-level rules. Some limits
+belong at both boundaries. An explicit schema does not rewrite the database model.
+
+### 2. Create the database table
+
+```bash
+uv run python manage.py makemigrations articles
+uv run python manage.py migrate
+uv run python manage.py check
+uv run python manage.py shell
+```
+
+### 3. Save and serialize
+
+Run in the Django shell or an initialized application service:
+
+```python
+from articles.models import Article
+
+article = Article(
+    title="Hello Nova",
+    body="Shared validation with explicit boundaries.",
+)
+article.save()
+
+payload = article.to_pydantic().model_dump()
+assert payload == {
+    "title": "Hello Nova",
+    "body": "Shared validation with explicit boundaries.",
+    "views": 0,
+}
+assert "id" not in payload  # The explicit schema does not declare it.
+```
+
+### 4. Handle validation errors
+
+```python
+from articles.models import Article
+from nova.core.exceptions import NovaValidationError
+
+try:
+    Article(title="Hi", body="Too short a title.").save()
+except NovaValidationError as exc:
+    print(f"Validation failed: {exc}")
+```
+
+For this example, the title fails Pydantic validation before persistence.
+
+## Validation contract
+
+`NovaModel.save()` runs this pipeline before calling Django's save implementation:
+
+```text
+Pydantic → Django field validation and conversion → Model.clean()
+         → uniqueness checks → constraint checks → database save
+```
+
+- `strict_validation=True` enables the Pydantic stage.
+- `strict_validation=False` skips that stage; Django validation still runs.
+- Successful `field.clean()` results are assigned back to model attributes before
+  `Model.clean()` executes.
+- Full-model validation is retained when `save(update_fields=...)` is used.
+- `QuerySet.update()`, `bulk_create()`, and `bulk_update()` bypass model `save()`;
+  they do not acquire its validation contract.
+- Database constraints remain necessary. Pre-save checks do not replace database
+  enforcement under concurrent writes.
+
+Automatic schema generation supports mapped Django types, inherited field types,
+nullable fields, and callable defaults. Decimal digit constraints are transferred
+to generated schemas. An unknown field falls back to `Any`, which does not provide
+specialized type validation.
+
+`FileField` and `ImageField` values are serialized as names/paths rather than file
+contents. Their Django `max_length` is not transferred to the Pydantic value in the
+current compiler. Django field validation still applies on the save path.
+
+## Query planning and async ORM
+
+For a Nova queryset, `.auto()` applies a plan derived from the model's schema:
+
+```python
+from articles.models import Article
+
+queryset = Article.objects.filter(title__icontains="Nova").auto()
+articles = list(queryset)
+```
+
+The selected joins, prefetches, and deferred fields depend on the model/schema.
+Measure query counts for your actual workload; `.auto()` is not a universal
+performance guarantee.
+
+For Nova's additional async queryset helpers, explicitly configure the manager:
+
+```python
+from nova.async_orm import AsyncNovaManager
+
+# Inside a NovaModel subclass:
+# objects = AsyncNovaManager()
+```
+
+Django's async save API can be used from an async application function:
+
+```python
+from articles.models import Article
+
+
+async def create_article() -> Article:
+    article = Article(title="Async Nova", body="Created asynchronously.")
+    await article.asave()
+    return article
+```
+
+An unloaded nested foreign key may require synchronous SQL during serialization.
+Do not assume that calling `to_pydantic()` directly in an async context is safe
+for every model. Nested M2M and reverse-relation serialization remain separate
+contracts; see the [roadmap](ROADMAP.md).
+
+## Background tasks
+
+`@nova_task()` decorates an async function. Awaiting the decorated call submits
+work and returns a task ID; it does not await the task's business result.
+The decorator uses the shared engine returned by `get_engine()`.
+
+```python
+import asyncio
+
+from nova import nova_task
+from nova.tasks.engine import get_engine
+
+
+async def main() -> None:
+    engine = get_engine()
+    completed = asyncio.Event()
+
+    @nova_task(name="demo.greet")
+    async def greet(person: str) -> None:
+        print(f"Hello, {person}!")
+        completed.set()
+
+    await engine.start()
+    try:
+        task_id = await greet("Nova")
+        print(f"Submitted task: {task_id}")
+        await asyncio.wait_for(completed.wait(), timeout=10)
+    finally:
+        await engine.stop()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+This is an in-process example using the default backend. The event is demo-local
+synchronization, not a distributed completion mechanism. Start the shared engine
+in application startup and stop it during shutdown. Backend shutdown behavior,
+retries, durability, and process recovery must be evaluated for your deployment.
+Do not submit blocking CPU-intensive work directly to the event loop.
+
+## Tracing
+
+Tracing is optional. With no usable tracer, `nova_span()` yields `None`.
+For async operations, keep the awaited work inside the span:
+
+```python
+from nova.core.tracing import nova_span
+
+
+async def fetch_and_measure(fetch):
+    with nova_span("article.fetch", component="service"):
+        return await fetch()
+```
+
+The current tracing decorators support both ordinary functions and `async def`:
+
+```python
+from nova.core.tracing import trace_task
+
+
+@trace_task(operation="calculate")
+async def calculate_total(prices: list[int]) -> int:
+    return sum(prices)
+```
+
+Nova guards its internal telemetry setup, recording, and teardown calls against
+ordinary exceptions while preserving business results, exceptions, and
+cancellation. Direct span method calls made by application code are outside that
+protection. Provider signals derived directly from `BaseException` are not
+suppressed. Configure the OpenTelemetry SDK and exporter separately if you want
+to collect spans.
+
+## Development and verification
+
+To work on the repository rather than the published package:
+
+```bash
+git clone https://github.com/Artem7898/django-nova.git
+cd django-nova
+uv sync --group dev --all-extras
+```
+
+For an existing checkout containing local changes, run the sync command there;
+cloning the remote does not include unpublished local fixes. Commit and retain
+`uv.lock` for reproducible development environments.
+
+Run static checks and the complete test suite:
+
+```bash
+uv run pyright src/nova \
+&& uv run ruff check . \
+&& uv run pytest -q
+```
+
+Pyright uses the repository configuration, including its exclusions and scoped
+exceptions. A clean run is not a claim that every module has unrestricted strict
+typing coverage. Application model typing also depends on its own checker and
+Django stub configuration.
+
+Focused checks:
+
+```bash
+uv run pytest -q tests/architecture
+uv run pytest -q tests/typing/test_django_boundary.py
+uv run pytest -q \
+  tests/core/test_tracing.py \
+  tests/core/test_tracing_async.py \
+  tests/core/test_tracing_resilience.py
+```
+
+Check collection when adding or moving tests:
+
+```bash
+uv run pytest --collect-only -q tests/typing
+```
+
+Place test functions in discoverable `test_*.py` modules, not package `__init__.py`
+files.
+
+### Coverage and generated status
+
+```bash
+uv run pytest -q --cov=src/nova --cov-report=xml:coverage.xml \
+&& uv run python scripts/generate_status.py --write \
+&& uv run python scripts/generate_status.py --check
+```
+
+Update the README badge using the same coverage snapshot:
+
+```bash
+uv run python scripts/update_badge.py --write \
+&& uv run python scripts/update_badge.py --check
+```
+
+The badge is initially a link to the report, not an invented coverage percentage.
+The updater replaces its value with the measured percentage from `coverage.xml`.
+
+The latest local verification reported for the reviewed development changes was
+**786 tests passed**, with clean Pyright and Ruff results; the coverage run and
+status generation also succeeded. This is a historical development snapshot,
+not a live CI result or a result independently reproduced for every installation.
+
+`STATUS.md` distinguishes missing measurements (`N/A`) from measured `0%`.
+Its overall percentage comes from the XML report's line counters. `--check`
+compares the generated report with supplied inputs; it does not prove that the
+coverage snapshot matches the latest source contents.
+
+## Performance
+
+Benchmark model construction and serialization separately:
 
 ```bash
 uv run python scripts/bench.py
 ```
 
-### Runs 100,000 iterations with GC disabled to measure real algorithmic performance.
+Treat this as a local diagnostic, not a universal speed claim. Review the current
+benchmark script before publishing results; the roadmap tracks improvements to
+its execution and measurement setup.
 
+Django model construction, Pydantic validation, `to_pydantic()`, SQL execution,
+and cache access perform different work. Report Python and dependency versions,
+hardware, benchmark configuration, repetitions, variability, and raw results.
+Small differences within measurement noise do not establish that Nova is faster
+than Django or adds zero overhead.
 
----
-## 🎯 Philosophy
+## Scope and limitations
 
-> ⚠️ **This is a Beta project.** See the [auto-generated status report](STATUS.md) for real module-by-module coverage and stability assessment.
+| Area | Boundary to evaluate |
+|---|---|
+| Cache | Backend behavior, invalidation coverage, consistency, and failure handling |
+| Tasks | Process-local behavior of the default backend; no implied durable queue guarantee |
+| DRF, FastAPI, GraphQL | Integration-specific contracts and dependency versions |
+| TypedField | Migration reconstruction and complete conversion/validator delegation |
+| Migrations | PostgreSQL operation and transaction requirements; no blanket lock-free guarantee |
+| Validation | Distinct Pydantic, Django, and database responsibilities |
 
+See [ROADMAP.md](ROADMAP.md) for planned work and [STATUS.md](STATUS.md) for
+coverage measurements. Neither assigns production readiness from a percentage.
 
-## 📊 Honest Project Status
+## Contributing
 
+Include a minimal reproducer for defects and a regression test for behavior
+changes. Keep compatibility boundaries explicit, run the checks above, and
+update documentation when public behavior changes.
 
-## 🚀 Quick Start
+- [Issue tracker](https://github.com/Artem7898/django-nova/issues)
+- [Changelog](CHANGELOG.md)
+- [Documentation](docs/index.md)
 
+## Author and references
 
-## 📊 Current Status
+Developed and maintained by **Artem Alimpiev**.
 
-## 🛡️ Validation Boundary
+- [ORCID: 0009-0007-6740-7242](https://orcid.org/0009-0007-6740-7242)
+- Research references: [10.5281/zenodo.20057443](https://doi.org/10.5281/zenodo.20057443),
+  [10.5281/zenodo.20659647](https://doi.org/10.5281/zenodo.20659647)
 
-See [STATUS.md](./STATUS.md) for the honest, auto-generated breakdown.
+## License
 
-## 📚 API Reference
-
-
----
-
-
-
-## 👤 Author
-
-**Artem Alimpiev**
-
-- ORCID: [0009-0007-6740-7242](https://orcid.org/0009-0007-6740-7242)
-- DOI: [10.5281/zenodo.20057443](https://doi.org/10.5281/zenodo.20057443)
-- DOI: [10.5281/zenodo.20659647](https://doi.org/10.5281/zenodo.20659647)
-- PyPI: [Django Nova](https://pypi.org/project/django-nova/)
-- NOVA: [Django Nova site](https://artem7898.github.io/django-nova-site/)
-
-
----
-## 📄 License
-
-MIT License. See [LICENSE](LICENSE) for details. 2026
-
-
-
-
-
-
-
-
+MIT, as declared in the [package metadata](pyproject.toml).

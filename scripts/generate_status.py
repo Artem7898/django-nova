@@ -1,203 +1,201 @@
 #!/usr/bin/env python3
-"""Generates an honest STATUS.md based on real code."""
+"""Generate a deterministic coverage report without inferring product readiness."""
 
 from __future__ import annotations
 
 import argparse
 import sys
-from pathlib import Path
-from typing import Any
+from dataclasses import dataclass
+from pathlib import Path, PurePosixPath
 from xml.etree import ElementTree as ET
 
-PROJECT_ROOT = Path(__file__).parent.parent
-SRC_DIR = PROJECT_ROOT / "src" / "nova"
-COVERAGE_XML = PROJECT_ROOT / "coverage.xml"
-STATUS_MD = PROJECT_ROOT / "STATUS.md"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
-def parse_coverage() -> dict[str, float]:
-    """Parses coverage.xml → {module_path: coverage_percent}."""
-    if not COVERAGE_XML.exists():
-        return {}
+@dataclass(frozen=True)
+class Counts:
+    covered: int
+    valid: int
 
-    tree = ET.parse(COVERAGE_XML)
-    root = tree.getroot()
-
-    coverage_map: dict[str, float] = {}
-
-    for cls in root.iter("class"):
-        filename = cls.get("filename", "")
-        if not filename:
-            continue
-
-        filename = filename.replace("\\", "/")
-
-        if filename.startswith("src/nova/"):
-            module_path = filename.replace("src/nova/", "", 1).replace("/", ".").replace(".py", "")
-        elif filename.startswith("nova/"):
-            module_path = filename.replace("nova/", "", 1).replace("/", ".").replace(".py", "")
-        else:
-            module_path = filename.replace("/", ".").replace(".py", "")
-
-        lines = cls.find("lines")
-        if lines is None:
-            continue
-
-        total = len(lines.findall("line"))
-        hits = sum(1 for line in lines.findall("line") if line.get("hits", "0") != "0")
-
-        if total > 0:
-            coverage_map[module_path] = round((hits / total * 100), 1)
-
-    return coverage_map
+    @property
+    def percent(self) -> float | None:
+        return self.covered / self.valid * 100 if self.valid else None
 
 
-def get_module_status(coverage: float) -> tuple[str, str]:
-    """Returns (status, emoji) based on real metrics."""
-    if coverage == 0.0:
-        return "Not Implemented / No Tests", "🔴"
-    if coverage < 50.0:
-        return "Alpha — Unstable", "🟠"
-    if coverage < 75.0:
-        return "Beta — Use with Caution", "🟡"
-    if coverage < 90.0:
-        return "Stable — Needs More Tests", "🟢"
-    return "Production Ready", "✅"
+def read_nonnegative_int(element: ET.Element, name: str) -> int:
+    raw = element.get(name)
+    if raw is None:
+        raise ValueError(f"Missing XML attribute: {name}")
+    value = int(raw)
+    if value < 0:
+        raise ValueError(f"Negative XML attribute: {name}")
+    return value
 
 
-def scan_modules() -> list[dict[str, Any]]:
-    """Scans src/nova and gathers metrics per module."""
-    coverage_map = parse_coverage()
-    modules: list[dict[str, Any]] = []
+def resolve_filename(filename: str, sources: list[str], root: Path) -> Path | None:
+    """Match coverage.py filenames without guessing by basename."""
+    normalized = filename.replace("\\", "/")
+    if ".." in PurePosixPath(normalized).parts:
+        raise ValueError(f"Parent traversal in coverage filename: {filename}")
+    src = (root / "src" / "nova").resolve()
+    candidates = [root / normalized, root / "src" / normalized, src / normalized]
+    for source in sources:
+        candidates.append(root / source.replace("\\", "/") / normalized)
 
-    for py_file in sorted(SRC_DIR.rglob("*.py")):
-        if py_file.name.startswith("_"):
-            continue
+    # Support an XML report produced under a different checkout root.
+    parts = PurePosixPath(normalized).parts
+    for index in range(len(parts) - 1):
+        if parts[index : index + 2] == ("src", "nova"):
+            candidates.append(src.joinpath(*parts[index + 2 :]))
 
-        rel_path = py_file.relative_to(SRC_DIR)
-        module_name = str(rel_path.with_suffix("")).replace("/", ".")
-        lines_count = len(py_file.read_text().splitlines())
-
-        test_path = PROJECT_ROOT / "tests" / rel_path
-        has_tests = test_path.exists() or any(
-            (PROJECT_ROOT / "tests" / p / f"test_{py_file.name}").exists() for p in rel_path.parents
-        )
-
-        cov = coverage_map.get(module_name, 0.0)
-        status, emoji = get_module_status(cov)
-
-        modules.append(
-            {
-                "module": module_name,
-                "lines": lines_count,
-                "coverage": cov,
-                "status": status,
-                "emoji": emoji,
-                "has_tests": has_tests,
-            }
-        )
-
-    return modules
+    matches = {
+        path.resolve()
+        for path in candidates
+        if path.is_file() and path.resolve().is_relative_to(src)
+    }
+    if len(matches) > 1:
+        raise ValueError(f"Ambiguous coverage filename: {filename}")
+    return next(iter(matches), None)
 
 
-def generate_status_md(modules: list[dict[str, Any]]) -> str:
-    """Generates deterministic markdown."""
-    total_lines = sum(m["lines"] for m in modules)
-    avg_coverage = (
-        sum(m["coverage"] * m["lines"] for m in modules) / total_lines if total_lines else 0
+def parse_coverage(xml_path: Path, root: Path) -> tuple[Counts, dict[Path, Counts], int]:
+    document = ET.parse(xml_path).getroot()
+    if document.tag != "coverage":
+        raise ValueError("Expected a coverage XML root element")
+    total = Counts(
+        covered=read_nonnegative_int(document, "lines-covered"),
+        valid=read_nonnegative_int(document, "lines-valid"),
     )
-    ready_count = sum(1 for m in modules if m["coverage"] >= 75)
+    if total.covered > total.valid:
+        raise ValueError("lines-covered exceeds lines-valid")
 
-    md = f"""# 📊 Project Status — Auto-Generated
+    sources = [node.text or "" for node in document.findall("./sources/source")]
+    records: dict[Path, dict[int, bool]] = {}
+    unmatched = 0
+    for cls in document.iter("class"):
+        filename = cls.get("filename")
+        if not filename:
+            raise ValueError("Coverage class has no filename")
+        path = resolve_filename(filename, sources, root)
+        if path is None:
+            unmatched += 1
+            continue
+        lines_node = cls.find("lines")
+        if lines_node is None:
+            raise ValueError(f"Coverage class has no lines element: {filename}")
+        lines = records.setdefault(path, {})
+        for line in lines_node.findall("line"):
+            number = read_nonnegative_int(line, "number")
+            if number == 0:
+                raise ValueError("Coverage line numbers must be positive")
+            hit = read_nonnegative_int(line, "hits") > 0
+            lines[number] = lines.get(number, False) or hit
 
-> **Generated from current repository state**
-> **Generated by:** `scripts/generate_status.py`
+    measured = {
+        path: Counts(covered=sum(lines.values()), valid=len(lines))
+        for path, lines in records.items()
+    }
+    return total, measured, unmatched
 
-## 🎯 Overall Health
 
-| Metric | Value |
-|---|---|
-| **Total Modules** | {len(modules)} |
-| **Avg Coverage (weighted)** | {avg_coverage:.1f}% |
-| **Modules ≥75% coverage** | {ready_count}/{len(modules)} |
-| **Modules with 0% tests** | {sum(1 for m in modules if m["coverage"] == 0)}/{len(modules)} |
+def format_percent(counts: Counts) -> str:
+    percent = counts.percent
+    return "N/A" if percent is None else f"{percent:.1f}%"
 
-## ⚠️ Honest Assessment
 
-This project is **NOT "100% Enterprise Ready"**. Here's the real picture:
-
-- **{sum(1 for m in modules if m["coverage"] == 0)} modules** have zero test coverage
-- **{sum(1 for m in modules if m["coverage"] < 50 and m["coverage"] > 0)} modules** are below 50% (Alpha quality)
-- **Ecosystem modules** (DRF, FastAPI, GraphQL) are largely untested proof-of-concepts
-- **Async ORM** exists in code but has no tests — treat as experimental
-
-## 📋 Module Breakdown
-
-| Module | Lines | Coverage | Status |
-|---|---|---|---|
-"""
-
-    for m in modules:
-        cov_str = f"{m['coverage']:.1f}%" if m["coverage"] > 0 else "0%"
-        md += f"| `{m['module']}` | {m['lines']} | {cov_str} | {m['emoji']} {m['status']} |\n"
-
-    md += """
-## 🚧 Known Limitations (Auto-Detected)
-
-Based on coverage analysis:
-
-"""
-    zero_cov = [m for m in modules if m["coverage"] == 0]
-    if zero_cov:
-        md += "**Untested modules (do not use in production):**\n\n"
-        for m in zero_cov:
-            md += f"- `{m['module']}`\n"
-
-    md += """
----
-
-*This file is auto-generated. Do not edit manually. Run `python scripts/generate_status.py --write` to update.*
-"""
-    return md
+def generate_status(root: Path, xml_path: Path) -> str:
+    src = root / "src" / "nova"
+    if not src.is_dir():
+        raise ValueError(f"Source directory not found: {src}")
+    files = sorted(src.rglob("*.py"))
+    if not files:
+        raise ValueError("No Python source files found in src/nova")
+    total, measured, unmatched = parse_coverage(xml_path, root)
+    missing = sum(path.resolve() not in measured for path in files)
+    zero = sum(counts.valid > 0 and counts.covered == 0 for counts in measured.values())
+    rows = [
+        "# Project Status - Coverage Report",
+        "",
+        "> Generated by `scripts/generate_status.py` from a coverage XML snapshot.",
+        "",
+        "## Summary",
+        "",
+        "| Metric | Value |",
+        "|---|---|",
+        f"| Python source files in src/nova | {len(files)} |",
+        f"| XML overall line coverage | {format_percent(total)} |",
+        f"| XML covered / executable lines | {total.covered} / {total.valid} |",
+        f"| Source files absent from XML | {missing} |",
+        f"| Source files with measured 0% coverage | {zero} |",
+        f"| XML class entries not matched to src/nova | {unmatched} |",
+        "",
+        "The overall percentage uses the XML root counters. Its scope is the entire",
+        "XML report, which may differ from the src/nova file table below.",
+        "",
+        "## Source files",
+        "",
+        "| File (relative to src/nova) | Covered lines | Executable lines | Coverage | Measurement |",
+        "|---|---:|---:|---:|---|",
+    ]
+    for path in files:
+        name = path.relative_to(src).as_posix().replace("|", "\\|")
+        counts = measured.get(path.resolve())
+        if counts is None:
+            rows.append(f"| `{name}` | N/A | N/A | N/A | Absent from XML |")
+        else:
+            state = "Measured" if counts.valid else "No executable lines in XML"
+            rows.append(
+                f"| `{name}` | {counts.covered} | {counts.valid} | "
+                f"{format_percent(counts)} | {state} |"
+            )
+    rows.extend(
+        [
+            "",
+            "## Interpretation",
+            "",
+            "- Coverage measures executed lines, not correctness or production readiness.",
+            "- A file absent from XML may be excluded, outside collection scope, or unmeasured.",
+            "- A measured 0% does not establish that a module is unimplemented or has no tests.",
+            "- Files with zero executable lines have no defined coverage percentage.",
+            "- This report does not infer test counts, passing tests, branch coverage, or API guarantees.",
+            "- XML paths are matched to the current source tree; source-content freshness is not verified.",
+            "- Regenerate coverage after source changes before updating this report.",
+            "",
+            "Regenerate with `uv run python scripts/generate_status.py --write`.",
+            "`--check` compares report content; it does not run tests or refresh coverage.",
+            "",
+        ]
+    )
+    return "\n".join(rows)
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate honest STATUS.md")
+    parser = argparse.ArgumentParser(description=__doc__)
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--write", action="store_true", help="Write STATUS.md to disk")
-    group.add_argument("--check", action="store_true", help="Check if STATUS.md is up to date")
+    group.add_argument("--write", action="store_true", help="Write STATUS.md")
+    group.add_argument("--check", action="store_true", help="Check STATUS.md against XML")
+    parser.add_argument("--project-root", type=Path, default=PROJECT_ROOT)
+    parser.add_argument("--coverage-xml", type=Path, default=Path("coverage.xml"))
+    parser.add_argument("--output", type=Path, default=Path("STATUS.md"))
     args = parser.parse_args()
-
-    if not COVERAGE_XML.exists():
-        print(
-            "ERROR: coverage.xml not found. Run 'uv run pytest --cov=src/nova --cov-report=xml' first.",
-            file=sys.stderr,
-        )
+    root = args.project_root.resolve()
+    xml_path = root / args.coverage_xml
+    output = root / args.output
+    try:
+        content = generate_status(root, xml_path)
+        if args.check:
+            if not output.is_file():
+                raise ValueError("STATUS report does not exist; run with --write first")
+            if output.read_text(encoding="utf-8") != content:
+                raise ValueError("STATUS report is out of date; run with --write")
+            print("STATUS report matches the supplied coverage XML and source inventory.")
+        else:
+            output.write_text(content, encoding="utf-8")
+            print(f"Generated {output}")
+    except (OSError, ValueError, ET.ParseError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
         return 1
-
-    modules = scan_modules()
-    content = generate_status_md(modules)
-
-    if args.check:
-        if not STATUS_MD.exists():
-            print("ERROR: STATUS.md does not exist. Run with --write first.", file=sys.stderr)
-            return 1
-        existing = STATUS_MD.read_text(encoding="utf-8")
-        if existing != content:
-            print(
-                "ERROR: STATUS.md is out of date. Run `python scripts/generate_status.py --write` to update.",
-                file=sys.stderr,
-            )
-            return 1
-        print("✅ STATUS.md is up to date.")
-        return 0
-
-    if args.write:
-        STATUS_MD.write_text(content, encoding="utf-8")
-        print(f"✅ Generated {STATUS_MD} with {len(modules)} modules")
-        return 0
-
-    return 1
+    return 0
 
 
 if __name__ == "__main__":

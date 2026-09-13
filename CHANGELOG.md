@@ -1,19 +1,152 @@
-## [0.2.0] - 2026-05-06 - "Enterprise & Ecosystem"
-
-### Added
-- **Structured Observability:** Integrated `structlog` for machine-readable JSON logging. Cache miss/hit events now include ISO-timestamps and execution timings.
-- **Distributed Tracing:** Added OpenTelemetry integration (`nova.core.tracing`). Automatic spans for `Model.save()` and `QuerySetCache` operations. Uses "Safe Import" pattern (0 overhead if OTEL is not installed).
-- **Migration Safety:** Implemented `AddFieldConcurrently` and `CreateIndexConcurrently` for true zero-downtime schema changes on PostgreSQL.
-- **DRF Auto-Serializer:** Added `to_drf_serializer()`. Dynamically generates Django Rest Framework `ModelSerializer` that delegates business logic validation strictly to Pydantic schemas.
-- **FastAPI Auto-Router:** Added `to_fastapi_router()`. Dynamically generates FastAPI endpoints (`GET/POST`) bound to Django ORM.
-- **Native OpenAPI:** FastAPI routers automatically generate perfect Swagger/OpenAPI schemas using runtime signature injection (`inspect.Signature`), bypassing PEP 563 limitations.
-
 # Changelog
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+
+## Unreleased
+
+Repository dogfooding, validation contracts, and runtime reliability improvements.
+These changes describe the reviewed development work; they do not assign a new
+release version or imply that the changes are already available on PyPI.
+
+### Fixed
+
+- Completed field-type mapping for the tested scalar fields, including Decimal
+  and UUID; use MRO lookup for inherited fields and `Any` for unknown field types.
+- Prevented callable Django defaults from being evaluated during Pydantic schema
+  generation. Factories now run for each Pydantic instance when the value is omitted.
+- Transferred Decimal `max_digits` and `decimal_places` to generated schemas,
+  including zero decimal places. Restricted length constraints to supported text
+  fields so UUID values do not receive a `max_length` validator.
+- Made canonical model serialization respect the selected schema before reading
+  attributes. File fields serialize as names/paths; unrelated M2M fields are not
+  accessed on unsaved instances.
+- Added nested foreign-key serialization for the tested async save scenario,
+  replacing raw IDs with schema-selected related data where a nested schema is
+  required. Recursive serialization has a depth limit.
+- Fixed a runtime `NameError` in `pydantic_to_model()` caused by evaluating a
+  type imported only under `TYPE_CHECKING` inside `cast()`.
+- Restored `NovaManager` on `NovaModel` and `.auto()` on its querysets. Simplified
+  queryset construction and kept database routing hints at a typed boundary.
+- Preserved Django field conversion results on model attributes before
+  `Model.clean()`, uniqueness checks, and constraint checks.
+- Included automatic primary keys in concrete-field metadata while allowing an
+  absent database-assigned primary key during validation of a new instance.
+- Restored lazy public exports for `get_default_cache`, `NovaManager`,
+  `TypedField`, and `TypedQuerySet` at the documented package entry points.
+- Fixed all four tracing decorators to keep spans open across awaited coroutine
+  execution and record exceptions raised after `await`.
+- Isolated ordinary exceptions from internal telemetry setup, recording, status
+  updates, and teardown. Preserve business results, original exceptions, and
+  cancellation; ignore provider requests to suppress business exceptions.
+- Fixed `TypedField` initialization and scalar conversion/validation delegation.
+  Preserve constructor overrides without mutating the supplied inner field.
+- Made `TypedField` migration descriptions reconstructible and clones independent;
+  delegated database value preparation to the inner field.
+- Corrected README badge updates to consume the replacement text and reject a
+  missing or duplicated coverage badge.
+
+### Added
+
+- Regression contracts for schema whitelisting, file serialization, unsaved M2M
+  safety, generated fields, callable defaults, and scalar field constraints.
+- Tests proving that `strict_validation=False` skips Pydantic while retaining
+  Django field validation and the subsequent model validation stages.
+- Subprocess checks that importing public packages does not eagerly load Django
+  or Pydantic, alongside public-export identity checks.
+- Async tracing tests for span lifetime, exception recording, callable metadata,
+  cancellation, and operation without OpenTelemetry.
+- Telemetry failure-injection tests covering synchronous and asynchronous calls.
+- Tests for `TypedField` scalar conversion, specialized validators, option
+  overrides, cloning, migration-code serialization/reconstruction, and DB preparation.
+- Moved 20 Django typing-boundary tests out of `tests/typing/__init__.py` into
+  `tests/typing/test_django_boundary.py` so normal pytest collection includes them.
+
+### Changed
+
+- Reworked the status generator to distinguish missing measurements (`N/A`) from
+  measured zero coverage. Overall line coverage uses XML root counters, while
+  the source table includes package initializers and private modules.
+- Removed coverage-derived production-readiness labels and hard-coded claims that
+  modules have no tests. The generated report states its measurement scope and
+  freshness limitations; malformed or missing XML fails generation.
+- Reorganized the README around explicit Django/Pydantic responsibilities, working
+  example structure, installation bounds, async behavior, and reproducible checks.
+- Replaced unsupported zero-overhead and blanket lock-free migration claims with
+  scoped descriptions and verification requirements.
+- Updated the roadmap to separate verified behavior from outstanding work and
+  refer to generated coverage measurements instead of hard-coded percentages.
+
+### Compatibility and remaining scope
+
+- `strict_validation=False` disables only the Pydantic stage; it does not disable
+  Django validation or database constraints.
+- Field validation now writes converted values back to the instance before
+  `Model.clean()`. Code inspecting raw input at that stage must account for this.
+- Nested foreign-key serialization can issue synchronous queries for unloaded
+  relations. Nested M2M and reverse-relation support remain separate work.
+- Telemetry protection covers Nova's internal calls, not application code calling
+  span methods directly. Provider signals derived directly from `BaseException`
+  are not suppressed.
+- `TypedField` verification covers scalar behavior and reconstruction of migration
+  code. Real ORM write/read round trips and migration application/rollback remain
+  to be tested; relation, file-descriptor, and automatic timestamp integration are
+  outside the verified wrapper contract.
+- Test success and line coverage are not blanket claims of production readiness
+  or unrestricted strict typing across every module.
+
+### Verification
+
+Latest full local run reported for this work:
+
+- **802 tests passed** in **11.80 seconds**.
+- **Pyright:** 0 errors, 0 warnings, 0 informations using the repository configuration.
+- **Ruff:** all checks passed.
+- The focused `TypedField` suite passed **23 tests**, including the existing tests.
+
+Coverage generation and status `--write`/`--check` previously succeeded at the
+786-test checkpoint. No coverage percentage is inferred from the later 802-test
+run; refresh `coverage.xml` and `STATUS.md` after applying subsequent changes.
+
+---
+
+## [0.6.0] - 2026-09-05 - Type Safety Milestone
+
+### Added
+- **nova.typing.django** module (226 lines, 69% coverage)
+- `safe_get_attname()` — safe access to .attname with GFK protection
+- `get_model_pk()` — typed access to primary key
+- `is_generic_foreign_key()` — type guard for virtual fields
+- All imports are LAZY (no Django settings when importing)
+
+### Fixed
+- **nova.validation.unified** (162 lines, 97% coverage)
+- GenericForeignKey guards in _validate_django_fields()
+- Safe access to field.clean() and field.attname
+
+- **nova.query.planner** (236 lines, 95% coverage)
+- Replaced cast(DjangoField[...]) with getattr()
+- Fixed TypeError: Field is not subscriptable
+
+- **nova.core.tracing** (208 lines, 58% coverage)
+- Fixed get_tracer(name) parameter
+- Fixed issues with OTEL optional dependencies
+
+- **nova.typing.models** (88 lines, 90% coverage)
+- Used get_model_pk() for PK access
+- Type-safe save() and __repr__()
+
+### Metrics
+- **Pyright**: 0 errors, 0 warnings (strict mode) ✅
+- **Tests**: 408 passed (+205 from previous run!)
+- **Coverage**: 66% (was ~56%) ⬆️
+- **Modules**: 58 total (no change)
+
+### Breaking Changes
+None - fully backward compatible.
 
 ---
 
@@ -75,41 +208,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.0] - 2026-05-06 - "Enterprise & Ecosystem"
+
+### Added
+- **Structured Observability:** Integrated `structlog` for machine-readable JSON logging. Cache miss/hit events now include ISO-timestamps and execution timings.
+- **Distributed Tracing:** Added OpenTelemetry integration (`nova.core.tracing`). Automatic spans for `Model.save()` and `QuerySetCache` operations. Uses "Safe Import" pattern (0 overhead if OTEL is not installed).
+- **Migration Safety:** Implemented `AddFieldConcurrently` and `CreateIndexConcurrently` for true zero-downtime schema changes on PostgreSQL.
+- **DRF Auto-Serializer:** Added `to_drf_serializer()`. Dynamically generates Django Rest Framework `ModelSerializer` that delegates business logic validation strictly to Pydantic schemas.
+- **FastAPI Auto-Router:** Added `to_fastapi_router()`. Dynamically generates FastAPI endpoints (`GET/POST`) bound to Django ORM.
+- **Native OpenAPI:** FastAPI routers automatically generate perfect Swagger/OpenAPI schemas using runtime signature injection (`inspect.Signature`), bypassing PEP 563 limitations.
+
 [0.5.1]: https://github.com/Artem7898/django-nova/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/Artem7898/django-nova/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Artem7898/django-nova/releases/tag/v0.4.0
-## [0.6.0] - 2026-09-05 - Type Safety Milestone
-
-### Added
-- **nova.typing.django** module (226 lines, 69% coverage)
-- `safe_get_attname()` — safe access to .attname with GFK protection
-- `get_model_pk()` — typed access to primary key
-- `is_generic_foreign_key()` — type guard for virtual fields
-- All imports are LAZY (no Django settings when importing)
-
-### Fixed
-- **nova.validation.unified** (162 lines, 97% coverage)
-- GenericForeignKey guards in _validate_django_fields()
-- Safe access to field.clean() and field.attname
-
-- **nova.query.planner** (236 lines, 95% coverage)
-- Replaced cast(DjangoField[...]) with getattr()
-- Fixed TypeError: Field is not subscriptable
-
-- **nova.core.tracing** (208 lines, 58% coverage)
-- Fixed get_tracer(name) parameter
-- Fixed issues with OTEL optional dependencies
-
-- **nova.typing.models** (88 lines, 90% coverage)
-- Used get_model_pk() for PK access
-- Type-safe save() and __repr__()
-
-### Metrics
-- **Pyright**: 0 errors, 0 warnings (strict mode) ✅
-- **Tests**: 408 passed (+205 from previous run!)
-- **Coverage**: 66% (was ~56%) ⬆️
-- **Modules**: 58 total (no change)
-
-### Breaking Changes
-None - fully backward compatible.
-

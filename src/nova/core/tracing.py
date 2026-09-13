@@ -4,7 +4,7 @@
 The tracing layer is intentionally optional:
 
 - OpenTelemetry may be unavailable.
-- Tracing must never break business operations.
+- Ordinary telemetry exceptions do not replace business results or errors.
 - When OpenTelemetry is unavailable, ``nova_span()`` yields ``None``.
 - Public APIs remain strongly typed without leaking OpenTelemetry's
   optional dependency into the rest of Nova.
@@ -13,9 +13,10 @@ The tracing layer is intentionally optional:
 from __future__ import annotations
 
 import functools
-from collections.abc import Callable, Generator
-from contextlib import contextmanager
-from typing import TYPE_CHECKING, ParamSpec, TypeVar
+import inspect
+from collections.abc import Awaitable, Callable, Generator
+from contextlib import AbstractContextManager, contextmanager, suppress
+from typing import TYPE_CHECKING, ParamSpec, TypeVar, cast
 
 if TYPE_CHECKING:
     from opentelemetry import trace as trace
@@ -59,7 +60,10 @@ def get_tracer(name: str = "nova") -> Tracer | None:
     if not OTEL_AVAILABLE or trace is None:
         return None
 
-    return trace.get_tracer(name)
+    try:
+        return trace.get_tracer(name)
+    except Exception:
+        return None
 
 
 @contextmanager
@@ -67,52 +71,60 @@ def nova_span(
     name: str,
     **attributes: SpanValue,
 ) -> Generator[Span | None, None, None]:
+    """Trace an operation without letting ordinary telemetry errors escape.
+
+    Failed setup falls back to yielding None. Recording and teardown are
+    best-effort. Business exceptions are always re-raised, even when the
+    provider context manager requests suppression or fails during exit.
+    Cancellation and other BaseException subclasses from the body propagate.
+
+    This boundary guards Nova's telemetry calls, not direct span method calls
+    made by application code. Provider BaseException signals are not suppressed.
     """
-    Create and manage an OpenTelemetry span.
+    span_context: AbstractContextManager[Span] | None = None
+    span: Span | None = None
 
-    When OpenTelemetry is unavailable, the context manager becomes a
-    no-op and yields ``None``.
+    try:
+        tracer = get_tracer(name)
+        if tracer is not None:
+            otel_attributes: dict[str, SpanAttribute] = {
+                key: value for key, value in attributes.items() if value is not None
+            }
+            span_context = tracer.start_as_current_span(
+                name,
+                attributes=otel_attributes,
+            )
+            span = span_context.__enter__()
+    except Exception:
+        # Do not enclose the business yield in this fallback handler:
+        # otherwise a body exception could cause a second execution.
+        span_context = None
 
-    Exceptions raised inside the context are recorded on the span and
-    re-raised unchanged. Tracing therefore never masks business errors.
-    """
-    tracer = get_tracer(name)
-
-    if tracer is None:
+    if span_context is None:
         yield None
         return
 
-    otel_attributes: dict[str, SpanAttribute] = {
-        key: value for key, value in attributes.items() if value is not None
-    }
+    try:
+        yield span
+    except BaseException as exc:
+        if span is not None and isinstance(exc, Exception):
+            with suppress(Exception):
+                span.record_exception(exc)
+            with suppress(Exception):
+                if OtelStatus is not None and OtelStatusCode is not None:
+                    span.set_status(OtelStatus(OtelStatusCode.ERROR, str(exc)))
 
-    with tracer.start_as_current_span(
-        name,
-        attributes=otel_attributes,
-    ) as span:
-        try:
-            yield span
-
-        except Exception as exc:
-            span.record_exception(exc)
-
-            if OtelStatus is not None and OtelStatusCode is not None:
-                span.set_status(
-                    OtelStatus(
-                        OtelStatusCode.ERROR,
-                        str(exc),
-                    ),
-                )
-
-            raise
-
-        else:
-            if OtelStatus is not None and OtelStatusCode is not None:
-                span.set_status(
-                    OtelStatus(
-                        OtelStatusCode.OK,
-                    ),
-                )
+        with suppress(Exception):
+            # Ignore a provider's suppression request: business errors belong
+            # to the caller, not to the telemetry implementation.
+            span_context.__exit__(type(exc), exc, exc.__traceback__)
+        raise
+    else:
+        with suppress(Exception):
+            if span is not None and OtelStatus is not None and OtelStatusCode is not None:
+                span.set_status(OtelStatus(OtelStatusCode.OK))
+        with suppress(Exception):
+            span_context.__exit__(None, None, None)
 
 
 # ---------------------------------------------------------------------------
@@ -133,19 +145,33 @@ def _trace_decorator(
         if not OTEL_AVAILABLE:
             return func
 
+        span_name = f"{component}.{action}"
+        attributes: dict[str, SpanAttribute] = {
+            "nova.component": component,
+            f"nova.{component}.action": action,
+        }
+        attributes.update(extra_attrs)
+
+        if inspect.iscoroutinefunction(func):
+            async_func = cast(Callable[P, Awaitable[object]], func)
+
+            @functools.wraps(func)
+            async def async_wrapper(
+                *args: P.args,
+                **kwargs: P.kwargs,
+            ) -> object:
+                with nova_span(span_name, **attributes):
+                    return await async_func(*args, **kwargs)
+
+            # Runtime detection selects the coroutine branch; preserve the
+            # original callable's parameter and return types for callers.
+            return cast(Callable[P, R], async_wrapper)
+
         @functools.wraps(func)
         def wrapper(
             *args: P.args,
             **kwargs: P.kwargs,
         ) -> R:
-            span_name = f"{component}.{action}"
-
-            attributes: dict[str, SpanAttribute] = {
-                "nova.component": component,
-                f"nova.{component}.action": action,
-            }
-            attributes.update(extra_attrs)
-
             with nova_span(span_name, **attributes):
                 return func(*args, **kwargs)
 
