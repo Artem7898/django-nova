@@ -5,8 +5,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-
 ## Unreleased
+
+## [0.6.2]
+
+### Fixed
+
+- Defer signal-driven cache invalidation until the corresponding database
+  transaction commits. Rollbacks discard pending invalidation callbacks.
+- Prevent an overlapping QuerySet cache fill from republishing stale results
+  after invalidation or cache clearing within the same shared process-local state.
+- Escape literal Redis key prefixes during synchronous and asynchronous cache
+  clearing, preventing glob characters from matching neighboring namespaces.
+- Preserve TypedField ORM and migration behavior, verified through database
+  write/read round trips and migration application and reversal.
+
+### Added
+
+- Transactional cache invalidation tests covering commit, rollback, savepoints,
+  database aliases, repeated signal registration, and backend failures.
+- PostgreSQL concurrency regressions for cache fills completing before and
+  after a committed write.
+- Synchronous Redis backend contracts and asynchronous regression tests for
+  expiration, bulk operations, error propagation, and task cancellation.
+- Real Redis integration tests for serialization, TTL, persistent overwrites,
+  namespace isolation, and clearing large sets of keys.
+- SQLite and PostgreSQL integration coverage for TypedField ORM operations
+  and migrations.
+- Disposable PostgreSQL and Redis services for local integration testing.
+
+### Changed
+
+- Configure CI to run the full suite with PostgreSQL and Redis.
+- Include Pyright and Ruff checks in the test workflow.
+
+### Compatibility and scope
+
+- Transactional invalidation occurs after commit rather than immediately
+  during model save or deletion.
+- The QuerySet cache generation guard coordinates instances sharing the same
+  process-local state; it does not provide distributed cache coherence.
+- Redis size metrics retain their existing behavior.
+
+### Verification
+
+- Full local PostgreSQL and Redis run: 951 tests passed, with no skips.
+- Pyright: 0 errors and 0 warnings under the repository configuration.
+- Ruff and git diff --check passed.
+- Coverage percentages are reported separately from measured coverage data.
+[0.6.2]: https://github.com/Artem7898/django-nova/compare/v0.6.1...v0.6.2
+
+
+## [0.6.1]
+
+Historical dogfooding and validation improvements included in v0.6.1.
+Verification figures below describe the development checkpoint for that release.
 
 Repository dogfooding, validation contracts, and runtime reliability improvements.
 These changes describe the reviewed development work; they do not assign a new

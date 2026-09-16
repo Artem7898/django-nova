@@ -1,6 +1,7 @@
 __pycache__/
 *.py[cod]
 .coverage
+.coverage.*
 coverage.xml
 .pytest_cache/
 .mypy_cache/
@@ -14,3 +15,4 @@ build/
 *.iws
 *.iml
 *.ipr
+.venv/

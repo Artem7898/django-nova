@@ -33,8 +33,14 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --all-extras --dev
 
-      - name: Run tests
-        run: uv run --locked pytest -v
+      - name: Check types
+        run: uv run --locked pyright src/nova
+
+      - name: Lint
+        run: uv run --locked ruff check .
+
+      - name: Run tests on SQLite
+        run: uv run --locked pytest -q -rs
 
   postgres:
     name: PostgreSQL ORM and migrations
@@ -42,6 +48,7 @@ jobs:
     timeout-minutes: 15
     env:
       UV_PYTHON: "3.12"
+      NOVA_TEST_REDIS_URL: "redis://127.0.0.1:56379/0"
 
     services:
       postgres:
@@ -54,6 +61,16 @@ jobs:
           - "55432:5432"
         options: >-
           --health-cmd "pg_isready -U nova -d nova_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+
+      redis:
+        image: redis:7
+        ports:
+          - "56379:6379"
+        options: >-
+          --health-cmd "redis-cli ping"
           --health-interval 2s
           --health-timeout 3s
           --health-retries 30
@@ -72,9 +89,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --all-extras --dev
 
-      - name: Run PostgreSQL ORM and migration tests
+      - name: Run full test suite on PostgreSQL and Redis
         run: >-
-          uv run --locked pytest -q
+          uv run --locked pytest -q -rs
           --ds=tests.example_project.settings_postgres
-          tests/typing/test_typed_field_migrations.py
-          tests/typing/test_typed_field_orm.py
+          -W error::pytest.PytestWarning
+          --tb=short

@@ -11,7 +11,7 @@ from nova.tasks.engine import NovaTaskEngine
 from tests.models import Lab
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_full_lifecycle():
     # 1. Validation blocks bad data
     lab = Lab(name="Lab-1", budget=-10)
@@ -39,7 +39,6 @@ def test_full_lifecycle():
 
 @pytest.mark.asyncio
 async def test_task_engine():
-    # Старый тест остается без изменений (обратная совместимость)
     engine = NovaTaskEngine(max_concurrent=1)
     await engine.start()
 

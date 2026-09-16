@@ -16,7 +16,7 @@ tasks, and optional OpenTelemetry tracing.
 [Coverage report](STATUS.md) ·
 [Roadmap](ROADMAP.md)
 
-[![Coverage](https://img.shields.io/badge/coverage-81%-green.svg)](STATUS.md)
+[![Coverage](https://img.shields.io/badge/coverage-87%-green.svg)](STATUS.md)
 
 > **Development status: Beta.** This README describes the current development
 > workflow and the reviewed source implementation. Recent source changes may not
