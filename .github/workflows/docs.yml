@@ -36,7 +36,7 @@ jobs:
       - name: Update README badge
         run: uv run python scripts/update_badge.py --write
 
-      # Если решите включить автокоммит, используйте PAT только здесь:
+      # If you decide to enable auto-commit, use the PAT only here:
       # - name: Commit updated status (if changed)
       #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       #   run: |

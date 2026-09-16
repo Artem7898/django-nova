@@ -148,7 +148,12 @@ class AsyncRedisCacheBackend(AsyncCacheBackend):
             if not self._key_prefix:
                 raise NovaCacheError("Cannot clear Redis safely without a key_prefix.")
 
-            pattern = f"{self._key_prefix}:*"
+            # SCAN MATCH interprets Redis glob syntax. The namespace is
+            # literal; only the final wildcard should match arbitrary keys.
+            escaped_prefix = "".join(
+                "\\" + char if char in "\\*?[]" else char for char in self._key_prefix
+            )
+            pattern = f"{escaped_prefix}:*"
             cursor = 0
 
             while True:

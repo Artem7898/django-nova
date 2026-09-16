@@ -44,11 +44,16 @@ class _QuerySetCacheState:
     lock: RLock = field(default_factory=_rlock_factory)
     model_keys: dict[str, set[str]] = field(default_factory=_model_keys_factory)
     key_models: dict[str, set[str]] = field(default_factory=_key_models_factory)
+    generation: int = 0
 
 
 class QuerySetCache[T: django_models.Model]:
     """
     Signal-driven QuerySet cache with model-level invalidation.
+
+    In-flight fills are fenced by invalidations in the same shared state.
+    This is a process-local guarantee, not cross-process coordination for
+    remote backends. Unrelated invalidations may also skip a cache fill.
     """
 
     def __init__(
@@ -194,7 +199,8 @@ class QuerySetCache[T: django_models.Model]:
         key, short_name, _ = self._generate_key(queryset)
 
         with nova_span("nova.cache.lookup", model=short_name) as span:
-            cached: Any = state.backend.get(key)
+            with state.lock:
+                cached: Any = state.backend.get(key)
 
             if cached is not None:
                 if span:
@@ -214,7 +220,9 @@ class QuerySetCache[T: django_models.Model]:
         key, short_name, names = self._generate_key(queryset)
 
         with nova_span("nova.cache.lookup", model=short_name) as span:
-            cached: Any = state.backend.get(key)
+            with state.lock:
+                cached: Any = state.backend.get(key)
+                generation = state.generation
 
             if cached is not None:
                 if span:
@@ -227,8 +235,12 @@ class QuerySetCache[T: django_models.Model]:
         with nova_span("nova.cache.store", model=short_name) as span:
             result: list[Any] = list(queryset)
 
-            state.backend.set(key, result, ttl=state.ttl)
-            self._register_key(key, names)
+            # SQL runs outside the lock. An invalidation, even with no
+            # registered keys, makes this in-flight fill unsafe to publish.
+            with state.lock:
+                if generation == state.generation:
+                    state.backend.set(key, result, ttl=state.ttl)
+                    self._register_key(key, names)
 
             if span:
                 span.set_attribute("cache.rows", len(result))
@@ -256,6 +268,9 @@ class QuerySetCache[T: django_models.Model]:
             state = self._state
 
             with state.lock:
+                # A shared, process-local generation conservatively fences all
+                # in-flight fills, including those not yet in the key index.
+                state.generation += 1
                 keys: set[str] = set()
 
                 for name in names:
@@ -291,18 +306,18 @@ class QuerySetCache[T: django_models.Model]:
                             if not related_bucket:
                                 del state.model_keys[related_name]
 
-            deleted = 0
+                deleted = 0
 
-            for key in keys:
-                try:
-                    if state.backend.delete(key):
-                        deleted += 1
-                except Exception:
-                    logger.warning(
-                        "Failed to delete cache key %s during model invalidation",
-                        key,
-                        exc_info=True,
-                    )
+                for key in keys:
+                    try:
+                        if state.backend.delete(key):
+                            deleted += 1
+                    except Exception:
+                        logger.warning(
+                            "Failed to delete cache key %s during model invalidation",
+                            key,
+                            exc_info=True,
+                        )
 
             if deleted:
                 logger.debug(
@@ -329,6 +344,7 @@ class QuerySetCache[T: django_models.Model]:
         state = self._state
 
         with state.lock:
+            state.generation += 1
             try:
                 state.backend.clear()
             except Exception:

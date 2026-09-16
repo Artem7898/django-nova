@@ -7,10 +7,10 @@
 | Metric | Value |
 |---|---|
 | Python source files in src/nova | 77 |
-| XML overall line coverage | 81.7% |
-| XML covered / executable lines | 2635 / 3226 |
+| XML overall line coverage | 87.7% |
+| XML covered / executable lines | 2849 / 3248 |
 | Source files absent from XML | 0 |
-| Source files with measured 0% coverage | 3 |
+| Source files with measured 0% coverage | 2 |
 | XML class entries not matched to src/nova | 0 |
 
 The overall percentage uses the XML root counters. Its scope is the entire
@@ -38,11 +38,11 @@ XML report, which may differ from the src/nova file table below.
 | `cache/backends/null.py` | 55 | 56 | 98.2% | Measured |
 | `cache/backends/pool.py` | 17 | 19 | 89.5% | Measured |
 | `cache/backends/protocol.py` | 40 | 40 | 100.0% | Measured |
-| `cache/backends/redis.py` | 0 | 159 | 0.0% | Measured |
-| `cache/backends/redis_backend.py` | 102 | 151 | 67.5% | Measured |
+| `cache/backends/redis.py` | 150 | 160 | 93.8% | Measured |
+| `cache/backends/redis_backend.py` | 139 | 152 | 91.4% | Measured |
 | `cache/backends/serializers.py` | 17 | 17 | 100.0% | Measured |
-| `cache/invalidation.py` | 30 | 36 | 83.3% | Measured |
-| `cache/queryset_cache.py` | 171 | 194 | 88.1% | Measured |
+| `cache/invalidation.py` | 37 | 39 | 94.9% | Measured |
+| `cache/queryset_cache.py` | 182 | 202 | 90.1% | Measured |
 | `conf.py` | 44 | 45 | 97.8% | Measured |
 | `core/__init__.py` | 17 | 38 | 44.7% | Measured |
 | `core/checks.py` | 31 | 31 | 100.0% | Measured |
@@ -85,7 +85,7 @@ XML report, which may differ from the src/nova file table below.
 | `tasks/models.py` | 12 | 12 | 100.0% | Measured |
 | `typing/__init__.py` | 14 | 20 | 70.0% | Measured |
 | `typing/django.py` | 58 | 59 | 98.3% | Measured |
-| `typing/fields.py` | 29 | 29 | 100.0% | Measured |
+| `typing/fields.py` | 38 | 38 | 100.0% | Measured |
 | `typing/managers.py` | 10 | 10 | 100.0% | Measured |
 | `typing/models.py` | 64 | 67 | 95.5% | Measured |
 | `typing/querysets.py` | 31 | 31 | 100.0% | Measured |

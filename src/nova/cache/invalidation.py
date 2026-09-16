@@ -7,6 +7,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
+from django.db import transaction
 from django.db.models.signals import post_delete, post_save
 
 from .queryset_cache import QuerySetCache, get_default_cache
@@ -26,7 +27,9 @@ def connect_invalidation(
     """
     Connect cache invalidation signals for a Nova model.
 
-    Safe to call multiple times.
+    Invalidate after the successful commit on the signal database.
+    In autocommit mode, invalidation runs immediately. Rolled-back writes
+    do not invalidate. Safe to call multiple times.
     """
     nova_config: Any = getattr(model_cls, "_nova_config", None)
 
@@ -53,22 +56,25 @@ def connect_invalidation(
         full_name = f"{app_label}.{model_name}" if app_label else model_name
         db = str(kwargs.get("using", "default") or "default")
 
-        try:
-            count: int = int(target_cache.invalidate_model(full_name, db))
-        except Exception:
-            logger.warning(
-                "Cache invalidation failed for %s",
-                full_name,
-                exc_info=True,
-            )
-            return
+        def invalidate_after_commit() -> None:
+            try:
+                count: int = int(target_cache.invalidate_model(full_name, db))
+            except Exception:
+                logger.warning(
+                    "Cache invalidation failed for %s",
+                    full_name,
+                    exc_info=True,
+                )
+                return
 
-        if count > 0:
-            logger.debug(
-                "Invalidated %d cache entries for %s",
-                count,
-                full_name,
-            )
+            if count > 0:
+                logger.debug(
+                    "Invalidated %d cache entries for %s",
+                    count,
+                    full_name,
+                )
+
+        transaction.on_commit(invalidate_after_commit, using=db)
 
     post_save.connect(_invalidate, sender=model_cls, weak=False)  # type: ignore[arg-type]
     post_delete.connect(_invalidate, sender=model_cls, weak=False)  # type: ignore[arg-type]
