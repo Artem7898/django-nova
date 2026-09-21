@@ -86,10 +86,10 @@ class AsyncRedisCacheBackend(AsyncCacheBackend):
         if ttl is None:
             return None
 
-        if isinstance(ttl, timedelta):
-            return int(ttl.total_seconds() * 1000)
-
-        return int(float(ttl) * 1000)
+        seconds = ttl.total_seconds() if isinstance(ttl, timedelta) else float(ttl)
+        if seconds <= 0:
+            return 0
+        return max(1, int(seconds * 1000))
 
     def _serialize(self, value: Any) -> bytes:
         return self._serializer.dumps(value)
@@ -122,9 +122,12 @@ class AsyncRedisCacheBackend(AsyncCacheBackend):
 
     async def set(self, key: str, value: Any, *, ttl: TTL = None) -> None:
         try:
-            payload = self._serialize(value)
             ms = self._ttl_ms(ttl)
             redis_key = self._make_key(key)
+            if ms is not None and ms <= 0:
+                await self._client.delete(redis_key)
+                return
+            payload = self._serialize(value)
 
             if ms is None:
                 await self._client.set(redis_key, payload)
@@ -200,6 +203,9 @@ class AsyncRedisCacheBackend(AsyncCacheBackend):
                 return
 
             ms = self._ttl_ms(ttl)
+            if ms is not None and ms <= 0:
+                await self._client.delete(*(self._make_key(key) for key in values))
+                return
             pipe: Any = self._client.pipeline(transaction=False)
 
             for key, value in values.items():

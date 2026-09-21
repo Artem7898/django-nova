@@ -103,7 +103,7 @@ def report_replica_lag(lag_ms: float) -> None:
 class NovaDatabaseRouter:
     """
     Django Database Router with automatic Lag Awareness.
-    Add 'nova.db.router.NovaDatabaseRouter' to DATABASES['default']['ROUTER'].
+    Add `nova.db.router.NovaDatabaseRouter` to the Django `DATABASE_ROUTERS` list.
     """
 
     def db_for_read(self, model: Any, **hints: Any) -> str | None:

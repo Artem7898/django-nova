@@ -16,3 +16,8 @@ build/
 *.iml
 *.ipr
 .venv/
+
+# Generated documentation and local test reports
+/site/
+/drf-coverage.json
+/test-results.xml

@@ -7,9 +7,16 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from datetime import timedelta
-from typing import Any, Final
+from typing import Any, Final, cast
 
 from ...core.exceptions import NovaCacheError
+from ..generation import (
+    GenerationUnavailableError,
+    GenerationWriter,
+    generation_key,
+    new_generation,
+    validate_generation,
+)
 from .protocol import TTL, CacheBackend
 from .serializers import CacheSerializer, PickleSerializer
 
@@ -50,6 +57,7 @@ class RedisCacheBackend(CacheBackend):
         *,
         client: Any | None = None,
         key_prefix: str = "nova",
+        generation_writer: GenerationWriter | None = None,
     ) -> None:
         if url is not None:
             logger.warning(
@@ -65,10 +73,21 @@ class RedisCacheBackend(CacheBackend):
         self._client: Any = client
         self._key_prefix = key_prefix
         self._serializer = PickleSerializer()
+        self._generation_writer = generation_writer
 
     #
     # Internal helpers
     #
+
+    @property
+    def returns_detached_values(self) -> bool:
+        """Native pickle reads own their result; custom implementations opt in."""
+        return type(self) is RedisCacheBackend and type(self._serializer) is PickleSerializer
+
+    @property
+    def stores_detached_values(self) -> bool:
+        """Native set serializes to immutable bytes before invoking the client."""
+        return type(self) is RedisCacheBackend and type(self._serializer) is PickleSerializer
 
     def _make_key(self, key: str) -> str:
         if not self._key_prefix:
@@ -76,14 +95,93 @@ class RedisCacheBackend(CacheBackend):
 
         return f"{self._key_prefix}:{key}"
 
+    def get_generation(self, scope: str) -> str:
+        """Read a shared token, using atomic create-if-absent after eviction."""
+        key = self._make_key(generation_key(scope))
+        try:
+            writer = self._get_generation_writer()
+            for _ in range(3):
+                raw: object = self._client.get(key)
+                if raw is not None:
+                    return validate_generation(raw)
+                # No TTL on metadata. Eviction is still safe because each new
+                # token is unique. Never overwrite a concurrent invalidation.
+                writer.write(key, new_generation().encode("ascii"), only_if_absent=True)
+            raise GenerationUnavailableError("Shared cache generation disappeared repeatedly")
+        except Exception as exc:
+            if isinstance(exc, GenerationUnavailableError):
+                raise
+            raise GenerationUnavailableError("Cannot read Redis cache generation") from exc
+
+    def get_generations(self, scopes: tuple[str, ...]) -> dict[str, str]:
+        """Read warm metadata in one MGET; safely initialize only missing keys."""
+        scopes = tuple(dict.fromkeys(scopes))
+        if not scopes:
+            return {}
+        try:
+            # Preserve the single-attempt writer requirement even on warm reads.
+            self._get_generation_writer()
+            read_many: Any = getattr(self._client, "mget", None)
+            if not callable(read_many):
+                return {scope: self.get_generation(scope) for scope in scopes}
+            keys = [self._make_key(generation_key(scope)) for scope in scopes]
+            raw: object = read_many(keys)
+            if not isinstance(raw, (list, tuple)):
+                raise GenerationUnavailableError("Invalid Redis generation batch response")
+            values = cast("list[object] | tuple[object, ...]", raw)
+            if len(values) != len(scopes):
+                raise GenerationUnavailableError("Incomplete Redis generation batch response")
+            # Validate all present tokens before attempting any initialization.
+            tokens = {
+                scope: validate_generation(value)
+                for scope, value in zip(scopes, values, strict=True)
+                if value is not None
+            }
+            for scope, value in zip(scopes, values, strict=True):
+                if value is None:
+                    # MGET also returns None for non-string keys. GET detects
+                    # WRONGTYPE without overwriting that corrupt metadata.
+                    tokens[scope] = self.get_generation(scope)
+            return tokens
+        except Exception as exc:
+            if isinstance(exc, GenerationUnavailableError):
+                raise
+            raise GenerationUnavailableError("Cannot read Redis cache generations") from exc
+
+    def rotate_generation(self, scope: str) -> str:
+        """Install a fresh token even if this process knows no query keys."""
+        token = new_generation()
+        try:
+            if (
+                self._get_generation_writer().write(
+                    self._make_key(generation_key(scope)),
+                    token.encode("ascii"),
+                    only_if_absent=False,
+                )
+                is not True
+            ):
+                raise GenerationUnavailableError("Redis did not acknowledge generation rotation")
+        except Exception as exc:
+            if isinstance(exc, GenerationUnavailableError):
+                raise
+            raise GenerationUnavailableError("Cannot rotate Redis cache generation") from exc
+        return token
+
+    def _get_generation_writer(self) -> GenerationWriter:
+        if self._generation_writer is None:
+            from ..generation_transport import redis_generation_writer
+
+            self._generation_writer = redis_generation_writer(self._client)
+        return self._generation_writer
+
     def _ttl_ms(self, ttl: TTL) -> int | None:
         if ttl is None:
             return None
 
-        if isinstance(ttl, timedelta):
-            return int(ttl.total_seconds() * 1000)
-
-        return int(float(ttl) * 1000)
+        seconds = ttl.total_seconds() if isinstance(ttl, timedelta) else float(ttl)
+        if seconds <= 0:
+            return 0
+        return max(1, int(seconds * 1000))
 
     def _serialize(self, value: Any) -> bytes:
         return self._serializer.dumps(value)
@@ -116,9 +214,12 @@ class RedisCacheBackend(CacheBackend):
 
     def set(self, key: str, value: Any, *, ttl: TTL = None) -> None:
         try:
-            payload = self._serialize(value)
             ms = self._ttl_ms(ttl)
             redis_key = self._make_key(key)
+            if ms is not None and ms <= 0:
+                self._client.delete(redis_key)
+                return
+            payload = self._serialize(value)
 
             if ms is None:
                 self._client.set(redis_key, payload)
@@ -199,6 +300,9 @@ class RedisCacheBackend(CacheBackend):
                 return
 
             ms = self._ttl_ms(ttl)
+            if ms is not None and ms <= 0:
+                self._client.delete(*(self._make_key(key) for key in values))
+                return
 
             with self._client.pipeline(transaction=False) as pipe:
                 for key, value in values.items():

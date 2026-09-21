@@ -5,11 +5,13 @@ Event-driven cache invalidation using Django signals.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from django.db import transaction
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import m2m_changed, post_delete, post_save
 
+from .dependencies import related_model_graph
 from .queryset_cache import QuerySetCache, get_default_cache
 
 if TYPE_CHECKING:
@@ -18,6 +20,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _CONNECTED_SIGNALS: set[tuple[type[Any], int]] = set()
+_CONNECTED_M2M_SIGNALS: set[tuple[type[Any], int]] = set()
+
+
+def _connect_signal(signal: Any, receiver: Callable[..., None], sender: type[Any]) -> None:
+    signal.connect(receiver, sender=sender, weak=False)
 
 
 def connect_invalidation(
@@ -29,7 +36,9 @@ def connect_invalidation(
 
     Invalidate after the successful commit on the signal database.
     In autocommit mode, invalidation runs immediately. Rolled-back writes
-    do not invalidate. Safe to call multiple times.
+    do not invalidate. Safe to call multiple times. Subscribe to the relation
+    component at startup, including non-cache-enabled dependencies and M2M
+    through models, so a writer need never have read a related cached query.
     """
     nova_config: Any = getattr(model_cls, "_nova_config", None)
 
@@ -37,10 +46,10 @@ def connect_invalidation(
         return
 
     target_cache = cache or get_default_cache()
-
-    connection_key = (model_cls, id(target_cache))
-    if connection_key in _CONNECTED_SIGNALS:
+    if (model_cls, id(target_cache)) in _CONNECTED_SIGNALS:
         return
+
+    related_models, through_models = related_model_graph(model_cls)
 
     def _invalidate(sender: Any, **kwargs: Any) -> None:
         meta: Any = getattr(sender, "_meta", None)
@@ -76,10 +85,24 @@ def connect_invalidation(
 
         transaction.on_commit(invalidate_after_commit, using=db)
 
-    post_save.connect(_invalidate, sender=model_cls, weak=False)  # type: ignore[arg-type]
-    post_delete.connect(_invalidate, sender=model_cls, weak=False)  # type: ignore[arg-type]
+    for dependency in related_models:
+        connection_key = (dependency, id(target_cache))
+        if connection_key not in _CONNECTED_SIGNALS:
+            _connect_signal(post_save, _invalidate, dependency)
+            _connect_signal(post_delete, _invalidate, dependency)
+            _CONNECTED_SIGNALS.add(connection_key)
 
-    _CONNECTED_SIGNALS.add(connection_key)
+    def _invalidate_m2m(sender: Any, **kwargs: Any) -> None:
+        if kwargs.get("action") in {"post_add", "post_remove", "post_clear"}:
+            # Rotate the through-model scope, including reverse clear where
+            # pk_set is None. Dependents include this scope before any fill.
+            _invalidate(sender, **kwargs)
+
+    for through in through_models:
+        connection_key = (through, id(target_cache))
+        if connection_key not in _CONNECTED_M2M_SIGNALS:
+            _connect_signal(m2m_changed, _invalidate_m2m, through)
+            _CONNECTED_M2M_SIGNALS.add(connection_key)
 
     logger.info(
         "cache_invalidation_connected",

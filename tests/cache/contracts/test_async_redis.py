@@ -7,9 +7,9 @@ These tests run against fakeredis, so no real Redis server is required.
 from __future__ import annotations
 
 import pytest
-from tests.cache.contracts import AsyncCacheBackendContract
 
 from nova.cache.backends.redis_backend import AsyncRedisCacheBackend
+from tests.cache.contracts import AsyncCacheBackendContract
 
 pytest.importorskip("redis", reason="redis is required for Redis cache contracts")
 

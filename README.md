@@ -16,7 +16,7 @@ tasks, and optional OpenTelemetry tracing.
 [Coverage report](STATUS.md) ·
 [Roadmap](ROADMAP.md)
 
-[![Coverage](https://img.shields.io/badge/coverage-87%-green.svg)](STATUS.md)
+[![Coverage](https://img.shields.io/badge/coverage-90%-brightgreen.svg)](STATUS.md)
 
 > **Development status: Beta.** This README describes the current development
 > workflow and the reviewed source implementation. Recent source changes may not
@@ -333,73 +333,60 @@ To work on the repository rather than the published package:
 ```bash
 git clone https://github.com/Artem7898/django-nova.git
 cd django-nova
-uv sync --group dev --all-extras
+uv sync --locked --all-extras --dev
 ```
 
 For an existing checkout containing local changes, run the sync command there;
 cloning the remote does not include unpublished local fixes. Commit and retain
 `uv.lock` for reproducible development environments.
 
-Run static checks and the complete test suite:
+Run local checks (SQLite by default):
 
 ```bash
-uv run pyright src/nova \
-&& uv run ruff check . \
-&& uv run pytest -q
+uv run --locked pyright src/nova \
+&& uv run --locked ruff check . \
+&& uv run --locked ruff format --check . \
+&& uv run --locked pytest -q -rs \
+&& git diff --check
 ```
 
-Pyright uses the repository configuration, including its exclusions and scoped
-exceptions. A clean run is not a claim that every module has unrestricted strict
-typing coverage. Application model typing also depends on its own checker and
-Django stub configuration.
+Tests requiring PostgreSQL, Redis, or Memcached need their explicit settings and
+service addresses. Follow [the full integration and coverage commands](docs/testing.md)
+before describing a run as complete. `-rs` shows the reasons for skipped cases.
 
-Focused checks:
+Run the isolated example and build the documentation:
 
 ```bash
-uv run pytest -q tests/architecture
-uv run pytest -q tests/typing/test_django_boundary.py
-uv run pytest -q \
-  tests/core/test_tracing.py \
-  tests/core/test_tracing_async.py \
-  tests/core/test_tracing_resilience.py
+uv run --locked python -m examples.dogfooding \
+&& uv run --locked pytest -q tests/docs/test_dogfooding_demo.py \
+&& uv run --locked --with-requirements docs/requirements.txt mkdocs build --strict
 ```
 
-Check collection when adding or moving tests:
+The [dogfooding demo](docs/quickstart.md) applies migrations to its own in-memory
+database and checks validation, serialization, file handling, and task submission.
+Its models are included directly in the documentation from the executable source.
 
-```bash
-uv run pytest --collect-only -q tests/typing
-```
-
-Place test functions in discoverable `test_*.py` modules, not package `__init__.py`
-files.
+Pyright uses the repository configuration, including exclusions and scoped
+exceptions. Application typing also depends on its checker and Django stubs.
 
 ### Coverage and generated status
 
-```bash
-uv run pytest -q --cov=src/nova --cov-report=xml:coverage.xml \
-&& uv run python scripts/generate_status.py --write \
-&& uv run python scripts/generate_status.py --check
-```
-
-Update the README badge using the same coverage snapshot:
+After the [full coverage run](docs/testing.md), update both generated files from
+that same `coverage.xml`:
 
 ```bash
-uv run python scripts/update_badge.py --write \
-&& uv run python scripts/update_badge.py --check
+uv run --locked python scripts/generate_status.py --write \
+&& uv run --locked python scripts/generate_status.py --check \
+&& uv run --locked python scripts/update_badge.py --write \
+&& uv run --locked python scripts/update_badge.py --check
 ```
 
-The badge is initially a link to the report, not an invented coverage percentage.
-The updater replaces its value with the measured percentage from `coverage.xml`.
-
-The latest local verification reported for the reviewed development changes was
-**786 tests passed**, with clean Pyright and Ruff results; the coverage run and
-status generation also succeeded. This is a historical development snapshot,
-not a live CI result or a result independently reproduced for every installation.
-
-`STATUS.md` distinguishes missing measurements (`N/A`) from measured `0%`.
-Its overall percentage comes from the XML report's line counters. `--check`
-compares the generated report with supplied inputs; it does not prove that the
-coverage snapshot matches the latest source contents.
+The README badge and `STATUS.md` use XML line coverage, which can differ from the
+terminal line-and-branch percentage. `STATUS.md` distinguishes missing measurements
+from measured zero coverage. Its checks compare supplied XML and source inventory;
+they do not prove source-content freshness. Regenerate coverage after source changes.
+Keep run-specific test counts in the verification record rather than treating them
+as a live property of this README.
 
 ## Performance
 

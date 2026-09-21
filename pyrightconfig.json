@@ -6,7 +6,6 @@
     "**/__pycache__",
     "tests",
     "src/nova/admin/components.py",
-    "src/nova/ecosystem/drf.py",
     "src/nova/ecosystem/fastapi.py",
     "src/nova/ecosystem/graphql.py",
     "src/nova/typing/fields.py",

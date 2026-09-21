@@ -38,10 +38,13 @@ Validation ownership:
 from __future__ import annotations
 
 import collections.abc
-from typing import TYPE_CHECKING, Any, cast, get_args, get_origin
+from types import UnionType
+from typing import TYPE_CHECKING, Any, Union, cast, get_args, get_origin
 
 from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
+
+from nova.typing.django import get_model_pk
 
 if TYPE_CHECKING:
     from nova.typing.models import NovaModel
@@ -99,7 +102,10 @@ def _get_schema(model_cls: type[NovaModel]) -> type[BaseModel]:
     if schema is None:
         raise ValueError(f"Model {model_cls.__name__} requires pydantic_schema in _nova_config.")
 
-    return cast(type[BaseModel], schema)
+    if not isinstance(schema, type) or not issubclass(schema, BaseModel):
+        raise ValueError(f"Model {model_cls.__name__} requires a Pydantic BaseModel schema class.")
+
+    return schema
 
 
 # ---------------------------------------------------------------------------
@@ -122,6 +128,9 @@ def _is_nested_schema(annotation: Any) -> bool:
             return False
 
     origin = get_origin(annotation)
+
+    if origin in (Union, UnionType):
+        return any(_is_nested_schema(member) for member in get_args(annotation))
 
     if origin in (
         list,
@@ -159,7 +168,7 @@ def _resolve_serializer_fields(
 
     fields = [field_name for field_name in schema.model_fields if field_name in model_fields]
 
-    primary_key = model_cls._meta.pk
+    primary_key = get_model_pk(model_cls, strict=False)
 
     if primary_key is not None and primary_key.name not in fields:
         fields.insert(0, primary_key.name)
@@ -172,15 +181,60 @@ def _resolve_serializer_fields(
 # ---------------------------------------------------------------------------
 
 
+def _apply_create_defaults(serializer: Any, attrs: dict[str, Any]) -> dict[str, Any]:
+    """Evaluate projected scalar Django defaults once, retaining them for save.
+
+    Updates keep omitted values from the existing instance. Relationship
+    defaults continue to require an explicit serializer implementation.
+    """
+    if serializer.instance is not None:
+        return attrs
+
+    values = dict(attrs)
+    for field in serializer.Meta.model._meta.concrete_fields:
+        if (
+            field.name not in values
+            and field.name in serializer.fields
+            and not field.is_relation
+            and field.has_default()
+        ):
+            values[field.name] = field.get_default()
+    return values
+
+
+def _validation_attrs(
+    serializer: Any,
+    attrs: dict[str, Any],
+    schema: type[BaseModel],
+) -> dict[str, Any]:
+    """Adapt files and foreign keys for validation without replacing save inputs."""
+    from django.db import models
+
+    model_fields = {field.name: field for field in serializer.Meta.model._meta.concrete_fields}
+    values = dict(attrs)
+    for name, value in attrs.items():
+        field = model_fields.get(name)
+        if isinstance(field, models.FileField):
+            values[name] = getattr(value, "name", value)
+        elif isinstance(field, models.ForeignKey) and isinstance(value, models.Model):
+            schema_field = schema.model_fields.get(name)
+            if schema_field is not None and not _is_nested_schema(schema_field.annotation):
+                relation = cast(Any, field)
+                target_field = cast("models.Field[Any, Any]", relation.target_field)
+                values[name] = getattr(value, target_field.attname)
+    return values
+
+
 def _build_validation_payload(
     serializer: Any,
     attrs: dict[str, Any],
+    schema: type[BaseModel],
 ) -> dict[str, Any]:
     """
     Build the complete Pydantic validation payload.
 
     For creates:
-        payload = incoming attributes
+        payload = incoming attributes and evaluated scalar Django defaults
 
     For updates:
         payload = existing canonical state + incoming attributes
@@ -188,9 +242,10 @@ def _build_validation_payload(
     This ensures that cross-field validators receive the complete object.
     """
     instance = getattr(serializer, "instance", None)
+    values = _validation_attrs(serializer, attrs, schema)
 
     if instance is None:
-        return dict(attrs)
+        return values
 
     try:
         current_schema = instance.to_pydantic()
@@ -202,7 +257,7 @@ def _build_validation_payload(
         # schema remains responsible for actual validation.
         payload = instance.to_dict()
 
-    payload.update(attrs)
+    payload.update(values)
 
     return payload
 
@@ -216,16 +271,19 @@ def _translate_pydantic_errors(
     The semantic error remains a Pydantic error; this function only adapts
     it to DRF's error structure.
     """
+    from rest_framework.settings import api_settings
+
     errors: dict[str, list[str]] = {}
+    non_field_key: str = cast(Any, api_settings).NON_FIELD_ERRORS_KEY
 
     for error in exc.errors():
         location = error.get("loc", ())
 
         if not location:
-            field_name = "non_field_errors"
+            field_name = non_field_key
         else:
             first = location[0]
-            field_name = "non_field_errors" if first == "__root__" else str(first)
+            field_name = non_field_key if first == "__root__" else str(first)
 
         message = str(error.get("msg", "Validation error"))
         errors.setdefault(field_name, []).append(message)
@@ -247,6 +305,11 @@ def to_drf_serializer(model_cls: type[NovaModel]) -> type[Any]:
 
     DRF does not become another source of truth.
     NovaModel.save() remains the authoritative ORM validation boundary.
+
+    Projected scalar Django defaults are evaluated during create validation
+    and retained for save. Updates validate the complete merged state while
+    writing only supplied attributes. Foreign-key instances and uploaded files
+    stay intact for DRF persistence; only their validation payload is adapted.
     """
     serializers_module = _require_drf()
     schema = _get_schema(model_cls)
@@ -262,7 +325,8 @@ def to_drf_serializer(model_cls: type[NovaModel]) -> type[Any]:
         This provides early API feedback. Persistence remains governed by
         NovaModel.save().
         """
-        payload = _build_validation_payload(self, attrs)
+        attrs = _apply_create_defaults(self, attrs)
+        payload = _build_validation_payload(self, attrs, schema)
 
         try:
             schema.model_validate(

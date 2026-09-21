@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "django-nova"
-version = "0.6.2"
-description = "Next-generation Django toolkit: typed ORM, unified validation, async-first workflows, and smart caching"
+version = "0.6.3"
+description = "Production-oriented Django infrastructure toolkit: typed models, schema-driven validation, query planning, caching, and observability"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.12"
@@ -171,7 +171,6 @@ include = [
 exclude = [
     # Experimental / incomplete integrations
     "src/nova/admin/components.py",
-    "src/nova/ecosystem/drf.py",
     "src/nova/ecosystem/fastapi.py",
     "src/nova/ecosystem/graphql.py",
 
@@ -299,4 +298,5 @@ dev = [
     "pyperf>=2.10.0",
     "psycopg[binary]>=3.1.8,<4",
     "packaging>=26.0",
+    "pymemcache>=4,<5",
 ]

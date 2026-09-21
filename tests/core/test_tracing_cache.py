@@ -20,7 +20,7 @@ def mock_span():
 
 
 @patch("nova.cache.queryset_cache.nova_span")
-def test_get_or_set_miss_lifecycle(mock_nova_span, mock_span, db):
+def test_get_or_set_miss_lifecycle(mock_nova_span, mock_span, transactional_db):
     mock_nova_span.return_value = mock_span
 
     from tests.models import CachedItem
@@ -39,7 +39,7 @@ def test_get_or_set_miss_lifecycle(mock_nova_span, mock_span, db):
 
 
 @patch("nova.cache.queryset_cache.nova_span")
-def test_invalidate_lifecycle(mock_nova_span, mock_span, db):
+def test_invalidate_lifecycle(mock_nova_span, mock_span, transactional_db):
     mock_nova_span.return_value = mock_span
 
     cache = QuerySetCache(backend=MemoryCacheBackend())

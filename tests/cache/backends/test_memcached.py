@@ -103,7 +103,8 @@ class TestMemcachedCacheBackend:
             )
 
         factory.assert_called_once_with(
-            ("127.0.0.1:11212",),
+            ("127.0.0.1", 11212),
+            default_noreply=False,
         )
         assert backend._client is client
 
@@ -124,7 +125,8 @@ class TestMemcachedCacheBackend:
             MemcachedCacheBackend()
 
         factory.assert_called_once_with(
-            ("127.0.0.1:11211",),
+            ("127.0.0.1", 11211),
+            default_noreply=False,
         )
 
     def test_backend_name(self) -> None:
@@ -247,16 +249,15 @@ class TestMemcachedCacheBackend:
 
         loaded = PickleSerializer().loads(payload)
 
-        assert loaded[0] is None
-        assert loaded[1] == "value"
+        assert loaded == ("nova:memcached:v2", None, "value")
 
-    def test_pack_with_ttl_contains_monotonic_expiration(self) -> None:
+    def test_pack_with_ttl_contains_versioned_unix_expiration(self) -> None:
         backend = MemcachedCacheBackend(
             client=FakeMemcachedClient(),
         )
 
         with patch(
-            "nova.cache.backends.memcached.time.monotonic",
+            "nova.cache.backends.memcached.time.time",
             return_value=100.0,
         ):
             payload = backend._pack(
@@ -266,7 +267,7 @@ class TestMemcachedCacheBackend:
 
         loaded = PickleSerializer().loads(payload)
 
-        assert loaded == (105.0, "value")
+        assert loaded == ("nova:memcached:v2", 105.0, "value")
 
     def test_unpack_none_returns_missing(self) -> None:
         backend = MemcachedCacheBackend(
@@ -293,7 +294,7 @@ class TestMemcachedCacheBackend:
         )
 
         with patch(
-            "nova.cache.backends.memcached.time.monotonic",
+            "nova.cache.backends.memcached.time.time",
             side_effect=[100.0, 102.0],
         ):
             payload = backend._pack(
@@ -308,7 +309,7 @@ class TestMemcachedCacheBackend:
         )
 
         with patch(
-            "nova.cache.backends.memcached.time.monotonic",
+            "nova.cache.backends.memcached.time.time",
             side_effect=[100.0, 105.0],
         ):
             payload = backend._pack(
@@ -378,7 +379,7 @@ class TestMemcachedCacheBackend:
         backend = MemcachedCacheBackend(client=client)
 
         with patch(
-            "nova.cache.backends.memcached.time.monotonic",
+            "nova.cache.backends.memcached.time.time",
             return_value=100.0,
         ):
             backend.set(

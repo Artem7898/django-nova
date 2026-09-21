@@ -37,7 +37,11 @@ class DjangoCacheBackend(CacheBackend):
         return self._cache.get(key, default)
 
     def set(self, key: str, value: Any, *, ttl: TTL = None) -> None:
-        self._cache.set(key, value, timeout=self._get_timeout(ttl))
+        timeout = self._get_timeout(ttl)
+        if timeout is not None and timeout <= 0:
+            self._cache.delete(key)
+            return
+        self._cache.set(key, value, timeout=timeout)
 
     def delete(self, key: str) -> bool:
         return bool(self._cache.delete(key))
@@ -50,7 +54,13 @@ class DjangoCacheBackend(CacheBackend):
         return {key: data.get(key) for key in keys}
 
     def set_many(self, values: Mapping[str, Any], *, ttl: TTL = None) -> None:
-        self._cache.set_many(values, timeout=self._get_timeout(ttl))
+        if not values:
+            return
+        timeout = self._get_timeout(ttl)
+        if timeout is not None and timeout <= 0:
+            self._cache.delete_many(list(values))
+            return
+        self._cache.set_many(values, timeout=timeout)
 
     def delete_many(self, keys: list[str]) -> int:
         count = 0
