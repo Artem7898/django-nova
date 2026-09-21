@@ -2,46 +2,82 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://artem7898.github.io/django-nova/</loc>
-         <lastmod>2026-09-16</lastmod>
+         <lastmod>2026-09-21</lastmod>
     </url>
     <url>
          <loc>https://artem7898.github.io/django-nova/architecture/</loc>
-         <lastmod>2026-09-16</lastmod>
+         <lastmod>2026-09-21</lastmod>
+    </url>
+    <url>
+         <loc>https://artem7898.github.io/django-nova/caching/</loc>
+         <lastmod>2026-09-21</lastmod>
+    </url>
+    <url>
+         <loc>https://artem7898.github.io/django-nova/context/</loc>
+         <lastmod>2026-09-21</lastmod>
+    </url>
+    <url>
+         <loc>https://artem7898.github.io/django-nova/drf/</loc>
+         <lastmod>2026-09-21</lastmod>
     </url>
     <url>
          <loc>https://artem7898.github.io/django-nova/installation/</loc>
-         <lastmod>2026-09-16</lastmod>
+         <lastmod>2026-09-21</lastmod>
+    </url>
+    <url>
+         <loc>https://artem7898.github.io/django-nova/migrations/</loc>
+         <lastmod>2026-09-21</lastmod>
+    </url>
+    <url>
+         <loc>https://artem7898.github.io/django-nova/quickstart/</loc>
+         <lastmod>2026-09-21</lastmod>
     </url>
     <url>
          <loc>https://artem7898.github.io/django-nova/status/</loc>
-         <lastmod>2026-09-16</lastmod>
+         <lastmod>2026-09-21</lastmod>
+    </url>
+    <url>
+         <loc>https://artem7898.github.io/django-nova/tasks/</loc>
+         <lastmod>2026-09-21</lastmod>
+    </url>
+    <url>
+         <loc>https://artem7898.github.io/django-nova/testing/</loc>
+         <lastmod>2026-09-21</lastmod>
+    </url>
+    <url>
+         <loc>https://artem7898.github.io/django-nova/tracing/</loc>
+         <lastmod>2026-09-21</lastmod>
+    </url>
+    <url>
+         <loc>https://artem7898.github.io/django-nova/validation/</loc>
+         <lastmod>2026-09-21</lastmod>
     </url>
     <url>
          <loc>https://artem7898.github.io/django-nova/api/cache/</loc>
-         <lastmod>2026-09-16</lastmod>
+         <lastmod>2026-09-21</lastmod>
     </url>
     <url>
          <loc>https://artem7898.github.io/django-nova/api/core/</loc>
-         <lastmod>2026-09-16</lastmod>
+         <lastmod>2026-09-21</lastmod>
     </url>
     <url>
          <loc>https://artem7898.github.io/django-nova/api/db/</loc>
-         <lastmod>2026-09-16</lastmod>
+         <lastmod>2026-09-21</lastmod>
     </url>
     <url>
          <loc>https://artem7898.github.io/django-nova/api/ecosystem/</loc>
-         <lastmod>2026-09-16</lastmod>
+         <lastmod>2026-09-21</lastmod>
     </url>
     <url>
          <loc>https://artem7898.github.io/django-nova/api/query/</loc>
-         <lastmod>2026-09-16</lastmod>
+         <lastmod>2026-09-21</lastmod>
     </url>
     <url>
          <loc>https://artem7898.github.io/django-nova/api/redis/</loc>
-         <lastmod>2026-09-16</lastmod>
+         <lastmod>2026-09-21</lastmod>
     </url>
     <url>
          <loc>https://artem7898.github.io/django-nova/api/validation/</loc>
-         <lastmod>2026-09-16</lastmod>
+         <lastmod>2026-09-21</lastmod>
     </url>
 </urlset>

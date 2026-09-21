@@ -11,6 +11,10 @@
         <link rel="canonical" href="https://artem7898.github.io/django-nova/installation/">
       
       
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../quickstart/">
       
       
         
@@ -21,7 +25,7 @@
     
     
       
-        <title>Installation and configuration - Django Nova</title>
+        <title>Installation - Django Nova</title>
       
     
     
@@ -100,7 +104,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Installation and configuration
+              Installation
             
           </span>
         </div>
@@ -244,6 +248,468 @@
       
   
   
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Requirements
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#install-in-an-application" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install in an application
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#work-on-this-repository" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Work on this repository
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dogfooding demo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation and serialization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../caching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tasks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../context/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Context semantics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../drf/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Django REST Framework
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tracing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tracing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing and benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
   
   
     <li class="md-nav__item">
@@ -300,10 +766,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
@@ -321,8 +787,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -562,10 +1028,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#system-requirements" class="md-nav__link">
+  <a href="#requirements" class="md-nav__link">
     <span class="md-ellipsis">
       
-        System requirements
+        Requirements
       
     </span>
   </a>
@@ -573,30 +1039,24 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#install-in-an-application" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installation
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Installation">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#basic-installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Basic installation
+        Install in an application
       
     </span>
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#work-on-this-repository" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Work on this repository
+      
+    </span>
+  </a>
   
 </li>
       
@@ -621,17 +1081,68 @@
 
 
 <h1 id="installation-and-configuration">Installation and configuration</h1>
-<h2 id="system-requirements">System requirements</h2>
-<ul>
-<li><strong>Python</strong>: 3.11 or higher</li>
-<li><strong>Django</strong>: 5.0+</li>
-<li>** Database**: PostgreSQL 14+</li>
-<li><strong>Optional</strong>: Redis (for caching)</li>
-</ul>
-<h2 id="installation">Installation</h2>
-<h3 id="basic-installation">Basic installation</h3>
-<p>```bash
-pip install django-nova</p>
+<h2 id="requirements">Requirements</h2>
+<table>
+<thead>
+<tr>
+<th>Dependency</th>
+<th>Declared range</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Python</td>
+<td><code>&gt;=3.12</code></td>
+</tr>
+<tr>
+<td>Django</td>
+<td><code>&gt;=5.0,&lt;6.0</code></td>
+</tr>
+<tr>
+<td>Pydantic</td>
+<td><code>&gt;=2.8,&lt;3.0</code></td>
+</tr>
+</tbody>
+</table>
+<p>These ranges come from the package manifest and do not mean that every version
+combination has been tested. SQLite supports a local demo and many tests;
+PostgreSQL, Redis, and Memcached are used by their respective integration suites.</p>
+<h2 id="install-in-an-application">Install in an application</h2>
+<pre><code class="language-bash">uv add django-nova
+</code></pre>
+<p>Or, in an activated virtual environment:</p>
+<pre><code class="language-bash">python -m pip install django-nova
+</code></pre>
+<p>Choose optional dependencies for the integrations you use:</p>
+<pre><code class="language-bash">uv add 'django-nova[redis]'
+uv add 'django-nova[drf]'
+uv add 'django-nova[fastapi]'
+uv add 'django-nova[graphql]'
+uv add 'django-nova[observability]'
+</code></pre>
+<p>Installing an extra supplies dependencies; it does not configure a service,
+start a worker, or confirm an adapter's runtime stability.</p>
+<p>Extend the existing Django settings with Nova and your application:</p>
+<pre><code class="language-python">INSTALLED_APPS = [
+    &quot;django.contrib.contenttypes&quot;,
+    &quot;nova&quot;,
+    &quot;articles&quot;,
+]
+</code></pre>
+<p>Retain the other applications your project requires. Keep <code>contenttypes</code> enabled;
+Nova's Django field helpers use it. Define models in an installed app and import
+them after Django has initialized settings and the app registry.</p>
+<h2 id="work-on-this-repository">Work on this repository</h2>
+<pre><code class="language-bash">git clone https://github.com/Artem7898/django-nova.git
+cd django-nova
+uv sync --locked --all-extras --dev
+uv run --locked python -m examples.dogfooding
+</code></pre>
+<p>For a checkout with local changes, run the commands in that checkout. A fresh
+clone contains only changes already pushed to the repository. <code>--locked</code> detects
+a manifest/lockfile mismatch rather than updating the lockfile implicitly.</p>
+<p>See the <a href="../quickstart/">demo</a> and <a href="../testing/">testing guide</a> for expected output
+and integration setup.</p>
 
 
 

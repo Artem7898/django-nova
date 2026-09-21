@@ -8,26 +8,28 @@
       
       
       
-        <link rel="canonical" href="https://artem7898.github.io/django-nova/">
+        <link rel="canonical" href="https://artem7898.github.io/django-nova/testing/">
       
       
+        <link rel="prev" href="../migrations/">
       
-        <link rel="next" href="installation/">
+      
+        <link rel="next" href="../status/">
       
       
         
       
       
-      <link rel="icon" href="assets/images/favicon.png">
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Django Nova</title>
+        <title>Testing and benchmarks - Django Nova</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
       
 
@@ -46,9 +48,9 @@
       
     
     
-      <link rel="stylesheet" href="assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -66,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#django-nova" class="md-skip">
+        <a href="#development-and-verification" class="md-skip">
           Skip to content
         </a>
       
@@ -82,7 +84,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="Django Nova" class="md-header__button md-logo" aria-label="Django Nova" data-md-component="logo">
+    <a href=".." title="Django Nova" class="md-header__button md-logo" aria-label="Django Nova" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +104,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Home
+              Testing and benchmarks
             
           </span>
         </div>
@@ -192,7 +194,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="Django Nova" class="md-nav__button md-logo" aria-label="Django Nova" data-md-component="logo">
+    <a href=".." title="Django Nova" class="md-nav__button md-logo" aria-label="Django Nova" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -219,37 +221,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Home
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="." class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
         
   
   
@@ -265,59 +240,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#start-here" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Start here
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#guides" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Guides
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#api-reference" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        API reference
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -329,7 +251,7 @@
   
   
     <li class="md-nav__item">
-      <a href="installation/" class="md-nav__link">
+      <a href="../installation/" class="md-nav__link">
         
   
   
@@ -356,7 +278,7 @@
   
   
     <li class="md-nav__item">
-      <a href="quickstart/" class="md-nav__link">
+      <a href="../quickstart/" class="md-nav__link">
         
   
   
@@ -380,8 +302,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -407,13 +331,11 @@
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
           <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
@@ -434,7 +356,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -452,7 +374,7 @@
   
   
     <li class="md-nav__item">
-      <a href="validation/" class="md-nav__link">
+      <a href="../validation/" class="md-nav__link">
         
   
   
@@ -480,7 +402,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/" class="md-nav__link">
+      <a href="../architecture/" class="md-nav__link">
         
   
   
@@ -508,7 +430,7 @@
   
   
     <li class="md-nav__item">
-      <a href="caching/" class="md-nav__link">
+      <a href="../caching/" class="md-nav__link">
         
   
   
@@ -536,7 +458,7 @@
   
   
     <li class="md-nav__item">
-      <a href="tasks/" class="md-nav__link">
+      <a href="../tasks/" class="md-nav__link">
         
   
   
@@ -564,7 +486,7 @@
   
   
     <li class="md-nav__item">
-      <a href="context/" class="md-nav__link">
+      <a href="../context/" class="md-nav__link">
         
   
   
@@ -592,7 +514,7 @@
   
   
     <li class="md-nav__item">
-      <a href="drf/" class="md-nav__link">
+      <a href="../drf/" class="md-nav__link">
         
   
   
@@ -620,7 +542,7 @@
   
   
     <li class="md-nav__item">
-      <a href="tracing/" class="md-nav__link">
+      <a href="../tracing/" class="md-nav__link">
         
   
   
@@ -648,7 +570,7 @@
   
   
     <li class="md-nav__item">
-      <a href="migrations/" class="md-nav__link">
+      <a href="../migrations/" class="md-nav__link">
         
   
   
@@ -673,10 +595,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="testing/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing and benchmarks
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -692,6 +641,81 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#local-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local checks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full-service-run-and-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full service run and coverage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#refresh-status-from-the-same-snapshot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Refresh status from the same snapshot
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#demo-and-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Demo and documentation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks-and-scripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Benchmarks and scripts
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -711,7 +735,7 @@
   
   
     <li class="md-nav__item">
-      <a href="status/" class="md-nav__link">
+      <a href="../status/" class="md-nav__link">
         
   
   
@@ -803,7 +827,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/core/" class="md-nav__link">
+      <a href="../api/core/" class="md-nav__link">
         
   
   
@@ -831,7 +855,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/validation/" class="md-nav__link">
+      <a href="../api/validation/" class="md-nav__link">
         
   
   
@@ -859,7 +883,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/cache/" class="md-nav__link">
+      <a href="../api/cache/" class="md-nav__link">
         
   
   
@@ -887,7 +911,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/query/" class="md-nav__link">
+      <a href="../api/query/" class="md-nav__link">
         
   
   
@@ -915,7 +939,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/ecosystem/" class="md-nav__link">
+      <a href="../api/ecosystem/" class="md-nav__link">
         
   
   
@@ -943,7 +967,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/db/" class="md-nav__link">
+      <a href="../api/db/" class="md-nav__link">
         
   
   
@@ -971,7 +995,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/redis/" class="md-nav__link">
+      <a href="../api/redis/" class="md-nav__link">
         
   
   
@@ -1026,10 +1050,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#start-here" class="md-nav__link">
+  <a href="#local-checks" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Start here
+        Local checks
       
     </span>
   </a>
@@ -1037,10 +1061,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#guides" class="md-nav__link">
+  <a href="#full-service-run-and-coverage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Guides
+        Full service run and coverage
       
     </span>
   </a>
@@ -1048,10 +1072,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#api-reference" class="md-nav__link">
+  <a href="#refresh-status-from-the-same-snapshot" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API reference
+        Refresh status from the same snapshot
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#demo-and-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Demo and documentation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks-and-scripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Benchmarks and scripts
       
     </span>
   </a>
@@ -1078,64 +1124,102 @@
   
 
 
-<h1 id="django-nova">Django Nova</h1>
-<p>Django Nova connects Django models with Pydantic schemas, typed query helpers,
-caching, background tasks, and optional tracing. Django remains responsible for
-persistence and database semantics.</p>
-<p>These pages describe the development checkout. Check the
-<a href="https://github.com/Artem7898/django-nova/blob/main/CHANGELOG.md">changelog</a> for the
-version installed in your application. The package is currently marked Beta;
-coverage percentages do not establish API stability.</p>
-<h2 id="start-here">Start here</h2>
-<ol>
-<li><a href="installation/">Install Nova and configure Django</a>.</li>
-<li><a href="quickstart/">Run the standalone dogfooding demo</a>.</li>
-<li><a href="validation/">Understand validation and serialization</a>.</li>
-<li><a href="testing/">Run the relevant verification suite</a>.</li>
-</ol>
-<h2 id="guides">Guides</h2>
-<table>
-<thead>
-<tr>
-<th>Area</th>
-<th>Guide</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Responsibilities and lifecycle</td>
-<td><a href="architecture/">Architecture</a></td>
-</tr>
-<tr>
-<td>QuerySet caching and invalidation</td>
-<td><a href="caching/">Caching</a></td>
-</tr>
-<tr>
-<td>Async task submission and lifecycle</td>
-<td><a href="tasks/">Background tasks</a></td>
-</tr>
-<tr>
-<td>Spans and optional telemetry</td>
-<td><a href="tracing/">Tracing</a></td>
-</tr>
-<tr>
-<td>Schema changes and PostgreSQL limits</td>
-<td><a href="migrations/">Migrations</a></td>
-</tr>
-<tr>
-<td>Coverage and remaining work</td>
-<td><a href="status/">Project status</a></td>
-</tr>
-</tbody>
-</table>
-<h2 id="api-reference">API reference</h2>
-<p><a href="api/core/">Core</a> · <a href="api/validation/">Validation</a> · <a href="api/cache/">Cache</a> ·
-<a href="api/query/">Query planning</a> · <a href="api/ecosystem/">Ecosystem adapters</a> ·
-<a href="api/db/">Database</a> · <a href="api/redis/">Redis</a></p>
-<p>Validation is shared across explicit boundaries: Pydantic schemas, Django fields,
-<code>Model.clean()</code>, and database constraints each retain their responsibilities.
-Static typing complements runtime checks. Async helpers do not make every ORM
-operation non-blocking, and caching should be measured against the actual workload.</p>
+<h1 id="development-and-verification">Development and verification</h1>
+<p>Run commands from the repository root. Start from the committed dependency set:</p>
+<pre><code class="language-bash">uv sync --locked --all-extras --dev
+</code></pre>
+<h2 id="local-checks">Local checks</h2>
+<pre><code class="language-bash">uv run --locked pyright src/nova \
+&amp;&amp; uv run --locked ruff check . \
+&amp;&amp; uv run --locked ruff format --check . \
+&amp;&amp; uv run --locked pytest -q -rs \
+&amp;&amp; git diff --check
+</code></pre>
+<p>The default Django settings use SQLite. Tests requiring PostgreSQL or explicitly
+configured remote services may skip. <code>-rs</code> prints their reasons; the existence of
+a running container alone does not select an integration fixture.</p>
+<p>Pyright respects the repository's exclusions and exceptions. A clean run is not
+a claim that every module is checked with unrestricted strict typing.</p>
+<h2 id="full-service-run-and-coverage">Full service run and coverage</h2>
+<p>The development checkout uses PostgreSQL on <code>55432</code>, Redis on <code>56379</code>, and
+Memcached on <code>51211</code>. The following command needs both compose files and the
+development dependencies, including <code>psycopg</code>, <code>redis</code>, and <code>pymemcache</code>:</p>
+<pre><code class="language-bash">docker compose -p nova-orm-tests \
+  -f compose.test.yaml -f compose.memcached.test.yaml \
+  up -d --wait postgres redis memcached \
+&amp;&amp; NOVA_TEST_REDIS_URL=redis://127.0.0.1:56379/0 \
+  NOVA_TEST_MEMCACHED_SERVER=127.0.0.1:51211 \
+  uv run --locked pytest -q -rs \
+  --ds=tests.example_project.settings_postgres \
+  -W error::pytest.PytestWarning \
+  --tb=short \
+  --cov=src/nova \
+  --cov-branch \
+  --cov-report=term-missing \
+  --cov-report=xml:coverage.xml \
+&amp;&amp; git diff --check
+</code></pre>
+<p>Use the disposable test services for this command. Prefixing a command with
+environment variables sets them only for that process. Repeat the prefixes for
+the next pytest invocation, or export them deliberately in that shell.</p>
+<p>If a service or optional dependency is missing, inspect <code>-rs</code> before describing
+the run as complete. An explicitly configured but unavailable integration service
+should be fixed rather than counted as successful coverage. A coverage percentage
+does not reveal the number or reason of skipped tests.</p>
+<p>After the run, stop the test services:</p>
+<pre><code class="language-bash">docker compose -p nova-orm-tests \
+  -f compose.test.yaml -f compose.memcached.test.yaml down
+</code></pre>
+<h2 id="refresh-status-from-the-same-snapshot">Refresh status from the same snapshot</h2>
+<p>After the coverage command succeeds, use that XML to update both generated files:</p>
+<pre><code class="language-bash">uv run --locked python scripts/generate_status.py --write \
+&amp;&amp; uv run --locked python scripts/generate_status.py --check \
+&amp;&amp; uv run --locked python scripts/update_badge.py --write \
+&amp;&amp; uv run --locked python scripts/update_badge.py --check
+</code></pre>
+<p><code>STATUS.md</code> and the badge use XML line coverage. Coverage.py's terminal combined
+line-and-branch figure may differ. <code>Miss</code> counts unexecuted statements, <code>Branch</code>
+counts branch destinations, and <code>BrPart</code> counts partially covered branches;
+these are not skipped tests. See <a href="https://coverage.readthedocs.io/en/latest/branch.html">coverage.py's branch coverage explanation</a>.</p>
+<p>Keep the command, Git revision, dependency versions, and XML with the result.
+The status script verifies correspondence to the supplied XML and source
+inventory, not source-content freshness. Run coverage again after source changes.</p>
+<h2 id="demo-and-documentation">Demo and documentation</h2>
+<pre><code class="language-bash">uv run --locked python -m examples.dogfooding \
+&amp;&amp; uv run --locked pytest -q tests/docs/test_dogfooding_demo.py \
+&amp;&amp; uv run --locked --with-requirements docs/requirements.txt mkdocs build --strict
+</code></pre>
+<p>Documentation dependencies are pinned separately from application dependencies.
+<code>--with-requirements</code> supplies them for this invocation. MkDocs checks the site
+navigation, local page links, and included example source. Strict mode fails on
+warnings. For a local preview:</p>
+<pre><code class="language-bash">uv run --locked --with-requirements docs/requirements.txt mkdocs serve
+</code></pre>
+<p>See <a href="https://www.mkdocs.org/user-guide/configuration/">MkDocs configuration</a> and
+<a href="https://docs.astral.sh/uv/guides/scripts/">uv script dependencies</a> for these options.</p>
+<p>The documentation workflow builds on pull requests and publishes after a push
+to <code>main</code>. On GitHub, open <strong>Actions → Docs &amp; Status → the run → build</strong> and
+expand <strong>Build MkDocs</strong> and <strong>Deploy to GitHub Pages</strong>. A skipped deploy on a pull
+request is expected. Confirm the published URL under <strong>Settings → Pages</strong> after
+merging; a successful site build alone does not prove a successful publication.</p>
+<h2 id="benchmarks-and-scripts">Benchmarks and scripts</h2>
+<p>The default test path is <code>tests</code>; workload benchmarks run explicitly:</p>
+<pre><code class="language-bash">NOVA_TEST_REDIS_URL=redis://127.0.0.1:56379/0 \
+NOVA_TEST_MEMCACHED_SERVER=127.0.0.1:51211 \
+NOVA_MIX_OUTPUT=/tmp/nova-cache-workload.json \
+uv run --locked pytest -q -s \
+  --ds=tests.example_project.settings_postgres \
+  -W error::pytest.PytestWarning --tb=short \
+  benchmarks/queryset_cache_workload.py
+</code></pre>
+<p>Do not add coverage to latency measurements. Keep timing, full diagnostics, and
+GC-only diagnostics in separate processes with the same workload and GC settings.
+Report actual hit rate after invalidation and writes per read count, not an
+invented requests-per-second workload.</p>
+<p>For ordinary scripts, linting and tests serve different purposes. <code>pytest scripts</code>
+only collects matching test modules; it does not execute every script as a test.
+Run script regression tests from <code>tests</code>, and use explicit commands for scripts
+that generate status, reports, or benchmark results.</p>
 
 
 
@@ -1201,10 +1285,10 @@ operation non-blocking, and caching should be measured against the actual worklo
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.expand", "navigation.indexes", "content.code.copy"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.expand", "navigation.indexes", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

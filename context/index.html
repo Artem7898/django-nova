@@ -8,26 +8,28 @@
       
       
       
-        <link rel="canonical" href="https://artem7898.github.io/django-nova/">
+        <link rel="canonical" href="https://artem7898.github.io/django-nova/context/">
       
       
+        <link rel="prev" href="../tasks/">
       
-        <link rel="next" href="installation/">
+      
+        <link rel="next" href="../drf/">
       
       
         
       
       
-      <link rel="icon" href="assets/images/favicon.png">
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Django Nova</title>
+        <title>Context semantics - Django Nova</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
       
 
@@ -46,9 +48,9 @@
       
     
     
-      <link rel="stylesheet" href="assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -66,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#django-nova" class="md-skip">
+        <a href="#context-semantics" class="md-skip">
           Skip to content
         </a>
       
@@ -82,7 +84,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="Django Nova" class="md-header__button md-logo" aria-label="Django Nova" data-md-component="logo">
+    <a href=".." title="Django Nova" class="md-header__button md-logo" aria-label="Django Nova" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +104,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Home
+              Context semantics
             
           </span>
         </div>
@@ -192,7 +194,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="Django Nova" class="md-nav__button md-logo" aria-label="Django Nova" data-md-component="logo">
+    <a href=".." title="Django Nova" class="md-nav__button md-logo" aria-label="Django Nova" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -219,37 +221,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Home
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="." class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
         
   
   
@@ -265,59 +240,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#start-here" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Start here
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#guides" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Guides
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#api-reference" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        API reference
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -329,7 +251,7 @@
   
   
     <li class="md-nav__item">
-      <a href="installation/" class="md-nav__link">
+      <a href="../installation/" class="md-nav__link">
         
   
   
@@ -356,7 +278,7 @@
   
   
     <li class="md-nav__item">
-      <a href="quickstart/" class="md-nav__link">
+      <a href="../quickstart/" class="md-nav__link">
         
   
   
@@ -380,8 +302,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -407,13 +331,11 @@
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
           <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
@@ -434,7 +356,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -452,7 +374,7 @@
   
   
     <li class="md-nav__item">
-      <a href="validation/" class="md-nav__link">
+      <a href="../validation/" class="md-nav__link">
         
   
   
@@ -480,7 +402,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/" class="md-nav__link">
+      <a href="../architecture/" class="md-nav__link">
         
   
   
@@ -508,7 +430,7 @@
   
   
     <li class="md-nav__item">
-      <a href="caching/" class="md-nav__link">
+      <a href="../caching/" class="md-nav__link">
         
   
   
@@ -536,7 +458,7 @@
   
   
     <li class="md-nav__item">
-      <a href="tasks/" class="md-nav__link">
+      <a href="../tasks/" class="md-nav__link">
         
   
   
@@ -561,10 +483,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="context/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Context semantics
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -580,6 +529,81 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#binding-and-restoration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Binding and restoration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#async-tasks-and-cancellation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Async tasks and cancellation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#threads-queues-and-processes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Threads, queues, and processes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logging-bridge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logging bridge
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verification
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -592,7 +616,7 @@
   
   
     <li class="md-nav__item">
-      <a href="drf/" class="md-nav__link">
+      <a href="../drf/" class="md-nav__link">
         
   
   
@@ -620,7 +644,7 @@
   
   
     <li class="md-nav__item">
-      <a href="tracing/" class="md-nav__link">
+      <a href="../tracing/" class="md-nav__link">
         
   
   
@@ -648,7 +672,7 @@
   
   
     <li class="md-nav__item">
-      <a href="migrations/" class="md-nav__link">
+      <a href="../migrations/" class="md-nav__link">
         
   
   
@@ -676,7 +700,7 @@
   
   
     <li class="md-nav__item">
-      <a href="testing/" class="md-nav__link">
+      <a href="../testing/" class="md-nav__link">
         
   
   
@@ -711,7 +735,7 @@
   
   
     <li class="md-nav__item">
-      <a href="status/" class="md-nav__link">
+      <a href="../status/" class="md-nav__link">
         
   
   
@@ -803,7 +827,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/core/" class="md-nav__link">
+      <a href="../api/core/" class="md-nav__link">
         
   
   
@@ -831,7 +855,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/validation/" class="md-nav__link">
+      <a href="../api/validation/" class="md-nav__link">
         
   
   
@@ -859,7 +883,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/cache/" class="md-nav__link">
+      <a href="../api/cache/" class="md-nav__link">
         
   
   
@@ -887,7 +911,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/query/" class="md-nav__link">
+      <a href="../api/query/" class="md-nav__link">
         
   
   
@@ -915,7 +939,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/ecosystem/" class="md-nav__link">
+      <a href="../api/ecosystem/" class="md-nav__link">
         
   
   
@@ -943,7 +967,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/db/" class="md-nav__link">
+      <a href="../api/db/" class="md-nav__link">
         
   
   
@@ -971,7 +995,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/redis/" class="md-nav__link">
+      <a href="../api/redis/" class="md-nav__link">
         
   
   
@@ -1026,10 +1050,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#start-here" class="md-nav__link">
+  <a href="#binding-and-restoration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Start here
+        Binding and restoration
       
     </span>
   </a>
@@ -1037,10 +1061,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#guides" class="md-nav__link">
+  <a href="#async-tasks-and-cancellation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Guides
+        Async tasks and cancellation
       
     </span>
   </a>
@@ -1048,10 +1072,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#api-reference" class="md-nav__link">
+  <a href="#threads-queues-and-processes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API reference
+        Threads, queues, and processes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logging-bridge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logging bridge
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verification
       
     </span>
   </a>
@@ -1078,64 +1124,128 @@
   
 
 
-<h1 id="django-nova">Django Nova</h1>
-<p>Django Nova connects Django models with Pydantic schemas, typed query helpers,
-caching, background tasks, and optional tracing. Django remains responsible for
-persistence and database semantics.</p>
-<p>These pages describe the development checkout. Check the
-<a href="https://github.com/Artem7898/django-nova/blob/main/CHANGELOG.md">changelog</a> for the
-version installed in your application. The package is currently marked Beta;
-coverage percentages do not establish API stability.</p>
-<h2 id="start-here">Start here</h2>
-<ol>
-<li><a href="installation/">Install Nova and configure Django</a>.</li>
-<li><a href="quickstart/">Run the standalone dogfooding demo</a>.</li>
-<li><a href="validation/">Understand validation and serialization</a>.</li>
-<li><a href="testing/">Run the relevant verification suite</a>.</li>
-</ol>
-<h2 id="guides">Guides</h2>
+<h1 id="context-semantics">Context semantics</h1>
+<p><code>nova.core.context</code> stores metadata in Python <code>ContextVar</code> bindings and mirrors
+it to structlog when available. A scope replaces all Nova bindings and restores
+its enclosing bindings on exit, including exceptions and cancellation.</p>
+<pre><code class="language-python">from nova.core import context
+
+context.bind(correlation_id=&quot;request-42&quot;, user_id=7)
+
+with context.new_context(operation=&quot;invoice&quot;):
+    assert context.get_all() == {&quot;operation&quot;: &quot;invoice&quot;}
+    context.bind(invoice_id=123)
+
+assert context.get_all() == {&quot;correlation_id&quot;: &quot;request-42&quot;, &quot;user_id&quot;: 7}
+context.clear()
+</code></pre>
+<h2 id="binding-and-restoration">Binding and restoration</h2>
 <table>
 <thead>
 <tr>
-<th>Area</th>
-<th>Guide</th>
+<th>Operation</th>
+<th>Contract</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Responsibilities and lifecycle</td>
-<td><a href="architecture/">Architecture</a></td>
+<td><code>bind(**fields)</code></td>
+<td>Merge into the current mapping; supplied keys overwrite existing values.</td>
 </tr>
 <tr>
-<td>QuerySet caching and invalidation</td>
-<td><a href="caching/">Caching</a></td>
+<td><code>unbind(*keys)</code></td>
+<td>Remove only named keys; missing or repeated keys are harmless.</td>
 </tr>
 <tr>
-<td>Async task submission and lifecycle</td>
-<td><a href="tasks/">Background tasks</a></td>
+<td><code>clear()</code></td>
+<td>Clear bindings in the current execution context.</td>
 </tr>
 <tr>
-<td>Spans and optional telemetry</td>
-<td><a href="tracing/">Tracing</a></td>
+<td><code>get(key, default=None)</code></td>
+<td>Return the stored value, including <code>None</code>, <code>0</code>, or <code>False</code>; use the default only for a missing key.</td>
 </tr>
 <tr>
-<td>Schema changes and PostgreSQL limits</td>
-<td><a href="migrations/">Migrations</a></td>
+<td><code>get_all()</code></td>
+<td>Return a shallow copy of the current mapping.</td>
 </tr>
 <tr>
-<td>Coverage and remaining work</td>
-<td><a href="status/">Project status</a></td>
+<td><code>new_context(**fields)</code></td>
+<td>Temporarily replace the whole mapping; restore the enclosing state using the <code>ContextVar</code> token.</td>
 </tr>
 </tbody>
 </table>
-<h2 id="api-reference">API reference</h2>
-<p><a href="api/core/">Core</a> · <a href="api/validation/">Validation</a> · <a href="api/cache/">Cache</a> ·
-<a href="api/query/">Query planning</a> · <a href="api/ecosystem/">Ecosystem adapters</a> ·
-<a href="api/db/">Database</a> · <a href="api/redis/">Redis</a></p>
-<p>Validation is shared across explicit boundaries: Pydantic schemas, Django fields,
-<code>Model.clean()</code>, and database constraints each retain their responsibilities.
-Static typing complements runtime checks. Async helpers do not make every ORM
-operation non-blocking, and caching should be measured against the actual workload.</p>
+<p>Nested scopes restore one level at a time. Changes made inside a scope with
+<code>bind()</code>, <code>unbind()</code>, or <code>clear()</code> do not change the enclosing binding dictionary.
+An empty <code>new_context()</code> temporarily hides all enclosing bindings.</p>
+<p>Values are references, not deep copies. A mutable list or dictionary stored as a
+value can still be shared across scopes or tasks. Prefer immutable metadata such
+as IDs and strings, or make a separate copy of a mutable value before binding it.
+Changing the top-level dictionary returned by <code>get_all()</code> cannot change bindings.</p>
+<h2 id="async-tasks-and-cancellation">Async tasks and cancellation</h2>
+<p>Use a regular <code>with</code> inside an async function and keep awaited work inside it:</p>
+<pre><code class="language-python">import asyncio
+
+from nova.core import context
+
+
+async def handle(request_id, receive):
+    with context.new_context(correlation_id=request_id):
+        await receive()
+
+
+async def serve(receive_a, receive_b):
+    async with asyncio.TaskGroup() as group:
+        group.create_task(handle(&quot;a&quot;, receive_a))
+        group.create_task(handle(&quot;b&quot;, receive_b))
+</code></pre>
+<p>An <code>asyncio.create_task()</code> call normally captures the creator's current Python
+context at task creation. Later <code>bind()</code>, <code>unbind()</code>, and <code>clear()</code> calls in a
+parent or sibling task do not change that task's binding dictionary. An explicit
+<code>context=</code> argument to task creation follows Python's rules for the supplied
+context instead.</p>
+<p>When cancellation reaches an awaited operation inside <code>new_context()</code>, the scope
+restores the enclosing bindings and propagates <code>CancelledError</code>. If application
+code intentionally handles cancellation, subsequent work in that same task sees
+the restored bindings. Nova does not suppress or clear a task's cancellation.</p>
+<p><code>@new_context(...)</code> can decorate a synchronous function. It is not an async
+decorator: for <code>async def</code>, use <code>with new_context(...)</code> inside the function so the
+scope includes coroutine execution.</p>
+<h2 id="threads-queues-and-processes">Threads, queues, and processes</h2>
+<p>On supported Python versions, <code>asyncio.to_thread()</code> copies the caller's context
+to the worker. Worker changes do not flow back. Plain thread-pool submission does
+not automatically copy the caller's context. If needed, use a fresh
+<code>contextvars.copy_context()</code> for each submission and run the callable in that
+context; do not enter the same <code>Context</code> concurrently from multiple threads.</p>
+<p>A queued Nova task is executed by an existing worker. Submission through
+<code>@nova_task</code> or <code>engine.submit()</code> does not itself capture the submitter's Nova
+bindings. Include required metadata in the payload and open a scope in the task
+body. Network requests and other processes likewise need explicit propagation.</p>
+<h2 id="logging-bridge">Logging bridge</h2>
+<p>Successful Nova context operations mirror the current bindings to structlog's
+context variables. With Nova logging configured, <code>merge_contextvars</code> includes
+those fields in log events. Nested scope exit also restores the enclosing Nova
+fields in the logging bridge.</p>
+<p>The existing bridge replaces all structlog context variables. Fields bound only
+through <code>structlog.contextvars.bind_contextvars()</code> are not separately saved or
+restored by Nova. Use Nova bindings consistently for metadata managed by this
+bridge. This does not refer to fields bound on a structlog logger instance.</p>
+<p>Missing structlog or an ordinary logging exception does not break Nova binding
+or restoration, or replace an exception raised by the scope body. After a
+logging failure the mirror may be incomplete; the next successful Nova operation
+resynchronizes it. Provider exceptions derived directly from <code>BaseException</code>
+are not suppressed.</p>
+<h2 id="verification">Verification</h2>
+<p>Run the focused behavioral suite with a combined line-and-branch coverage gate:</p>
+<pre><code class="language-bash">uv run --locked pytest -q tests/core/test_context.py \
+  --cov=nova.core.context --cov-branch \
+  --cov-report=term-missing --cov-fail-under=85
+</code></pre>
+<p>The Context stage adds tests for binding operations, nested and empty scopes,
+exceptions, concurrent siblings, inherited task bindings, cancellation and
+recovery, thread propagation, and logging failures. These tests do not require
+PostgreSQL, Redis, or Memcached.</p>
+<p>See the <a href="../api/core/">Core API</a>, <a href="../tracing/">tracing guide</a>, and
+<a href="../testing/">verification guide</a>.</p>
 
 
 
@@ -1201,10 +1311,10 @@ operation non-blocking, and caching should be measured against the actual worklo
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.expand", "navigation.indexes", "content.code.copy"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.expand", "navigation.indexes", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

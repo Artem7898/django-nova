@@ -8,26 +8,28 @@
       
       
       
-        <link rel="canonical" href="https://artem7898.github.io/django-nova/">
+        <link rel="canonical" href="https://artem7898.github.io/django-nova/quickstart/">
       
       
+        <link rel="prev" href="../installation/">
       
-        <link rel="next" href="installation/">
+      
+        <link rel="next" href="../validation/">
       
       
         
       
       
-      <link rel="icon" href="assets/images/favicon.png">
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Django Nova</title>
+        <title>Dogfooding demo - Django Nova</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
       
 
@@ -46,9 +48,9 @@
       
     
     
-      <link rel="stylesheet" href="assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -66,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#django-nova" class="md-skip">
+        <a href="#run-the-dogfooding-demo" class="md-skip">
           Skip to content
         </a>
       
@@ -82,7 +84,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="Django Nova" class="md-header__button md-logo" aria-label="Django Nova" data-md-component="logo">
+    <a href=".." title="Django Nova" class="md-header__button md-logo" aria-label="Django Nova" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +104,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Home
+              Dogfooding demo
             
           </span>
         </div>
@@ -192,7 +194,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="Django Nova" class="md-nav__button md-logo" aria-label="Django Nova" data-md-component="logo">
+    <a href=".." title="Django Nova" class="md-nav__button md-logo" aria-label="Django Nova" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -219,6 +221,60 @@
       
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -238,7 +294,7 @@
   <span class="md-ellipsis">
     
   
-    Home
+    Dogfooding demo
   
 
     
@@ -249,14 +305,14 @@
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <a href="." class="md-nav__link md-nav__link--active">
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
   <span class="md-ellipsis">
     
   
-    Home
+    Dogfooding demo
   
 
     
@@ -282,10 +338,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#start-here" class="md-nav__link">
+  <a href="#models" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Start here
+        Models
       
     </span>
   </a>
@@ -293,10 +349,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#guides" class="md-nav__link">
+  <a href="#scenarios" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Guides
+        Scenarios
       
     </span>
   </a>
@@ -304,10 +360,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#api-reference" class="md-nav__link">
+  <a href="#adapting-the-model" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API reference
+        Adapting the model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#regression-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regression checks
       
     </span>
   </a>
@@ -318,60 +385,6 @@
   
 </nav>
       
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="installation/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Installation
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="quickstart/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Dogfooding demo
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -452,7 +465,7 @@
   
   
     <li class="md-nav__item">
-      <a href="validation/" class="md-nav__link">
+      <a href="../validation/" class="md-nav__link">
         
   
   
@@ -480,7 +493,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/" class="md-nav__link">
+      <a href="../architecture/" class="md-nav__link">
         
   
   
@@ -508,7 +521,7 @@
   
   
     <li class="md-nav__item">
-      <a href="caching/" class="md-nav__link">
+      <a href="../caching/" class="md-nav__link">
         
   
   
@@ -536,7 +549,7 @@
   
   
     <li class="md-nav__item">
-      <a href="tasks/" class="md-nav__link">
+      <a href="../tasks/" class="md-nav__link">
         
   
   
@@ -564,7 +577,7 @@
   
   
     <li class="md-nav__item">
-      <a href="context/" class="md-nav__link">
+      <a href="../context/" class="md-nav__link">
         
   
   
@@ -592,7 +605,7 @@
   
   
     <li class="md-nav__item">
-      <a href="drf/" class="md-nav__link">
+      <a href="../drf/" class="md-nav__link">
         
   
   
@@ -620,7 +633,7 @@
   
   
     <li class="md-nav__item">
-      <a href="tracing/" class="md-nav__link">
+      <a href="../tracing/" class="md-nav__link">
         
   
   
@@ -648,7 +661,7 @@
   
   
     <li class="md-nav__item">
-      <a href="migrations/" class="md-nav__link">
+      <a href="../migrations/" class="md-nav__link">
         
   
   
@@ -676,7 +689,7 @@
   
   
     <li class="md-nav__item">
-      <a href="testing/" class="md-nav__link">
+      <a href="../testing/" class="md-nav__link">
         
   
   
@@ -711,7 +724,7 @@
   
   
     <li class="md-nav__item">
-      <a href="status/" class="md-nav__link">
+      <a href="../status/" class="md-nav__link">
         
   
   
@@ -803,7 +816,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/core/" class="md-nav__link">
+      <a href="../api/core/" class="md-nav__link">
         
   
   
@@ -831,7 +844,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/validation/" class="md-nav__link">
+      <a href="../api/validation/" class="md-nav__link">
         
   
   
@@ -859,7 +872,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/cache/" class="md-nav__link">
+      <a href="../api/cache/" class="md-nav__link">
         
   
   
@@ -887,7 +900,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/query/" class="md-nav__link">
+      <a href="../api/query/" class="md-nav__link">
         
   
   
@@ -915,7 +928,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/ecosystem/" class="md-nav__link">
+      <a href="../api/ecosystem/" class="md-nav__link">
         
   
   
@@ -943,7 +956,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/db/" class="md-nav__link">
+      <a href="../api/db/" class="md-nav__link">
         
   
   
@@ -971,7 +984,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/redis/" class="md-nav__link">
+      <a href="../api/redis/" class="md-nav__link">
         
   
   
@@ -1026,10 +1039,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#start-here" class="md-nav__link">
+  <a href="#models" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Start here
+        Models
       
     </span>
   </a>
@@ -1037,10 +1050,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#guides" class="md-nav__link">
+  <a href="#scenarios" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Guides
+        Scenarios
       
     </span>
   </a>
@@ -1048,10 +1061,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#api-reference" class="md-nav__link">
+  <a href="#adapting-the-model" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API reference
+        Adapting the model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#regression-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regression checks
       
     </span>
   </a>
@@ -1078,64 +1102,133 @@
   
 
 
-<h1 id="django-nova">Django Nova</h1>
-<p>Django Nova connects Django models with Pydantic schemas, typed query helpers,
-caching, background tasks, and optional tracing. Django remains responsible for
-persistence and database semantics.</p>
-<p>These pages describe the development checkout. Check the
-<a href="https://github.com/Artem7898/django-nova/blob/main/CHANGELOG.md">changelog</a> for the
-version installed in your application. The package is currently marked Beta;
-coverage percentages do not establish API stability.</p>
-<h2 id="start-here">Start here</h2>
-<ol>
-<li><a href="installation/">Install Nova and configure Django</a>.</li>
-<li><a href="quickstart/">Run the standalone dogfooding demo</a>.</li>
-<li><a href="validation/">Understand validation and serialization</a>.</li>
-<li><a href="testing/">Run the relevant verification suite</a>.</li>
-</ol>
-<h2 id="guides">Guides</h2>
+<h1 id="run-the-dogfooding-demo">Run the dogfooding demo</h1>
+<p>From a source checkout, run:</p>
+<pre><code class="language-bash">uv sync --locked --all-extras --dev
+uv run --locked python -m examples.dogfooding
+</code></pre>
+<p>The command runs Django's system checks, applies the included migrations to a
+private SQLite database in memory, and executes the scenarios below. File storage
+is also in memory. Each invocation starts from an empty database and selects the
+demo settings, even if your shell already defines <code>DJANGO_SETTINGS_MODULE</code>.
+It does not connect to your application's database or require Docker.</p>
+<p>Success ends with <code>Dogfooding demo passed.</code> A failed check exits with an error.
+The example is included in the source repository; it is not installed by the
+<code>django-nova</code> wheel.</p>
+<h2 id="models">Models</h2>
+<p>This is the actual model module executed by the command:</p>
+<pre><code class="language-python">&quot;&quot;&quot;Small models showing generated schemas and an explicit Pydantic rule.&quot;&quot;&quot;
+
+from decimal import Decimal
+
+from django.core.exceptions import ValidationError
+from django.db import models
+from pydantic import BaseModel, Field
+
+from nova import NovaConfig, NovaModel
+
+
+class Label(models.Model):
+    name = models.CharField(max_length=40)
+
+
+class Project(NovaModel):
+    slug = models.SlugField(max_length=80)
+    budget = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+    report = models.FileField(upload_to=&quot;reports/&quot;, blank=True)
+    labels = models.ManyToManyField(Label)
+    internal_note = models.TextField(blank=True)
+
+    _nova_config = NovaConfig(exclude_from_pydantic=(&quot;internal_note&quot;,))
+
+    def clean(self) -&gt; None:
+        super().clean()
+        # NovaModel.save() assigns field.clean() results before this hook.
+        if not isinstance(self.budget, Decimal):
+            raise ValidationError({&quot;budget&quot;: &quot;Expected a normalized Decimal.&quot;})
+        if self.budget &lt; Decimal(&quot;0&quot;):
+            raise ValidationError({&quot;budget&quot;: &quot;Budget must be non-negative.&quot;})
+
+
+class ArticleSchema(BaseModel):
+    title: str = Field(min_length=5, max_length=80)
+
+
+class Article(NovaModel):
+    title = models.CharField(max_length=80)
+    _nova_config = NovaConfig(pydantic_schema=ArticleSchema)
+
+
+class RelaxedArticle(Article):
+    _nova_config = NovaConfig(pydantic_schema=ArticleSchema, strict_validation=False)
+
+    class Meta:
+        proxy = True
+
+</code></pre>
+<p><code>Project</code> uses an automatically generated schema. <code>Article</code> uses an explicit
+Pydantic schema. <code>RelaxedArticle</code> is a Django proxy model that shares the article
+table while disabling the Pydantic stage on its save path.</p>
+<h2 id="scenarios">Scenarios</h2>
 <table>
 <thead>
 <tr>
-<th>Area</th>
-<th>Guide</th>
+<th>Check</th>
+<th>Expected result</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Responsibilities and lifecycle</td>
-<td><a href="architecture/">Architecture</a></td>
+<td>Public imports</td>
+<td><code>get_default_cache</code>, <code>NovaManager</code>, <code>TypedField</code>, and <code>TypedQuerySet</code> resolve to the canonical API.</td>
 </tr>
 <tr>
-<td>QuerySet caching and invalidation</td>
-<td><a href="caching/">Caching</a></td>
+<td>Unsaved project</td>
+<td>Scalar serialization succeeds before an ID exists; M2M and <code>internal_note</code> are omitted.</td>
 </tr>
 <tr>
-<td>Async task submission and lifecycle</td>
-<td><a href="tasks/">Background tasks</a></td>
+<td>Generated timestamp</td>
+<td><code>created_at</code> is not required before save and is populated on save.</td>
 </tr>
 <tr>
-<td>Spans and optional telemetry</td>
-<td><a href="tracing/">Tracing</a></td>
+<td>File</td>
+<td>A 4096-byte <code>ContentFile</code> is accepted; serialization returns its name, not its content.</td>
 </tr>
 <tr>
-<td>Schema changes and PostgreSQL limits</td>
-<td><a href="migrations/">Migrations</a></td>
+<td>Decimal input</td>
+<td>The string <code>"12.50"</code> becomes <code>Decimal("12.50")</code> before <code>Project.clean()</code> and survives a DB round trip.</td>
 </tr>
 <tr>
-<td>Coverage and remaining work</td>
-<td><a href="status/">Project status</a></td>
+<td>Business validation</td>
+<td>A negative budget raises <code>NovaValidationError</code> and creates no row.</td>
+</tr>
+<tr>
+<td>Strictness</td>
+<td>A short title fails for <code>Article</code>; <code>RelaxedArticle</code> accepts it but still rejects a blank Django field.</td>
+</tr>
+<tr>
+<td>Task</td>
+<td>Awaited engine startup and shutdown surround submission; the decorated call returns an ID before completion.</td>
 </tr>
 </tbody>
 </table>
-<h2 id="api-reference">API reference</h2>
-<p><a href="api/core/">Core</a> · <a href="api/validation/">Validation</a> · <a href="api/cache/">Cache</a> ·
-<a href="api/query/">Query planning</a> · <a href="api/ecosystem/">Ecosystem adapters</a> ·
-<a href="api/db/">Database</a> · <a href="api/redis/">Redis</a></p>
-<p>Validation is shared across explicit boundaries: Pydantic schemas, Django fields,
-<code>Model.clean()</code>, and database constraints each retain their responsibilities.
-Static typing complements runtime checks. Async helpers do not make every ORM
-operation non-blocking, and caching should be measured against the actual workload.</p>
+<p>After saving the project, the example adds and reads an M2M label through Django.
+That does not add nested M2M serialization to Nova's scalar schema contract.</p>
+<h2 id="adapting-the-model">Adapting the model</h2>
+<p>In your application, keep Django fields, the Pydantic schema, and database
+constraints aligned. Use <code>Decimal</code> for monetary comparisons. With
+<code>NovaModel.save()</code>, Django field conversion happens before <code>Model.clean()</code>;
+calling <code>instance.clean()</code> directly does not execute the preceding stages.
+See <a href="../validation/">validation and serialization</a>.</p>
+<p>Use normal Django project settings and migrations when adopting the model.
+The demo's in-memory settings are only for its standalone process.</p>
+<h2 id="regression-checks">Regression checks</h2>
+<pre><code class="language-bash">uv run --locked pytest -q tests/docs/test_dogfooding_demo.py
+</code></pre>
+<p>The regression invokes the documented command in a subprocess. It also checks
+that the example's migration matches its models. PostgreSQL, remote caching,
+and concurrent behavior have separate <a href="../testing/">integration checks</a>.</p>
 
 
 
@@ -1201,10 +1294,10 @@ operation non-blocking, and caching should be measured against the actual worklo
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.expand", "navigation.indexes", "content.code.copy"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.expand", "navigation.indexes", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>
