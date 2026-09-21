@@ -65,12 +65,22 @@ jobs:
           --health-interval 2s
           --health-timeout 3s
           --health-retries 30
+      redis:
+        image: redis:7-alpine
+        ports:
+          - "56379:6379"
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+
       memcached:
         image: memcached:1.6-alpine
         ports:
           - "51211:11211"
         options: >-
-          --health-cmd "printf 'version\\r\\n' | nc -w 1 127.0.0.1 11211 | grep -q '^VERSION '"
+          --health-cmd "printf 'version\r\nquit\r\n' | nc -w 1 127.0.0.1 11211 | grep -q '^VERSION '"
           --health-interval 2s
           --health-timeout 3s
           --health-retries 30
