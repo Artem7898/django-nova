@@ -7,6 +7,144 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.6.3] - 2026-09-21
+
+### Overview
+
+Django Nova is a production-oriented Django infrastructure toolkit for typed
+models, schema-driven validation, query planning, caching, and observability.
+Development status remains **Beta**. This release strengthens tested runtime
+contracts without declaring the whole public API production-stable.
+
+### Cache correctness and isolation
+
+- Coordinate QuerySet cache invalidation across processes through shared Redis
+  and Memcached generations scoped by model and database alias. Rotate after a
+  successful commit, including when the writer has never populated a query.
+- Keep overlapping fills associated with their captured generation so that late
+  writes cannot publish old results into a newer generation.
+- Add regressions for metadata eviction, backend failures, and replayed metadata
+  commands. Known generation transports avoid retrying a metadata write after
+  it may already have been applied.
+- Track supported related-model dependencies and test their invalidation across
+  processes, alongside query-key and transactional read-consistency boundaries.
+- Isolate returned lists, models, JSON values, and loaded relations. Retain
+  conservative snapshotting for memory and unknown backend implementations.
+- Batch generation reads. Avoid redundant snapshots only when a backend exposes
+  the appropriate explicit guarantee: detached reads and independent storage on
+  writes are separate contracts. Preserve ORM results on the supported cache
+  failure paths.
+
+### Backend contracts and diagnostics
+
+- Expand synchronous/asynchronous Redis contracts, Memcached contracts, and real
+  backend integration tests, including TTL boundaries, expiry, namespace
+  isolation, connection behavior, and failures.
+- Add cost and mixed-workload benchmarks, GC diagnostics, and object-lifetime
+  checks. Performance results describe their measured workload and environment;
+  the next diagnostic stage isolates instrumentation overhead.
+
+### Context and DRF
+
+- Restore nested context scopes with ContextVar tokens and verify async task
+  isolation, inheritance, exceptions, cancellation, and logging failure behavior.
+- Validate projected scalar Django defaults once on serializer creation and keep
+  omitted update fields unchanged.
+- Validate foreign keys against their referenced scalar values, including
+  to_field, while preserving nested schema handling and persistence objects.
+- Validate uploads by name while retaining file contents for storage; respect
+  DRF's configured non-field error key.
+- Expand serializer, ORM, and viewset contracts for create, full/partial updates,
+  defaults, field rules, relationships, files, and save-time validation. Include
+  the DRF module in both Pyright configurations.
+
+### Documentation and compatibility
+
+- Complete the executable dogfooding demo, API navigation, and guides for
+  validation, caching, tasks, tracing, context, and DRF boundaries.
+- Keep Development Status :: 4 - Beta. API stability and deployment suitability
+  remain separate from test counts and coverage.
+- On TTL-capable backends, non-positive TTL expires/removes the value; use
+  ttl=None for persistent storage. Backends that explicitly do not support TTL
+  retain their documented behavior.
+- Shared generations do not create an atomic transaction between PostgreSQL and
+  the cache. Custom transports and storage implementations must meet the stated
+  generation and isolation contracts; arbitrary direct/bulk SQL writes do not
+  automatically gain signal-based invalidation.
+- Nested/M2M serializer writes, relationship defaults, save-time HTTP error
+  translation, and batch save atomicity still require explicit application
+  handling. GraphQL runtime expansion awaits confirmation of API stability.
+
+### Verified development checkpoint
+
+- Full local PostgreSQL + Redis + Memcached run: **2072 passed, no skips**.
+- Combined line-and-branch coverage: **88%**; line coverage approximately **90.45%**.
+- Context: **100%** combined coverage; DRF adapter: **94%** combined coverage.
+- Python 3.12.13; Pyright: **0 errors, 0 warnings**; Ruff lint and formatting pass.
+- Strict documentation build succeeds. These figures describe the supplied
+  pre-release checkpoint; refresh generated reports after release preparation.
+
+Full changes: https://github.com/Artem7898/django-nova/compare/v0.6.2...v0.6.3
+
+### DRF adapter runtime contracts
+
+- Validate projected scalar Django defaults on creation and reuse the same
+  evaluated values during save. Keep omitted update fields unchanged.
+- Adapt foreign-key instances to their referenced values for scalar Pydantic
+  fields, including `to_field` references. Preserve nested/optional nested schema
+  validation and the original Django objects used for persistence.
+- Validate uploaded files by name while retaining the uploaded file for storage.
+- Honor DRF's configured `NON_FIELD_ERRORS_KEY` when translating Pydantic errors
+  and report invalid schema configuration with a clear `ValueError`.
+- Add serializer/ORM regressions for create, full/partial update, defaults,
+  required/read-only/nullable/JSON fields, uniqueness, cross-field rules,
+  invalid-state repair, save-time validation, list validation, relationships,
+  and file contents. Verify generated serializers through viewset POST/PATCH.
+- Include the DRF adapter in both Pyright configurations after checking its
+  dynamic Django/DRF metadata boundaries.
+- Document supported behavior and explicit boundaries for nested/M2M writes,
+  normalization, relationship defaults, save-time errors, and batch atomicity.
+- Raise measured DRF line-and-branch coverage from 63% to 94% in the focused
+  SQLite run; the subsequent full PostgreSQL/Redis/Memcached run also passed.
+
+### Context semantics
+
+- Add behavioral tests for nested and empty context scopes, shallow binding
+  snapshots, exceptions, async sibling isolation, task inheritance, cancellation
+  and subsequent recovery, and explicit thread propagation boundaries.
+- Restore `new_context()` using the original `ContextVar` token. Preserve
+  replacement semantics, sync and async body behavior, and the existing
+  best-effort structlog bridge.
+- Verify that missing structlog and ordinary logging failures preserve Nova
+  context behavior and business exceptions, including cancellation.
+- Document mutable-value sharing, the synchronous decorator limitation, direct
+  structlog binding ownership, and explicit propagation across queue/process
+  boundaries. These are boundaries of the existing API, not new propagation
+  guarantees.
+- Measure 100% combined line-and-branch coverage for `nova.core.context` in the
+  focused suite, exceeding the stage's 85% target; full service integration
+  subsequently passed.
+
+### Documentation and dogfooding demo
+
+- Add `python -m examples.dogfooding`: an isolated Django app with a committed
+  migration, in-memory SQLite and file storage, and executable checks for schema
+  selection, unsaved M2M safety, generated timestamps, file names, Decimal
+  normalization, validation strictness, public exports, and task submission.
+- Add subprocess regressions for the documented command and migration/model
+  consistency. Include the executable model source directly in the demo guide.
+- Complete installation, architecture, validation, caching, task, tracing,
+  migration, and verification guides; repair navigation and local links.
+- Correct Python/Django requirements and distinguish local SQLite runs from
+  PostgreSQL/Redis/Memcached integration, skipped tests from uncovered code, and
+  line coverage from combined line-and-branch coverage.
+- Pin the documentation tools separately and build the documentation in strict
+  mode in the documentation workflow.
+- Correct the database router configuration example and migration helper
+  descriptions. SQL generation and routing behavior are unchanged.
+- Track remaining serialization/GC diagnostics and conditional GraphQL work
+  separately from the completed documentation, Context, and DRF stages.
+
 ## [0.6.2]
 
 ### Fixed
@@ -274,3 +412,5 @@ None - fully backward compatible.
 [0.5.1]: https://github.com/Artem7898/django-nova/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/Artem7898/django-nova/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Artem7898/django-nova/releases/tag/v0.4.0
+
+[0.6.3]: https://github.com/Artem7898/django-nova/compare/v0.6.2...v0.6.3

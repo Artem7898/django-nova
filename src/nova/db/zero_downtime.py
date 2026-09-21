@@ -1,7 +1,8 @@
 """
-Zero-downtime migration operations for PostgreSQL.
-Scientific context: Research databases are often locked by long analytical queries.
-Standard ALTER TABLE causes exclusive locks, blocking reads.
+Experimental PostgreSQL migration helpers.
+
+These names do not imply lock-free execution. Review emitted SQL, transaction
+requirements, field options, and reverse operations before use.
 """
 
 from __future__ import annotations
@@ -18,9 +19,12 @@ logger = logging.getLogger(__name__)
 
 class AddFieldConcurrently(AddField):
     """
-    Adds a field without an exclusive lock using standard ALTER TABLE.
-    Requires the field to have null=True or a default value to avoid full table rewrite.
-    Requires PostgreSQL.
+    Issue a minimal ALTER TABLE ADD COLUMN statement on PostgreSQL.
+
+    The constructor requires null=True or a default. The PostgreSQL SQL path
+    uses only the column name and database type; it does not reproduce all
+    Django field options, defaults, or constraints. ALTER TABLE still takes
+    a table lock. Other databases use Django's standard AddField operation.
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -46,8 +50,7 @@ class AddFieldConcurrently(AddField):
         field = model._meta.get_field(self.name)
 
         with schema_editor.connection.cursor() as cursor:
-            # In PG, adding a nullable column or a column with a default
-            # does NOT acquire an exclusive lock (no table rewrite).
+            # Avoiding a table rewrite does not eliminate the ALTER TABLE lock.
             sql = f"ALTER TABLE {model._meta.db_table} ADD COLUMN {field.column} {field.db_type(schema_editor.connection)}"
             cursor.execute(sql)
             logger.info("Added column %s concurrently without exclusive lock", field.column)
@@ -55,7 +58,11 @@ class AddFieldConcurrently(AddField):
 
 class CreateIndexConcurrently(migrations.RunSQL):
     """
-    Wrapper for CREATE INDEX CONCURRENTLY which does not block writes.
+    Emit PostgreSQL CREATE INDEX CONCURRENTLY in a non-atomic migration.
+
+    PostgreSQL disallows the forward command inside a transaction block.
+    The reverse command is an ordinary DROP INDEX; inspect its locking
+    behavior separately. This helper is PostgreSQL-specific.
     """
 
     def __init__(

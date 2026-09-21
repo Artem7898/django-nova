@@ -11,9 +11,9 @@ Django Nova promise:
 from __future__ import annotations
 
 import pytest
-from tests.models import Lab
 
 from nova.core.exceptions import NovaValidationError
+from tests.models import Lab
 
 pytestmark = pytest.mark.django_db
 

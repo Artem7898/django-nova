@@ -1,6 +1,19 @@
 site_name: Django Nova
-site_url: https://artem7898.github.io/django-nova
+site_url: https://artem7898.github.io/django-nova/
 repo_url: https://github.com/Artem7898/django-nova
+edit_uri: blob/main/docs/
+
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+  links:
+    not_found: warn
+    unrecognized_links: warn
+
+markdown_extensions:
+  - pymdownx.snippets:
+      check_paths: true
 
 theme:
   name: material
@@ -25,6 +38,18 @@ plugins:
 
 nav:
   - Home: index.md
+  - Installation: installation.md
+  - Dogfooding demo: quickstart.md
+  - Guides:
+      - Validation and serialization: validation.md
+      - Architecture: architecture.md
+      - Caching: caching.md
+      - Tasks: tasks.md
+      - Context semantics: context.md
+      - Django REST Framework: drf.md
+      - Tracing: tracing.md
+      - Migrations: migrations.md
+      - Testing and benchmarks: testing.md
   - Status: status.md
   - API Reference:
       - Core: api/core.md

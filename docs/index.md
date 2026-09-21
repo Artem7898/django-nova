@@ -1,60 +1,39 @@
-# Django Nova Documentation
+# Django Nova
 
-Welcome to the documentation of Django Nova— a typed, unified, asynchronous-oriented Django toolkit.
-The library is designed with a focus on scientific computing, Highload, and Reproducible Research.
+Django Nova connects Django models with Pydantic schemas, typed query helpers,
+caching, background tasks, and optional tracing. Django remains responsible for
+persistence and database semantics.
 
-## What is Django Nova?
+These pages describe the development checkout. Check the
+[changelog](https://github.com/Artem7898/django-nova/blob/main/CHANGELOG.md) for the
+version installed in your application. The package is currently marked Beta;
+coverage percentages do not establish API stability.
 
-Django Nova is a modern toolkit that solves Django's key architectural problems.:
+## Start here
 
-- **Duplicate validation** — you no longer need to write validation in forms, serializers, and models separately
-- **No strict typing** — full support for `pyright --strict`
-- **Caching Issues** — Smart disability without manual control
-- **Difficulties with migrations** — built-in support for PostgreSQL concurrent migrations
+1. [Install Nova and configure Django](installation.md).
+2. [Run the standalone dogfooding demo](quickstart.md).
+3. [Understand validation and serialization](validation.md).
+4. [Run the relevant verification suite](testing.md).
 
-## Project philosophy
+## Guides
 
-1. **A single source of truth** — all business logic of validation is concentrated in Pydantic schemes
-2. **Fail fast** — errors should be detected at the static analysis stage, not in runtime
-3. **Default asynchrony** — all operations are designed with `asyncio` in mind
-4. **Zero-downtime** — migrations and updates should not interrupt the system operation
+| Area | Guide |
+|---|---|
+| Responsibilities and lifecycle | [Architecture](architecture.md) |
+| QuerySet caching and invalidation | [Caching](caching.md) |
+| Async task submission and lifecycle | [Background tasks](tasks.md) |
+| Spans and optional telemetry | [Tracing](tracing.md) |
+| Schema changes and PostgreSQL limits | [Migrations](migrations.md) |
+| Coverage and remaining work | [Project status](status.md) |
 
+## API reference
 
-## Modules
+[Core](api/core.md) · [Validation](api/validation.md) · [Cache](api/cache.md) ·
+[Query planning](api/query.md) · [Ecosystem adapters](api/ecosystem.md) ·
+[Database](api/db.md) · [Redis](api/redis.md)
 
-### `nova.typing`
-A strict typing layer. Includes `NovaModel' and `NovaConfig'.
-Uses PEP 695 to ensure full type derivability in the IDE (PyCharm, VSCode + Pyright).
-
-### `nova.validation`
-Django Unified Bridge <-> Pydantic (`pydantic_bridge`).
-Ensures that validation rules are not duplicated between forms, serializers, and models.
-
-### `nova.cache`
-Intelligent QuerySet caching ('queryset_cache').
-Features:
-- Using SQL Compiler to generate hashes (safe with Django updates).
-- Reversible index `O(1)` for instant cache invalidation during `save()` or `delete()'.
-
-### `nova.tasks`
-Built-in asynchronous task engine based on asyncio.Queue`.
-An alternative to Celery for in-process computing (ML inference, simulation).
-
-### `nova.db`
-Utilities for secure migrations:
-- `zero_downtime.py `: Wrappers over `CREATE INDEX CONCURRENTLY` and `ALTER TABLE' without locks (PostgreSQL).
-- `splitter.py `: Breaking down heavy Data Migrations into batches to prevent OOM.
-
-## Documentation content
-
-- [Installation and Configuration](installation.md )
-- [Quick Start](quickstart.md )
-- [Architectural solutions](architecture.md )
-- [API Reference](api.md )
-- [Migration Guide](migrations.md )
-- [Cache Management](caching.md )
-- [Best Practices](best-practices.md )
-
-## Author
-
-Developed and maintained by **Artem Alimpiev**.
+Validation is shared across explicit boundaries: Pydantic schemas, Django fields,
+`Model.clean()`, and database constraints each retain their responsibilities.
+Static typing complements runtime checks. Async helpers do not make every ORM
+operation non-blocking, and caching should be measured against the actual workload.

@@ -113,7 +113,16 @@ def test_committed_write_is_not_hidden_by_overlapping_cache_fill(race_case, dela
                     reader_pid, values = future.result(timeout=WAIT_SECONDS)
                     assert reader_pid != writer_pid
                     assert values == [1]
-                    cached = cache.get(model.objects.filter(pk=pk))
+                    query = model.objects.filter(pk=pk)
+
+                    # The writer's transaction must bypass cached results.
+                    assert cache.get(query) is None
+
+                    # The autocommit reader really published the previously committed row.
+                    # Inspect storage directly: the writer cannot read it through QuerySetCache.
+                    key, _, _ = cache._generate_key(query)
+                    cached = cache._state.backend.get(key)
+
                     assert cached is not None
                     assert [item.value for item in cached] == [1]
             # Exiting atomic commits the write and executes on_commit callbacks.

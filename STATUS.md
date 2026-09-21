@@ -6,9 +6,9 @@
 
 | Metric | Value |
 |---|---|
-| Python source files in src/nova | 77 |
-| XML overall line coverage | 87.7% |
-| XML covered / executable lines | 2849 / 3248 |
+| Python source files in src/nova | 83 |
+| XML overall line coverage | 90.4% |
+| XML covered / executable lines | 3551 / 3926 |
 | Source files absent from XML | 0 |
 | Source files with measured 0% coverage | 2 |
 | XML class entries not matched to src/nova | 0 |
@@ -32,22 +32,28 @@ XML report, which may differ from the src/nova file table below.
 | `cache/__init__.py` | 14 | 14 | 100.0% | Measured |
 | `cache/backends/__init__.py` | 15 | 17 | 88.2% | Measured |
 | `cache/backends/asyncio_backend.py` | 56 | 56 | 100.0% | Measured |
-| `cache/backends/django_cache.py` | 50 | 51 | 98.0% | Measured |
-| `cache/backends/memcached.py` | 107 | 111 | 96.4% | Measured |
-| `cache/backends/memory.py` | 94 | 97 | 96.9% | Measured |
+| `cache/backends/django_cache.py` | 59 | 61 | 96.7% | Measured |
+| `cache/backends/memcached.py` | 192 | 194 | 99.0% | Measured |
+| `cache/backends/memory.py` | 97 | 100 | 97.0% | Measured |
 | `cache/backends/null.py` | 55 | 56 | 98.2% | Measured |
 | `cache/backends/pool.py` | 17 | 19 | 89.5% | Measured |
 | `cache/backends/protocol.py` | 40 | 40 | 100.0% | Measured |
-| `cache/backends/redis.py` | 150 | 160 | 93.8% | Measured |
-| `cache/backends/redis_backend.py` | 139 | 152 | 91.4% | Measured |
+| `cache/backends/redis.py` | 218 | 229 | 95.2% | Measured |
+| `cache/backends/redis_backend.py` | 146 | 159 | 91.8% | Measured |
 | `cache/backends/serializers.py` | 17 | 17 | 100.0% | Measured |
-| `cache/invalidation.py` | 37 | 39 | 94.9% | Measured |
-| `cache/queryset_cache.py` | 182 | 202 | 90.1% | Measured |
+| `cache/dependencies.py` | 110 | 127 | 86.6% | Measured |
+| `cache/generation.py` | 31 | 31 | 100.0% | Measured |
+| `cache/generation_transport.py` | 55 | 56 | 98.2% | Measured |
+| `cache/invalidation.py` | 53 | 55 | 96.4% | Measured |
+| `cache/queryset_cache.py` | 370 | 387 | 95.6% | Measured |
+| `cache/read_contract.py` | 6 | 6 | 100.0% | Measured |
+| `cache/result_snapshot.py` | 45 | 48 | 93.8% | Measured |
+| `cache/write_contract.py` | 6 | 6 | 100.0% | Measured |
 | `conf.py` | 44 | 45 | 97.8% | Measured |
-| `core/__init__.py` | 17 | 38 | 44.7% | Measured |
+| `core/__init__.py` | 20 | 38 | 52.6% | Measured |
 | `core/checks.py` | 31 | 31 | 100.0% | Measured |
 | `core/config.py` | 18 | 18 | 100.0% | Measured |
-| `core/context.py` | 29 | 46 | 63.0% | Measured |
+| `core/context.py` | 44 | 44 | 100.0% | Measured |
 | `core/exceptions.py` | 33 | 39 | 84.6% | Measured |
 | `core/observability.py` | 14 | 20 | 70.0% | Measured |
 | `core/tracing.py` | 84 | 89 | 94.4% | Measured |
@@ -55,8 +61,8 @@ XML report, which may differ from the src/nova file table below.
 | `db/router.py` | 59 | 59 | 100.0% | Measured |
 | `db/splitter.py` | 18 | 18 | 100.0% | Measured |
 | `db/zero_downtime.py` | 28 | 28 | 100.0% | Measured |
-| `ecosystem/__init__.py` | 17 | 20 | 85.0% | Measured |
-| `ecosystem/drf.py` | 56 | 81 | 69.1% | Measured |
+| `ecosystem/__init__.py` | 18 | 20 | 90.0% | Measured |
+| `ecosystem/drf.py` | 108 | 114 | 94.7% | Measured |
 | `ecosystem/fastapi.py` | 38 | 49 | 77.6% | Measured |
 | `ecosystem/graphql.py` | 52 | 77 | 67.5% | Measured |
 | `metrics/__init__.py` | 4 | 14 | 28.6% | Measured |
@@ -95,7 +101,7 @@ XML report, which may differ from the src/nova file table below.
 | `validation/lifecycle.py` | 14 | 14 | 100.0% | Measured |
 | `validation/pydantic_bridge.py` | 69 | 74 | 93.2% | Measured |
 | `validation/schema_registry.py` | 21 | 21 | 100.0% | Measured |
-| `validation/serialization.py` | 43 | 47 | 91.5% | Measured |
+| `validation/serialization.py` | 45 | 47 | 95.7% | Measured |
 | `validation/unified.py` | 52 | 53 | 98.1% | Measured |
 
 ## Interpretation

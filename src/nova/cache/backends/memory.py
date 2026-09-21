@@ -86,6 +86,10 @@ class MemoryCacheBackend(CacheBackend):
         seconds = self._ttl_seconds(ttl)
 
         with self._lock:
+            if seconds is not None and seconds <= 0:
+                self._data.pop(key, None)
+                return
+
             self._purge_expired()
 
             expires_at = None if seconds is None else self._now() + seconds

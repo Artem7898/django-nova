@@ -4,12 +4,16 @@ Tests for QuerySet caching layer.
 
 from __future__ import annotations
 
-from tests.models import CachedItem
+import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 
 from nova.cache.backends.memory import MemoryCacheBackend
 from nova.cache.queryset_cache import QuerySetCache
+from tests.models import CachedItem
 
 
+@pytest.mark.django_db(transaction=True)
 class TestQuerySetCache:
     """Test suite for QuerySetCache."""
 
@@ -18,7 +22,7 @@ class TestQuerySetCache:
         qs = CachedItem.objects.all()
         assert cache.get(qs) is None
 
-    def test_get_or_set_executes_query_on_miss(self, db: None) -> None:
+    def test_get_or_set_executes_query_on_miss(self) -> None:
         cache: QuerySetCache[CachedItem] = QuerySetCache(backend=MemoryCacheBackend(maxsize=100))
 
         CachedItem.objects.create(name="item1", value=10)
@@ -27,7 +31,7 @@ class TestQuerySetCache:
         assert len(result) == 1
         assert result[0].name == "item1"
 
-    def test_get_or_set_returns_cached_on_hit(self, db: None) -> None:
+    def test_get_or_set_returns_cached_on_hit(self) -> None:
         cache: QuerySetCache[CachedItem] = QuerySetCache(backend=MemoryCacheBackend(maxsize=100))
 
         CachedItem.objects.create(name="item1", value=10)
@@ -35,11 +39,13 @@ class TestQuerySetCache:
         # First call — cache miss
         first = cache.get_or_set(CachedItem.objects.all())
         # Second call — cache hit
-        second = cache.get_or_set(CachedItem.objects.all())
+        with CaptureQueriesContext(connection) as captured:
+            second = cache.get_or_set(CachedItem.objects.all())
+        assert len(captured) == 0
 
         assert first[0].pk == second[0].pk
 
-    def test_invalidate_model_clears_entries(self, db: None) -> None:
+    def test_invalidate_model_clears_entries(self) -> None:
         cache: QuerySetCache[CachedItem] = QuerySetCache(backend=MemoryCacheBackend(maxsize=100))
 
         CachedItem.objects.create(name="item1", value=10)
@@ -49,7 +55,7 @@ class TestQuerySetCache:
         cache.invalidate_model("cacheditem")
         assert cache.stats["currsize"] == 0
 
-    def test_clear_empties_cache(self, db: None) -> None:
+    def test_clear_empties_cache(self) -> None:
         cache: QuerySetCache[CachedItem] = QuerySetCache(backend=MemoryCacheBackend(maxsize=100))
 
         CachedItem.objects.create(name="item1", value=10)
@@ -66,7 +72,7 @@ class TestQuerySetCache:
         assert stats["ttl"] == 60
         assert stats["currsize"] == 0
 
-    def test_different_queries_have_different_keys(self, db: None) -> None:
+    def test_different_queries_have_different_keys(self) -> None:
         cache: QuerySetCache[CachedItem] = QuerySetCache(backend=MemoryCacheBackend(maxsize=100))
 
         CachedItem.objects.create(name="item1", value=10)

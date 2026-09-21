@@ -1,6 +1,8 @@
 """
-Distributed Context Management.
-Uses contextvars to transparently pass Correlation IDs across logs, traces, and tasks.
+Context-local metadata and a best-effort structlog bridge.
+
+Bindings follow Python's contextvars propagation rules. Queue, process, and
+network boundaries require explicit propagation by the application.
 """
 
 from __future__ import annotations
@@ -27,7 +29,7 @@ def _get_ctx() -> dict[str, Any]:
 
 
 def bind(**kwargs: Any) -> None:
-    """Bind key-value pairs to the current distributed context."""
+    """Merge bindings in the current context, copying the top-level mapping."""
     ctx = _get_ctx().copy()
     ctx.update(kwargs)
     _nova_context.set(ctx)
@@ -35,7 +37,7 @@ def bind(**kwargs: Any) -> None:
 
 
 def unbind(*keys: str) -> None:
-    """Remove specific keys from the current distributed context."""
+    """Remove keys in the current context; missing keys are ignored."""
     ctx = _get_ctx().copy()
     for key in keys:
         ctx.pop(key, None)
@@ -44,7 +46,7 @@ def unbind(*keys: str) -> None:
 
 
 def clear() -> None:
-    """Wipe the context to prevent leaks in thread pools or async loops."""
+    """Clear bindings in the current context, without changing other tasks."""
     _nova_context.set(None)
     _sync_structlog_context({})
 
@@ -55,26 +57,28 @@ def get(key: str, default: Any = None) -> Any:
 
 
 def get_all() -> dict[str, Any]:
-    """Return a copy of the current context for serialization."""
+    """Return a shallow copy; mutable values are still shared references."""
     return _get_ctx().copy()
 
 
 @contextmanager
 def new_context(**kwargs: Any) -> Generator[None, None, None]:
-    """Context manager to temporarily bind variables."""
-    prev_ctx = get_all()
+    """Temporarily replace all bindings, then restore the enclosing context.
+
+    Use ``with`` inside sync or async functions. Restoration also runs when
+    the body raises or is cancelled; values are not deep-copied.
+    """
+    token = _nova_context.set(kwargs.copy())
     try:
-        clear()
-        bind(**kwargs)
+        _sync_structlog_context(_get_ctx())
         yield
     finally:
-        clear()
-        if prev_ctx:
-            bind(**prev_ctx)
+        _nova_context.reset(token)
+        _sync_structlog_context(_get_ctx())
 
 
 def _sync_structlog_context(ctx: dict[str, Any]) -> None:
-    """Pushes current context dict into structlog's internal contextvars."""
+    """Replace structlog contextvars with Nova bindings, if available."""
     try:
         import structlog
 

@@ -8,10 +8,10 @@ from unittest.mock import MagicMock
 import fakeredis
 import pytest
 from redis.exceptions import ConnectionError as RedisConnectionError
-from tests.cache.contracts.base import CacheBackendContract, CacheBackendExpectation
 
 from nova.cache.backends.redis import RedisCacheBackend
 from nova.core.exceptions import NovaCacheError
+from tests.cache.contracts.base import CacheBackendContract, CacheBackendExpectation
 
 CONTRACT_CHECKS = (
     "check_set_get_roundtrip",

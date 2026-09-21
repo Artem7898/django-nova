@@ -497,7 +497,7 @@ wheels = [
 
 [[package]]
 name = "django-nova"
-version = "0.6.2"
+version = "0.6.3"
 source = { editable = "." }
 dependencies = [
     { name = "cachetools" },
@@ -555,6 +555,7 @@ dev = [
     { name = "packaging" },
     { name = "pre-commit" },
     { name = "psycopg", extra = ["binary"] },
+    { name = "pymemcache" },
     { name = "pyperf" },
     { name = "pyright" },
     { name = "pytest" },
@@ -604,6 +605,7 @@ dev = [
     { name = "packaging", specifier = ">=26.0" },
     { name = "pre-commit", specifier = ">=3.5.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.1.8,<4" },
+    { name = "pymemcache", specifier = ">=4,<5" },
     { name = "pyperf", specifier = ">=2.10.0" },
     { name = "pyright", specifier = "==1.1.411" },
     { name = "pytest", specifier = ">=8.3" },
@@ -1592,6 +1594,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/c3/b2/bc9c9196916376152d655522fdcebac55e66de6603a76a02bca1b6414f6c/pygments-2.20.0.tar.gz", hash = "sha256:6757cd03768053ff99f3039c1a36d6c0aa0b263438fcab17520b30a303a82b5f", size = 4955991, upload-time = "2026-03-29T13:29:33.898Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f4/7e/a72dd26f3b0f4f2bf1dd8923c85f7ceb43172af56d63c7383eb62b332364/pygments-2.20.0-py3-none-any.whl", hash = "sha256:81a9e26dd42fd28a23a2d169d86d7ac03b46e2f8b59ed4698fb4785f946d0176", size = 1231151, upload-time = "2026-03-29T13:29:30.038Z" },
+]
+
+[[package]]
+name = "pymemcache"
+version = "4.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d9/b6/4541b664aeaad025dfb8e851dcddf8e25ab22607e674dd2b562ea3e3586f/pymemcache-4.0.0.tar.gz", hash = "sha256:27bf9bd1bbc1e20f83633208620d56de50f14185055e49504f4f5e94e94aff94", size = 70176, upload-time = "2022-10-17T16:53:07.726Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/41/ba/2f7b22d8135b51c4fefb041461f8431e1908778e6539ff5af6eeaaee367a/pymemcache-4.0.0-py2.py3-none-any.whl", hash = "sha256:f507bc20e0dc8d562f8df9d872107a278df049fa496805c1431b926f3ddd0eab", size = 60772, upload-time = "2022-10-17T16:53:04.388Z" },
 ]
 
 [[package]]

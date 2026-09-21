@@ -1,0 +1,11 @@
+services:
+  memcached:
+    image: memcached:1.6-alpine
+    command: ["memcached", "-m", "64", "-U", "0"]
+    ports:
+      - "127.0.0.1:51211:11211"
+    healthcheck:
+      test: ["CMD-SHELL", "printf 'version\\r\\n' | nc -w 1 127.0.0.1 11211 | grep -q '^VERSION '"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

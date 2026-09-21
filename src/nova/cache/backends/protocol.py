@@ -19,6 +19,13 @@ from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any, Protocol, runtime_checkable
 
+# Finite numeric values and timedelta express seconds.
+# For TTL-capable backends, ttl <= 0 deletes the targeted keys without
+# serializing or storing replacement values, for both set and set_many.
+# Positive TTL follows the backend's time resolution.
+# None preserves existing backend policy: memory uses its constructor default;
+# Redis, Memcached and the Django adapter request no expiration.
+# Backends advertising supports_ttl=False continue to ignore TTL.
 TTL = int | float | timedelta | None
 
 
