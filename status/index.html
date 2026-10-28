@@ -11,7 +11,7 @@
         <link rel="canonical" href="https://artem7898.github.io/django-nova/status/">
       
       
-        <link rel="prev" href="../testing/">
+        <link rel="prev" href="../gc-preparation/">
       
       
         <link rel="next" href="../api/core/">
@@ -325,6 +325,16 @@
       
         
       
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
     
     
     
@@ -606,6 +616,146 @@
     
   
     Testing and benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../serializer-environment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Serializer process environment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gc-inventory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GC object inventories
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pytest-plugin-profile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pytest plugin profiles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../full-gc-probe/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Explicit full-GC probes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gc-preparation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Preparatory collection
   
 
     
@@ -1069,8 +1219,21 @@ and pytest's <code>skipped</code> count refers to test cases. A full service run
 SQLite run may execute different sets of tests.</p>
 <p>Use the <a href="../testing/">verification guide</a> to refresh the report and interpret skips.
 Keep the source revision, command, dependency versions, and coverage XML together.</p>
+<p>The committed <code>STATUS.md</code> snapshot refreshed on 2026-10-28 comes from
+<code>uv run --locked pytest -q --cov=src/nova --cov-report=xml --cov-report=term</code>
+on SQLite with CPython 3.12.14: 1899 passed and 437 skipped. Its line coverage
+is 90.3%; combined line-and-branch coverage is 87%. This local run did not
+configure PostgreSQL, Redis or Memcached. The earlier full-service checkpoint
+below remains a separate measurement; the new branch still needs service CI.</p>
 <h2 id="completed-stages">Completed stages</h2>
 <ul>
+<li>Serialization/GC diagnostic tooling: isolated serialization, lifetime and
+  instance-hint controls; process-environment and plugin comparisons; object
+  inventories; explicit full-collection probes; and the
+  <a href="../gc-preparation/#recorded-results-2026-10-28">completed preparation comparison</a>.
+  The final run reproduced different full-collection schedules after nearly
+  identical young-generation event counts. These observations do not identify
+  the internal trigger mechanism or justify a production GC policy change.</li>
 <li>Documentation and the reproducible dogfooding demo: executable demo tests and
   a successful strict documentation build.</li>
 <li><a href="../context/">Context semantics</a>: nested restoration, async isolation,
@@ -1087,8 +1250,9 @@ Keep the source revision, command, dependency versions, and coverage XML togethe
 </ul>
 <h2 id="remaining-work-order">Remaining work order</h2>
 <ol>
-<li>Investigate temporary objects on the serialization path after comparing full
-   instrumentation with GC-only observation.</li>
+<li>Keep the internal cause of the observed full-GC scheduling difference as an
+   open research question. The completed diagnostic stage and its limitations
+   are recorded; no production serialization or GC change is inferred.</li>
 <li>Confirm GraphQL API stability before expanding runtime integration tests.</li>
 </ol>
 <p>Update CHANGELOG as each stage closes. Keep new work under <code>Unreleased</code> until an
