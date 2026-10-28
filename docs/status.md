@@ -13,8 +13,22 @@ SQLite run may execute different sets of tests.
 Use the [verification guide](testing.md) to refresh the report and interpret skips.
 Keep the source revision, command, dependency versions, and coverage XML together.
 
+The committed `STATUS.md` snapshot refreshed on 2026-10-28 comes from
+`uv run --locked pytest -q --cov=src/nova --cov-report=xml --cov-report=term`
+on SQLite with CPython 3.12.14: 1899 passed and 437 skipped. Its line coverage
+is 90.3%; combined line-and-branch coverage is 87%. This local run did not
+configure PostgreSQL, Redis or Memcached. The earlier full-service checkpoint
+below remains a separate measurement; the new branch still needs service CI.
+
 ## Completed stages
 
+- Serialization/GC diagnostic tooling: isolated serialization, lifetime and
+  instance-hint controls; process-environment and plugin comparisons; object
+  inventories; explicit full-collection probes; and the
+  [completed preparation comparison](gc-preparation.md#recorded-results-2026-10-28).
+  The final run reproduced different full-collection schedules after nearly
+  identical young-generation event counts. These observations do not identify
+  the internal trigger mechanism or justify a production GC policy change.
 - Documentation and the reproducible dogfooding demo: executable demo tests and
   a successful strict documentation build.
 - [Context semantics](context.md): nested restoration, async isolation,
@@ -31,8 +45,9 @@ Keep the source revision, command, dependency versions, and coverage XML togethe
 
 ## Remaining work order
 
-1. Investigate temporary objects on the serialization path after comparing full
-   instrumentation with GC-only observation.
+1. Keep the internal cause of the observed full-GC scheduling difference as an
+   open research question. The completed diagnostic stage and its limitations
+   are recorded; no production serialization or GC change is inferred.
 2. Confirm GraphQL API stability before expanding runtime integration tests.
 
 Update CHANGELOG as each stage closes. Keep new work under `Unreleased` until an

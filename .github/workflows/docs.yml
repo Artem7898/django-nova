@@ -24,11 +24,10 @@ jobs:
       - name: Install deps
         run: |
           pip install uv
-          uv sync --all-extras
-          uv pip install mkdocs-material mkdocstrings[python]
+          uv sync --locked --all-extras --dev
 
       - name: Run tests with coverage
-        run: uv run pytest --cov=src/nova --cov-report=xml --cov-report=term
+        run: uv run --locked pytest --cov=src/nova --cov-report=xml --cov-report=term
 
       - name: Generate honest status
         run: uv run python scripts/generate_status.py --write
@@ -47,7 +46,7 @@ jobs:
       #     git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }} main
 
       - name: Build MkDocs
-        run: uv run mkdocs build
+        run: uv run --locked --with-requirements docs/requirements.txt mkdocs build --strict
 
       - name: Deploy to GitHub Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

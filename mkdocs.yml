@@ -50,6 +50,11 @@ nav:
       - Tracing: tracing.md
       - Migrations: migrations.md
       - Testing and benchmarks: testing.md
+      - Serializer process environment: serializer-environment.md
+      - GC object inventories: gc-inventory.md
+      - Pytest plugin profiles: pytest-plugin-profile.md
+      - Explicit full-GC probes: full-gc-probe.md
+      - Preparatory collection: gc-preparation.md
   - Status: status.md
   - API Reference:
       - Core: api/core.md

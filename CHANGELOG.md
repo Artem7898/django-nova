@@ -7,6 +7,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Documentation build
+
+- Pin a compatible PyMdown Extensions version for the existing mkdocstrings
+  version after reproducing the incompatible Highlight constructor. Use the
+  checked documentation requirements and strict mode in the docs workflow,
+  keeping its dependencies separate from the benchmark/test environment.
+
+### Preparatory collection and automatic GC
+
+- Document the completed 32-worker preparation comparison, including GC
+  checkpoints, young-generation event counts between full collections and
+  collected/uncollectable outcomes. Separate observed scheduling differences
+  from the still-unresolved internal trigger mechanism; make no production GC
+  or serializer policy change.
+- Add paired no/one preparatory full-collection workers for both pytest
+  profiles, preserving the previous warmup/read-loop bodies, fixed control
+  payload and normal automatic GC. Keep preparation outside read timing;
+  compare automatic gen-2 counts, event positions, total GC time and complete
+  read lifecycles in 32 fresh processes. Preserve earlier experiments,
+  production code and locked dependencies.
+
+### Explicit full-GC probes
+
+- Isolate unit fault-injection tests from threads retained by the parent test
+  process, retaining real single-thread checks in diagnostic workers and
+  dedicated rejection coverage. This permits the diagnostics to run as part of
+  the full suite as well as independently.
+- Add a separate diagnostic worker measuring one `gc.collect(2)` after an
+  untimed preparatory full collection, using the fixed control payload and
+  adjacent autoload/explicit-Django pytest processes. Preserve GC checkpoints
+  and return values, restore automatic GC after the explicit pair, and report
+  empty and nonempty measurements separately. Keep production code and the
+  previous latency experiments unchanged.
+
+### Pytest plugin profiles
+
+- Add paired autoload/explicit-Django pytest diagnostics with verified active
+  registrations, unchanged payloads and the existing serializer timing loop.
+  Keep timing and startup/warmup inventories in separate fresh processes;
+  compare empty gen-2 pauses, full GC scopes and type/module count deltas.
+  Preserve production code, previous experiments and locked dependencies.
+
+### GC object inventories
+
+- Add terminal startup/warmup inventories in adjacent fresh minimal-Django and
+  pytest workers using the preceding experiment's fixed payloads and environment.
+  Report generation/type counts and declared function/class modules, including
+  explicit observer/frozen exclusions and cross-process count deltas. Suspend
+  automatic GC only during terminal inspection and restore it afterward; keep
+  production code and the existing latency experiment unchanged.
+
+### Serializer process environment
+
+- Add a paired minimal-Django/pytest serializer experiment with identical fixed
+  payload bytes, shared timing and disposal boundaries, unchanged GC policy and
+  adjacent fresh processes in alternating order. Compare empty generation-2
+  collections separately; retain full per-scope counts, input/source/version
+  checks and incomplete-run evidence. Production cache code is unchanged.
+
+### Instance-hint GC experiment
+
+- Add an opt-in `loads()` comparison for original prefetch payloads versus an
+  independent experimental graph with only cached tag QuerySets' instance hints
+  removed. Check all concrete model fields, loaded tag membership, independent
+  ownership, an unchanged original payload and SQL-free round trips.
+- Compare both hint variants in fresh timing/lifetime workers with unchanged GC
+  policy. Record disposal boundaries as well as call latency, verify matched
+  variant pairs offline, and test cycles, release and rejection of invalid
+  controls. This experiment does not remove routing hints in production.
+
 ## [0.6.3] - 2026-09-21
 
 ### Overview
