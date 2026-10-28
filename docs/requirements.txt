@@ -2,3 +2,6 @@ mkdocs==1.6.1
 mkdocs-material==9.7.7
 mkdocstrings==0.30.1
 mkdocstrings-python==2.0.8
+# mkdocstrings 0.30.1 does not support the Highlight constructor in 12.2+.
+# https://github.com/mkdocstrings/mkdocstrings/issues/829
+pymdown-extensions==12.1

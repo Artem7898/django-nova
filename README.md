@@ -13,6 +13,7 @@ tasks, and optional OpenTelemetry tracing.
 [PyPI](https://pypi.org/project/django-nova/) ·
 [Documentation](docs/index.md) ·
 [Project site](https://artem7898.github.io/django-nova-site/) ·
+[Live demo](https://novademo.tech) .
 [Coverage report](STATUS.md) ·
 [Roadmap](ROADMAP.md)
 
