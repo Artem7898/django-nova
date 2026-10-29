@@ -13,12 +13,28 @@ SQLite run may execute different sets of tests.
 Use the [verification guide](testing.md) to refresh the report and interpret skips.
 Keep the source revision, command, dependency versions, and coverage XML together.
 
-The committed `STATUS.md` snapshot refreshed on 2026-10-28 comes from
-`uv run --locked pytest -q --cov=src/nova --cov-report=xml --cov-report=term`
-on SQLite with CPython 3.12.14: 1899 passed and 437 skipped. Its line coverage
-is 90.3%; combined line-and-branch coverage is 87%. This local run did not
-configure PostgreSQL, Redis or Memcached. The earlier full-service checkpoint
-below remains a separate measurement; the new branch still needs service CI.
+The `STATUS.md` snapshot was refreshed on 2026-10-28 from the author's local
+PostgreSQL + Redis + Memcached run with CPython 3.12.13: **2336 passed, no skips**
+in 313.18 seconds. Line coverage is **90.4%** (3551 of 3926 executable lines);
+the terminal's combined line-and-branch coverage is **88%**.
+
+The services were healthy before this command:
+
+```bash
+NOVA_TEST_REDIS_URL=redis://127.0.0.1:56379/0 \
+NOVA_TEST_MEMCACHED_SERVER=127.0.0.1:51211 \
+uv run --locked pytest -q -rs \
+  --ds=tests.example_project.settings_postgres \
+  -W error::pytest.PytestWarning --tb=short \
+  --cov=src/nova --cov-report=xml --cov-report=term
+```
+
+Pyright, Ruff, formatting, generated status and README badge checks,
+`mkdocs build --strict`, and `git diff --check` also passed. GitHub's
+[Run Tests](https://github.com/Artem7898/django-nova/actions/runs/40627666779) and
+[Docs & Status](https://github.com/Artem7898/django-nova/actions/runs/40627666819)
+workflows passed for merged checkpoint `242ba8e`. A release preparation PR
+must pass its own required checks before merging.
 
 ## Completed stages
 
@@ -39,7 +55,7 @@ below remains a separate measurement; the new branch still needs service CI.
   defaults, field rules, foreign keys, uploads, validation errors, and viewset
   integration. The focused SQLite suite measures 94% combined line-and-branch
   coverage, above the 85% target; the full service run confirms 94%.
-- Full local PostgreSQL + Redis + Memcached checkpoint: 2072 passed, no skips,
+- Full local PostgreSQL + Redis + Memcached checkpoint: 2336 passed, no skips,
   88% combined coverage. Pyright, Ruff, formatting, and strict docs build pass.
   This is a local checkpoint; required GitHub CI must pass before release.
 

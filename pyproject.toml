@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "django-nova"
-version = "0.6.3"
+version = "0.6.4"
 description = "Production-oriented Django infrastructure toolkit: typed models, schema-driven validation, query planning, caching, and observability"
 readme = "README.md"
 license = { text = "MIT" }

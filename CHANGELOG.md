@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.6.4] - 2026-10-29
+
+### Overview
+
+Record reproducible serializer/GC diagnostics, failure-path tests, and their
+documented results. Production serialization, cache behavior, and GC policy
+are unchanged from 0.6.3. Development status remains **Beta**.
+
+The diagnostic workers and reports belong to the source repository. Run these
+experiments from a repository checkout; the installed wheel contains the Nova
+library, not the benchmark/test harness.
+
 ### Documentation build
 
 - Pin a compatible PyMdown Extensions version for the existing mkdocstrings
@@ -76,6 +88,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   policy. Record disposal boundaries as well as call latency, verify matched
   variant pairs offline, and test cycles, release and rejection of invalid
   controls. This experiment does not remove routing hints in production.
+
+### Verification checkpoint
+
+- The author's full PostgreSQL + Redis + Memcached run on 2026-10-28 passed
+  all 2336 tests without skips. Combined line-and-branch coverage was 88%;
+  line coverage was 90.4% (3551/3926 executable lines).
+- Pyright, Ruff, formatting, generated status/badge checks, strict MkDocs,
+  and Git whitespace checks passed. GitHub's Run Tests and Docs & Status
+  workflows also passed for the merged diagnostic checkpoint.
+- Performance observations come from separate diagnostic workers, not the
+  coverage-instrumented verification run. The internal mechanism behind the
+  observed full-GC scheduling difference remains an open research question.
 
 ## [0.6.3] - 2026-09-21
 
@@ -484,3 +508,4 @@ None - fully backward compatible.
 [0.4.0]: https://github.com/Artem7898/django-nova/releases/tag/v0.4.0
 
 [0.6.3]: https://github.com/Artem7898/django-nova/compare/v0.6.2...v0.6.3
+[0.6.4]: https://github.com/Artem7898/django-nova/compare/v0.6.3...v0.6.4
